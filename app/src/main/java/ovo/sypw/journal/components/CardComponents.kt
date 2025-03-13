@@ -31,6 +31,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -429,25 +430,32 @@ fun SwipeCard(
     onMark: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var currentProgress = remember { mutableFloatStateOf(0f) }
     // 创建滑动状态
     val dismissState =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
                 // 当滑动到END位置时触发删除
-                if (value == SwipeToDismissBoxValue.EndToStart) {
-                    // 在这里直接调用onDismiss并返回false，防止状态变为EndToStart
+                if (value == SwipeToDismissBoxValue.EndToStart
+                    && currentProgress.floatValue >= 0.5f && currentProgress.floatValue <= 1f
+                ) {
                     onDismiss()
                     false // 返回false防止状态更新为EndToStart
-                } else if (value == SwipeToDismissBoxValue.StartToEnd) {
+                    // 在这里直接调用onDismiss并返回false，防止状态变为EndToStart
+
+                } else if (value == SwipeToDismissBoxValue.StartToEnd
+                    && currentProgress.floatValue >= 0.5f && currentProgress.floatValue <= 1f
+                ) {
                     onMark()
                     false
-                } else {
-                    false // 其他状态也不更新
                 }
+                false
             },
-            positionalThreshold = { totalDistance -> totalDistance * 0.6f }
+            positionalThreshold = { totalDistance -> totalDistance * 0.4f }
         )
-
+    ForUpdateData {
+        currentProgress.floatValue = dismissState.progress
+    }
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = true, // 允许从左向右滑动
@@ -484,4 +492,9 @@ fun SwipeCard(
 //        ElevatedCard(showText)
         JournalCard(journalData)
     }
+}
+
+@Composable
+private fun ForUpdateData(onUpdate: () -> Unit) {
+    onUpdate()
 }
