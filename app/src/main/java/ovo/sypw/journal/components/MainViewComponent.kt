@@ -1,6 +1,5 @@
 package ovo.sypw.journal.components
 
-import SnackbarUtils
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +12,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.utils.SnackbarUtils
 
 /**
  * 主视图组件，显示卡片列表

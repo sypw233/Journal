@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import coil3.Bitmap
 import ovo.sypw.journal.model.JournalData
 
 /**
@@ -29,7 +28,6 @@ import ovo.sypw.journal.model.JournalData
 @Composable
 fun AddItemFAB(
     cardItems: SnapshotStateList<JournalData>,
-    bitmapList: MutableList<Bitmap>
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
