@@ -12,6 +12,7 @@ import java.util.Date
  * @property location 位置信息
  */
 data class JournalData(
+    val id: Int,
     var isMark: Boolean? = false,
     val date: Date? = Date(),
     val images: MutableList<Bitmap>? = null,

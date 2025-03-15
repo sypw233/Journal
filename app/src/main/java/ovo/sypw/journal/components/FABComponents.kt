@@ -20,6 +20,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.utils.SnackbarUtils
 
 /**
  * 浮动操作按钮组件，包含添加和删除功能
@@ -35,7 +36,8 @@ fun AddItemFAB(
     Column {
         FloatingActionButton(
             onClick = {
-                showBottomSheet = true
+                SnackbarUtils.showSnackbar("cardItems.size: ${cardItems.size}")
+//                showBottomSheet = true
             },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
@@ -67,8 +69,12 @@ fun AddItemFAB(
             onClick = {
                 cardItems.add(
                     0,
-                    JournalData(text = "和魏志阳邂逅${cardItems.size + 1}场鸡公煲的爱情")
+                    JournalData(
+                        id = cardItems.size,
+                        text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+                    )
                 )
+                SnackbarUtils.showSnackbar("Add item cardItems.size: ${cardItems.size}")
             },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
@@ -80,6 +86,7 @@ fun AddItemFAB(
                 if (cardItems.isNotEmpty()) {
                     cardItems.removeAt(0)
                 }
+                SnackbarUtils.showSnackbar("Remove item cardItems.size: ${cardItems.size}")
             },
             shape = CircleShape
         ) {

@@ -5,7 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -40,7 +42,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Preview
 @Composable
 fun ContentViews() {
@@ -49,11 +51,14 @@ fun ContentViews() {
     ImageLoadUtils.init(context)
 
     // 使用SampleDataProvider获取示例数据
-    val cardItems = SampleDataProvider.generateSampleData(context)
+    val cardItems = remember { SampleDataProvider.generateSampleData(context) }
 
     // 获取最后一个示例数据的图片列表，用于FAB
-
-    val listState = rememberLazyListState()
+    val lazyListPrefetchStrategy = remember { LazyListPrefetchStrategy(10) }
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = 0,
+        prefetchStrategy = lazyListPrefetchStrategy,
+    )
     var markedSet: MutableSet<Int> = mutableSetOf()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -70,6 +75,6 @@ fun ContentViews() {
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }) { innerPadding ->
-        MainView(innerPadding, listState, cardItems, markedSet)
+        MainView(innerPadding, cardItems, markedSet)
     }
 }

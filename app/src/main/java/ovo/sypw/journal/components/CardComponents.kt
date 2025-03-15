@@ -1,9 +1,9 @@
 package ovo.sypw.journal.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +31,9 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -45,15 +47,16 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.Bitmap
 import coil3.compose.AsyncImage
-import coil3.compose.AsyncImagePainter
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import coil3.size.Precision
 import ovo.sypw.journal.R
 import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.utils.ImageLoadUtils
+import ovo.sypw.journal.model.LocationData
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -63,357 +66,378 @@ import java.util.Locale
  * ONLY_IMAGE_HEIGHT 只有图片的高度
  * MIN_HEIGHT 只有1行文字时的高度
  */
-private val CardHeight = {
-    val DEFAULT_HEIGHT = 240.dp
-}
+//private val CardHeight = {
+//    val DEFAULT_HEIGHT = 240.dp
+//}
 
 /** 普通卡片组件 */
+//@Composable
+//fun ElevatedCard(showText: String) {
+//    ElevatedCard(
+//        colors =
+//            CardDefaults.elevatedCardColors(
+//                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+//                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+//            ),
+//        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+//        modifier =
+//            Modifier
+//                .fillMaxWidth()
+//                .padding(horizontal = 16.dp, vertical = 10.dp)
+//                .height(240.dp)
+//    ) { Text(text = showText, modifier = Modifier.padding(15.dp)) }
+//}
+
 @Composable
-fun ElevatedCard(showText: String) {
-    ElevatedCard(
-        colors =
-            CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-                .height(240.dp)
-    ) { Text(text = showText, modifier = Modifier.padding(15.dp)) }
+fun SingleImage(image: Bitmap, onImageClick: (Int) -> Unit) {
+
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(image)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .crossfade(true)
+            .size(100)
+            .build(),
+//        imageLoader = ImageLoadUtils.getImageLoader(),
+        contentDescription = "Journal Image",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable { onImageClick(0) },
+        clipToBounds = true
+    )
 }
 
 @Composable
-fun JournalCard(journalData: JournalData) {
+fun TwoImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
+    val imageRequest0 = ImageRequest.Builder(LocalContext.current)
+        .data(images[0])
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
+        .crossfade(true)
+        .size(50)
+        .build()
+    val imageRequest1 = ImageRequest.Builder(LocalContext.current)
+        .data(images[1])
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
+        .crossfade(true)
+        .size(50)
+        .build()
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(end = 2.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onImageClick(0) }
+        ) {
+            AsyncImage(
+                model = imageRequest0.data,
+                contentDescription = "Journal Image 1",
+                contentScale = ContentScale.Crop,
+//                imageLoader = ImageLoadUtils.getImageLoader(),
+                modifier = Modifier.fillMaxSize(),
+                clipToBounds = true
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(start = 2.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onImageClick(1) }
+        ) {
+            AsyncImage(
+                model = imageRequest1.data,
+                contentDescription = "Journal Image 2",
+                contentScale = ContentScale.Crop,
+//                imageLoader = ImageLoadUtils.getImageLoader(),
+                modifier = Modifier.fillMaxSize(),
+                clipToBounds = true
+            )
+        }
+    }
+}
+
+@Composable
+fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight()
+                .padding(end = 4.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onImageClick(0) }
+        ) {
+            AsyncImage(
+                model = images[0],
+                contentDescription = "Journal Image 1",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                clipToBounds = true
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(0.5f)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onImageClick(1) }
+            ) {
+                AsyncImage(
+                    model = images[1],
+                    contentDescription = "Journal Image 2",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    clipToBounds = true
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(0.5f)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onImageClick(2) }
+            ) {
+                AsyncImage(
+                    model = images[2],
+                    contentDescription = "Journal Image 3",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    clipToBounds = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MultipleImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight()
+                .padding(end = 4.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onImageClick(0) }
+        ) {
+            AsyncImage(
+                model = images[0],
+                contentDescription = "Journal Image 1",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                clipToBounds = true
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val maxRightImages = minOf(3, images.size - 1)
+            for (i in 1..maxRightImages) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onImageClick(i) }
+                ) {
+                    AsyncImage(
+                        model = images[i],
+                        contentDescription = "Journal Image ${i + 1}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        clipToBounds = true
+                    )
+
+                    if (i == maxRightImages && images.size > maxRightImages + 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0x80000000)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "+${images.size - maxRightImages - 1}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ImageSection(
+    images: MutableList<Bitmap>?,
+    onImageClick: (Int) -> Unit,
+    modifier: Modifier
+) {
+    if (!images.isNullOrEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp))
+        ) {
+            when (images.size) {
+                1 -> SingleImage(images[0], onImageClick)
+                2 -> TwoImages(images, onImageClick)
+                3 -> ThreeImages(images, onImageClick)
+                else -> MultipleImages(images, onImageClick)
+            }
+        }
+    }
+}
+
+@Composable
+fun LocationInfo(location: LocationData) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.LocationOn,
+            contentDescription = "location",
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "${location.latitude}, ${location.longitude}",
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+fun DateInfo(date: Date) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = ImageVector.vectorResource(R.drawable.access_time_24),
+            contentDescription = "time",
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+fun ContentSection(
+    modifier: Modifier,
+    text: String?,
+    location: LocationData?,
+    date: Date?,
+    expanded: Boolean,
+    onExpandClick: () -> Unit,
+    textLayoutResult: MutableState<TextLayoutResult?>
+) {
+    Column(
+        modifier = Modifier.padding(bottom = 8.dp)
+    ) {
+        if (text != null) {
+            val textStyle = MaterialTheme.typography.bodyMedium
+            Text(
+                text = text,
+                style = textStyle,
+                maxLines = if (expanded) Int.MAX_VALUE else 6,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clickable(onClick = onExpandClick),
+                onTextLayout = { textLayoutResult.value = it }
+            )
+        }
+
+        if (location != null) {
+            LocationInfo(location)
+        }
+
+        if (date != null) {
+            DateInfo(date)
+        }
+    }
+}
+
+@SuppressLint("MutableCollectionMutableState")
+@Composable
+fun JournalCard(modifier: Modifier, journalData: JournalData) {
     // 控制文本展开状态
-    val maxLines = 6
     val (expanded, setExpanded) = remember { mutableStateOf(false) }
     val textLayoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
     // 添加图片预览状态
     val (showImagePreview, setShowImagePreview) = remember { mutableStateOf(false) }
-    val (selectedImageIndex, setSelectedImageIndex) = remember { mutableStateOf(0) }
-
+    val (selectedImageIndex, setSelectedImageIndex) = remember { mutableIntStateOf(0) }
+    val journalDataRem = remember { mutableStateOf(journalData) }
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier = Modifier
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .clickable(
-                enabled = true,
-//                enabled = journalData.text != null &&
-//                         (textLayoutResult.value?.lineCount ?: 0) > maxLines,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                setExpanded(!expanded)
-            }
+//            .padding(horizontal = 16.dp, vertical = 12.dp)
+//            .animateContentSize()
     ) {
         Column {
-            // 图片区域 - 固定高度
-            if (journalData.images != null && journalData.images.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    if (journalData.images.size == 1) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(journalData.images[0])
-                                .precision(Precision.EXACT)
-                                .crossfade(true)
-                                .build(),
-                            imageLoader = ImageLoadUtils.getImageLoader(),
-                            contentDescription = "Journal Image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable {
-                                    setSelectedImageIndex(0)
-                                    setShowImagePreview(true)
-                                },
-                            clipToBounds = true,
-                            onState = { state ->
-                                when (state) {
-                                    is AsyncImagePainter.State.Loading -> {
-                                        // 可以添加加载占位图
-                                    }
-
-                                    is AsyncImagePainter.State.Error -> {
-                                        // 可以添加错误占位图
-                                    }
-
-                                    else -> {}
-                                }
-                            }
-                        )
-                    } else if (journalData.images.size == 2) {
-                        // 两张图片并排显示
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            // 左侧图片
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .padding(end = 2.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        setSelectedImageIndex(0)
-                                        setShowImagePreview(true)
-                                    }
-                            ) {
-                                AsyncImage(
-                                    model = journalData.images[0],
-                                    contentDescription = "Journal Image 1",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    clipToBounds = true
-                                )
-                            }
-
-                            // 右侧图片
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .padding(start = 2.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        setSelectedImageIndex(1)
-                                        setShowImagePreview(true)
-                                    }
-                            ) {
-                                AsyncImage(
-                                    model = journalData.images[1],
-                                    contentDescription = "Journal Image 2",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    clipToBounds = true
-                                )
-                            }
-                        }
-                    } else if (journalData.images.size == 3) {
-                        // 三张图片：右侧一张大图在上方占一半高度，两张小图在下方并排
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            // 左侧大图
-                            Box(
-                                modifier = Modifier
-                                    .weight(0.5f)
-                                    .fillMaxHeight()
-                                    .padding(end = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        setSelectedImageIndex(0)
-                                        setShowImagePreview(true)
-                                    }
-                            ) {
-                                AsyncImage(
-                                    model = journalData.images[0],
-                                    contentDescription = "Journal Image 1",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    clipToBounds = true
-                                )
-                            }
-
-                            // 右侧布局：上方一张大图，下方两张小图并排
-                            Column(
-                                modifier = Modifier
-                                    .weight(0.5f)
-                                    .fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                // 上方大图
-                                Box(
-                                    modifier = Modifier
-                                        .weight(0.5f)
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            setSelectedImageIndex(1)
-                                            setShowImagePreview(true)
-                                        }
-                                ) {
-                                    AsyncImage(
-                                        model = journalData.images[1],
-                                        contentDescription = "Journal Image 2",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                        clipToBounds = true
-                                    )
-                                }
-
-                                // 下方小图
-                                Box(
-                                    modifier = Modifier
-                                        .weight(0.5f)
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            setSelectedImageIndex(2)
-                                            setShowImagePreview(true)
-                                        }
-                                ) {
-                                    AsyncImage(
-                                        model = journalData.images[2],
-                                        contentDescription = "Journal Image 3",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                        clipToBounds = true
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        // 超过3张图片的情况
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            // 左侧大图
-                            Box(
-                                modifier = Modifier
-                                    .weight(0.5f)
-                                    .fillMaxHeight()
-                                    .padding(end = 4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        setSelectedImageIndex(0)
-                                        setShowImagePreview(true)
-                                    }
-                            ) {
-                                AsyncImage(
-                                    model = journalData.images[0],
-                                    contentDescription = "Journal Image 1",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    clipToBounds = true
-                                )
-                            }
-
-                            // 右侧小图列表
-                            Column(
-                                modifier = Modifier
-                                    .weight(0.5f)
-                                    .fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                // 最多显示3张小图
-                                val maxRightImages = minOf(3, journalData.images.size - 1)
-                                for (i in 1..maxRightImages) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable {
-                                                setSelectedImageIndex(i)
-                                                setShowImagePreview(true)
-                                            }
-                                    ) {
-                                        AsyncImage(
-                                            model = journalData.images[i],
-                                            contentDescription = "Journal Image ${i + 1}",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize(),
-                                            clipToBounds = true
-                                        )
-
-                                        // 如果还有更多图片未显示，在最后一张上显示+N
-                                        if (i == maxRightImages && journalData.images.size > maxRightImages + 1) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(Color(0x80000000))
-                                                    .clickable {
-                                                        setSelectedImageIndex(i)
-                                                        setShowImagePreview(true)
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "+${journalData.images.size - maxRightImages - 1}",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    color = Color.White
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
+            // 图片区域
+            ImageSection(
+                modifier = modifier,
+                images = journalDataRem.value.images,
+                onImageClick = { index ->
+                    setSelectedImageIndex(index)
+                    setShowImagePreview(true)
                 }
-            }
+            )
 
-            // 文字区域
-            if (journalData.text != null) {
-                val textStyle = MaterialTheme.typography.bodyMedium
-
-                Text(
-                    text = journalData.text,
-                    style = textStyle,
-                    maxLines = if (expanded) Int.MAX_VALUE else maxLines,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(16.dp),
-                    onTextLayout = { textLayoutResult.value = it }
-                )
-            }
-
-            // 位置信息
-            if (journalData.location != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                ) {
-                    // 位置信息内容保持不变
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOn,
-                        contentDescription = "location",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${journalData.location.latitude}, ${journalData.location.longitude}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            // 日期信息保持不变
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.access_time_24),
-                    contentDescription = "time",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = SimpleDateFormat(
-                        "yyyy-MM-dd HH:mm",
-                        Locale.getDefault()
-                    ).format(journalData.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp)
-                )
-            }
+            // 内容区域
+            ContentSection(
+                modifier = modifier,
+                text = journalDataRem.value.text,
+                location = journalDataRem.value.location,
+                date = journalDataRem.value.date,
+                expanded = expanded,
+                onExpandClick = { setExpanded(!expanded) },
+                textLayoutResult = textLayoutResult
+            )
         }
     }
 
     // 显示图片预览
-    if (showImagePreview && journalData.images != null && journalData.images.isNotEmpty()) {
+    if (showImagePreview && !journalDataRem.value.images.isNullOrEmpty()) {
         ImageGalleryPreview(
-            images = journalData.images,
+            images = journalDataRem.value.images!!,
             initialIndex = selectedImageIndex,
             onDismiss = { setShowImagePreview(false) }
         )
@@ -490,7 +514,12 @@ fun SwipeCard(
     ) {
         // 卡片内容
 //        ElevatedCard(showText)
-        JournalCard(journalData)
+        JournalCard(
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .animateContentSize(), journalData
+        )
     }
 }
 

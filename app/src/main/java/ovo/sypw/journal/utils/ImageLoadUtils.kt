@@ -21,16 +21,16 @@ object ImageLoadUtils {
         imageLoader = ImageLoader.Builder(context)
             .memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(context, 0.25) // 使用25%的可用内存作为最大缓存
+                    .maxSizePercent(context, 0.6) // 使用25%的可用内存作为最大缓存
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
-                    .maxSizePercent(0.02) // 使用2%的可用磁盘空间作为最大缓存
+                    .maxSizePercent(0.1) // 使用2%的可用磁盘空间作为最大缓存
                     .build()
             }
-            .precision(Precision.EXACT) // 使用精确的图片尺寸加载
+            .precision(Precision.INEXACT)
             .crossfade(true) // 启用淡入淡出效果
             .crossfade(300) // 设置动画时长为300ms
             .memoryCachePolicy(CachePolicy.ENABLED) // 启用内存缓存
