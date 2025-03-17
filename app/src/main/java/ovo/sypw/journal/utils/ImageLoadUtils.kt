@@ -21,22 +21,22 @@ object ImageLoadUtils {
         imageLoader = ImageLoader.Builder(context)
             .memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(context, 0.6) // 使用25%的可用内存作为最大缓存
+                    .maxSizePercent(context, 0.5)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
-                    .maxSizePercent(0.1) // 使用2%的可用磁盘空间作为最大缓存
+                    .maxSizePercent(0.1)
                     .build()
             }
             .precision(Precision.INEXACT)
-            .crossfade(true) // 启用淡入淡出效果
-            .crossfade(300) // 设置动画时长为300ms
-            .memoryCachePolicy(CachePolicy.ENABLED) // 启用内存缓存
-            .diskCachePolicy(CachePolicy.ENABLED) // 启用磁盘缓存
-            .networkCachePolicy(CachePolicy.ENABLED) // 启用网络缓存
-            .allowRgb565(true) // 允许使用RGB565格式，减少内存占用
+            .crossfade(true)
+            .crossfade(300)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .networkCachePolicy(CachePolicy.ENABLED)
+            .allowRgb565(true)
             .build()
     }
 

@@ -25,8 +25,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 
 /**
  * 图片预览组件
@@ -57,7 +61,13 @@ fun ImagePreview(
         ) {
             // 图片预览，支持缩放和平移
             AsyncImage(
-                model = image,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(true)
+                    // 预览时使用原始尺寸，不设置size限制
+                    .build(),
                 contentDescription = "Preview Image",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
@@ -108,7 +118,7 @@ fun ImagePreview(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageGalleryPreview(
-    images: List<Bitmap>,
+    images: List<Int>,
     initialIndex: Int = 0,
     onDismiss: () -> Unit
 ) {
@@ -135,7 +145,13 @@ fun ImageGalleryPreview(
 
             // 图片预览，支持缩放和平移
             AsyncImage(
-                model = currentImage,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(currentImage)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(true)
+                    // 预览时使用原始尺寸，不设置size限制
+                    .build(),
                 contentDescription = "Preview Image ${currentIndex + 1}/${images.size}",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

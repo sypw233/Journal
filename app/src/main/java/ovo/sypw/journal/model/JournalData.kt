@@ -1,6 +1,5 @@
 package ovo.sypw.journal.model
 
-import android.graphics.Bitmap
 import java.util.Date
 
 /**
@@ -15,7 +14,7 @@ data class JournalData(
     val id: Int,
     var isMark: Boolean? = false,
     val date: Date? = Date(),
-    val images: MutableList<Bitmap>? = null,
+    val images: MutableList<Int>? = null,
     val location: LocationData? = null,
     val text: String? = null,
 )

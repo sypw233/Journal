@@ -1,5 +1,4 @@
 package ovo.sypw.journal.utils
-
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import kotlinx.coroutines.CoroutineScope

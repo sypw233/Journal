@@ -1,10 +1,8 @@
 package ovo.sypw.journal.data
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import coil3.Bitmap
 import ovo.sypw.journal.R
 import ovo.sypw.journal.model.JournalData
 
@@ -20,14 +18,10 @@ object SampleDataProvider {
      * @param count 图片数量
      * @return 图片列表
      */
-    private fun generateBitmapList(context: Context, count: Int): MutableList<Bitmap> {
-        val bitmapList = mutableListOf<Bitmap>()
+    private fun generateBitmapList(count: Int): MutableList<Int> {
+        val bitmapList = mutableListOf<Int>()
         for (i in R.raw.test_image1..R.raw.test_image1 + count) {
-            bitmapList.add(
-                BitmapFactory.decodeResource(
-                    context.resources, i
-                )
-            )
+            bitmapList.add(i)
         }
         return bitmapList
     }
@@ -41,12 +35,66 @@ object SampleDataProvider {
         val cardItems = mutableStateListOf<JournalData>()
 
         // 生成不同数量的图片列表
-        val bitmapList1 = generateBitmapList(context, 0)
-        val bitmapList2 = generateBitmapList(context, 1)
-        val bitmapList3 = generateBitmapList(context, 2)
-        val bitmapList4 = generateBitmapList(context, 3)
-        val bitmapList5 = generateBitmapList(context, 4)
-        val bitmapList6 = generateBitmapList(context, 5)
+
+        val bitmapList1 = generateBitmapList(0)
+        val bitmapList2 = generateBitmapList(1)
+        val bitmapList3 = generateBitmapList(2)
+        val bitmapList4 = generateBitmapList(3)
+        val bitmapList5 = generateBitmapList(4)
+        val bitmapList6 = generateBitmapList(5)
+
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList1,
+                text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
+            )
+        )
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList2,
+                text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+            )
+        )
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList3,
+                text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+            )
+        )
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList4,
+                text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+            )
+        )
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList5,
+                text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+            )
+        )
+        cardItems.add(
+            JournalData(
+                id = cardItems.size,
+                images = bitmapList6,
+                text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+            )
+        )
+        (0..10).forEach {
+            cardItems.add(
+                JournalData(
+                    id = cardItems.size,
+                    images = generateBitmapList(5),
+                    text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
+                )
+            )
+        }
+
 
         // 添加示例数据
 //        cardItems.add(
@@ -115,15 +163,7 @@ object SampleDataProvider {
 //                text = "和魏志阳邂逅999场潮汕牛肉的爱情"
 //            )
 //        )
-        for (i in (10 downTo 0)) {
-            cardItems.add(
-                JournalData(
-                    id = cardItems.size,
-                    images = generateBitmapList(context, 1),
-                    text = "和魏志阳邂逅${i}场鸡公煲的爱情"
-                )
-            )
-        }
+
 
         return cardItems
     }

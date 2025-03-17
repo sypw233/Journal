@@ -20,7 +20,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import ovo.sypw.journal.components.AddItemFAB
 import ovo.sypw.journal.components.MainView
 import ovo.sypw.journal.components.TopBarView
@@ -43,7 +42,6 @@ class MainActivity : ComponentActivity() {
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Preview
 @Composable
 fun ContentViews() {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -75,6 +73,6 @@ fun ContentViews() {
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }) { innerPadding ->
-        MainView(innerPadding, cardItems, markedSet)
+        MainView(innerPadding, listState, cardItems, markedSet)
     }
 }

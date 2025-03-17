@@ -36,7 +36,7 @@ fun AddItemFAB(
     Column {
         FloatingActionButton(
             onClick = {
-                SnackbarUtils.showSnackbar("cardItems.size: ${cardItems.size}")
+//                SnackbarUtils.showSnackbar("${cardItems[0].imagesThumbnail?.size}")
 //                showBottomSheet = true
             },
             shape = CircleShape,

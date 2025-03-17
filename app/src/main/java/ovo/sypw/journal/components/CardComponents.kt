@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,14 +48,12 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.Bitmap
 import coil3.compose.AsyncImage
-import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import coil3.request.crossfade
 import ovo.sypw.journal.R
 import ovo.sypw.journal.model.JournalData
 import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.utils.ImageLoadUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,9 +65,8 @@ import java.util.Locale
  * ONLY_IMAGE_HEIGHT 只有图片的高度
  * MIN_HEIGHT 只有1行文字时的高度
  */
-//private val CardHeight = {
-//    val DEFAULT_HEIGHT = 240.dp
-//}
+private val IMAGE_HEIGHT = 180.dp
+private val ROUNDED_SHAPE = RoundedCornerShape(12.dp)
 
 /** 普通卡片组件 */
 //@Composable
@@ -89,17 +87,13 @@ import java.util.Locale
 //}
 
 @Composable
-fun SingleImage(image: Bitmap, onImageClick: (Int) -> Unit) {
+fun SingleImage(image: Int, onImageClick: (Int) -> Unit) {
 
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(image)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .crossfade(true)
-            .size(100)
+            .size(Int.MAX_VALUE, 180)
             .build(),
-//        imageLoader = ImageLoadUtils.getImageLoader(),
         contentDescription = "Journal Image",
         contentScale = ContentScale.Crop,
         modifier = Modifier
@@ -110,21 +104,7 @@ fun SingleImage(image: Bitmap, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun TwoImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
-    val imageRequest0 = ImageRequest.Builder(LocalContext.current)
-        .data(images[0])
-        .memoryCachePolicy(CachePolicy.ENABLED)
-        .diskCachePolicy(CachePolicy.ENABLED)
-        .crossfade(true)
-        .size(50)
-        .build()
-    val imageRequest1 = ImageRequest.Builder(LocalContext.current)
-        .data(images[1])
-        .memoryCachePolicy(CachePolicy.ENABLED)
-        .diskCachePolicy(CachePolicy.ENABLED)
-        .crossfade(true)
-        .size(50)
-        .build()
+fun TwoImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -135,10 +115,13 @@ fun TwoImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
-                model = imageRequest0.data,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(images[0])
+                    .size(Int.MAX_VALUE, 180)
+                    .build(),
                 contentDescription = "Journal Image 1",
                 contentScale = ContentScale.Crop,
-//                imageLoader = ImageLoadUtils.getImageLoader(),
+                imageLoader = ImageLoadUtils.getImageLoader(),
                 modifier = Modifier.fillMaxSize(),
                 clipToBounds = true
             )
@@ -153,10 +136,13 @@ fun TwoImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                 .clickable { onImageClick(1) }
         ) {
             AsyncImage(
-                model = imageRequest1.data,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(images[1])
+                    .size(Int.MAX_VALUE, 180)
+                    .build(),
                 contentDescription = "Journal Image 2",
                 contentScale = ContentScale.Crop,
-//                imageLoader = ImageLoadUtils.getImageLoader(),
+                imageLoader = ImageLoadUtils.getImageLoader(),
                 modifier = Modifier.fillMaxSize(),
                 clipToBounds = true
             )
@@ -165,7 +151,7 @@ fun TwoImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
+fun ThreeImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -176,9 +162,13 @@ fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
-                model = images[0],
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(images[0])
+                    .size(Int.MAX_VALUE, 180)
+                    .build(),
                 contentDescription = "Journal Image 1",
                 contentScale = ContentScale.Crop,
+                imageLoader = ImageLoadUtils.getImageLoader(),
                 modifier = Modifier.fillMaxSize(),
                 clipToBounds = true
             )
@@ -198,7 +188,11 @@ fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                     .clickable { onImageClick(1) }
             ) {
                 AsyncImage(
-                    model = images[1],
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(images[1])
+                        .size(Int.MAX_VALUE, 180)
+                        .build(),
+                    imageLoader = ImageLoadUtils.getImageLoader(),
                     contentDescription = "Journal Image 2",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -210,11 +204,15 @@ fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                 modifier = Modifier
                     .weight(0.5f)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(ROUNDED_SHAPE)
                     .clickable { onImageClick(2) }
             ) {
                 AsyncImage(
-                    model = images[2],
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(images[2])
+                        .size(Int.MAX_VALUE, 180)
+                        .build(),
+                    imageLoader = ImageLoadUtils.getImageLoader(),
                     contentDescription = "Journal Image 3",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -226,18 +224,22 @@ fun ThreeImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun MultipleImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
+fun MultipleImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .weight(0.5f)
                 .fillMaxHeight()
                 .padding(end = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(ROUNDED_SHAPE)
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
-                model = images[0],
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(images[0])
+                    .size(Int.MAX_VALUE, 180)
+                    .build(),
+                imageLoader = ImageLoadUtils.getImageLoader(),
                 contentDescription = "Journal Image 1",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -257,11 +259,15 @@ fun MultipleImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(ROUNDED_SHAPE)
                         .clickable { onImageClick(i) }
                 ) {
                     AsyncImage(
-                        model = images[i],
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(images[i])
+                            .size(Int.MAX_VALUE, 180)
+                            .build(),
+                        imageLoader = ImageLoadUtils.getImageLoader(),
                         contentDescription = "Journal Image ${i + 1}",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -290,22 +296,22 @@ fun MultipleImages(images: MutableList<Bitmap>, onImageClick: (Int) -> Unit) {
 
 @Composable
 fun ImageSection(
-    images: MutableList<Bitmap>?,
+    images: MutableList<Int>?,
     onImageClick: (Int) -> Unit,
-    modifier: Modifier
 ) {
     if (!images.isNullOrEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .height(IMAGE_HEIGHT)
+                .clip(ROUNDED_SHAPE)
         ) {
             when (images.size) {
                 1 -> SingleImage(images[0], onImageClick)
                 2 -> TwoImages(images, onImageClick)
                 3 -> ThreeImages(images, onImageClick)
                 else -> MultipleImages(images, onImageClick)
+
             }
         }
     }
@@ -358,7 +364,7 @@ fun ContentSection(
     location: LocationData?,
     date: Date?,
     expanded: Boolean,
-    onExpandClick: () -> Unit,
+//    onExpandClick: () -> Unit,
     textLayoutResult: MutableState<TextLayoutResult?>
 ) {
     Column(
@@ -372,8 +378,8 @@ fun ContentSection(
                 maxLines = if (expanded) Int.MAX_VALUE else 6,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .padding(16.dp)
-                    .clickable(onClick = onExpandClick),
+                    .padding(16.dp),
+//                    .clickable(onClick = onExpandClick),
                 onTextLayout = { textLayoutResult.value = it }
             )
         }
@@ -398,7 +404,7 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
     // 添加图片预览状态
     val (showImagePreview, setShowImagePreview) = remember { mutableStateOf(false) }
     val (selectedImageIndex, setSelectedImageIndex) = remember { mutableIntStateOf(0) }
-    val journalDataRem = remember { mutableStateOf(journalData) }
+//    val journalDataRem = remember { mutableStateOf(journalData) }
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -406,15 +412,19 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = modifier
-            .fillMaxWidth()
-//            .padding(horizontal = 16.dp, vertical = 12.dp)
-//            .animateContentSize()
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(
+                remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                setExpanded(!expanded)
+            }
     ) {
         Column {
             // 图片区域
             ImageSection(
-                modifier = modifier,
-                images = journalDataRem.value.images,
+                images = journalData.images,
                 onImageClick = { index ->
                     setSelectedImageIndex(index)
                     setShowImagePreview(true)
@@ -424,20 +434,20 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
             // 内容区域
             ContentSection(
                 modifier = modifier,
-                text = journalDataRem.value.text,
-                location = journalDataRem.value.location,
-                date = journalDataRem.value.date,
+                text = journalData.text,
+                location = journalData.location,
+                date = journalData.date,
                 expanded = expanded,
-                onExpandClick = { setExpanded(!expanded) },
+//                onExpandClick = { setExpanded(!expanded) },
                 textLayoutResult = textLayoutResult
             )
         }
     }
 
     // 显示图片预览
-    if (showImagePreview && !journalDataRem.value.images.isNullOrEmpty()) {
+    if (showImagePreview && !journalData.images.isNullOrEmpty()) {
         ImageGalleryPreview(
-            images = journalDataRem.value.images!!,
+            images = journalData.images,
             initialIndex = selectedImageIndex,
             onDismiss = { setShowImagePreview(false) }
         )
@@ -510,15 +520,18 @@ fun SwipeCard(
                 )
             }
         },
-        modifier = modifier.animateContentSize()
+        modifier = modifier
+            .animateContentSize()
+            .fillMaxSize()
+
     ) {
         // 卡片内容
 //        ElevatedCard(showText)
         JournalCard(
-            modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .animateContentSize(), journalData
+            modifier = modifier
+                .fillMaxSize()
+                .padding(vertical = 12.dp),
+            journalData = journalData
         )
     }
 }
