@@ -41,6 +41,11 @@ fun MainView(
         start = 8.dp,
         end = 8.dp
     )
+//    LazyPagingCardList(
+//        modifier = Modifier.fillMaxSize(),
+//        contentPadding = contentPadding,
+//        pager = cardItems
+//    )
     LazyColumn(
         contentPadding = contentPadding,
         modifier = Modifier.fillMaxSize(),
