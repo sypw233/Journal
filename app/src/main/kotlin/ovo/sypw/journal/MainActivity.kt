@@ -21,9 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import ovo.sypw.journal.components.AddItemFAB
-import ovo.sypw.journal.components.MainView
+import ovo.sypw.journal.components.CustomLazyCardList
 import ovo.sypw.journal.components.TopBarView
-import ovo.sypw.journal.data.SampleDataProvider
+import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.ui.theme.JournalTheme
 import ovo.sypw.journal.utils.ImageLoadUtils
 import ovo.sypw.journal.utils.SnackbarUtils
@@ -48,10 +48,10 @@ fun ContentViews() {
     val context = LocalContext.current
     ImageLoadUtils.init(context)
 
-    // 使用SampleDataProvider获取示例数据
-    val cardItems = remember { SampleDataProvider.generateSampleData(context) }
+    // 使用自定义数据源
+    val dataSource = remember { JournalDataSource.getInstance() }
 
-    // 获取最后一个示例数据的图片列表，用于FAB
+    // 配置列表状态
     val lazyListPrefetchStrategy = remember { LazyListPrefetchStrategy(10) }
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = 0,
@@ -69,10 +69,15 @@ fun ContentViews() {
         topBar = {
             TopBarView(scrollBehavior, listState, markedSet)
         },
-        floatingActionButton = { AddItemFAB(cardItems) },
+        floatingActionButton = { AddItemFAB() },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }) { innerPadding ->
-        MainView(innerPadding, listState, cardItems, markedSet)
+        // 使用自定义懒加载列表组件
+        CustomLazyCardList(
+            contentPadding = innerPadding,
+            listState = listState,
+            markedSet = markedSet
+        )
     }
 }

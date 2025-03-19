@@ -1,8 +1,5 @@
 package ovo.sypw.journal.data
 
-import android.content.Context
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import ovo.sypw.journal.R
 import ovo.sypw.journal.model.JournalData
 
@@ -14,7 +11,6 @@ object SampleDataProvider {
 
     /**
      * 生成示例图片列表
-     * @param context 上下文
      * @param count 图片数量
      * @return 图片列表
      */
@@ -31,8 +27,8 @@ object SampleDataProvider {
      * @param context 上下文
      * @return 日记数据列表
      */
-    fun generateSampleData(context: Context): SnapshotStateList<JournalData> {
-        val cardItems = mutableStateListOf<JournalData>()
+    fun generateSampleData(): MutableList<JournalData> {
+        val cardItems = mutableListOf<JournalData>()
 
         // 生成不同数量的图片列表
 
@@ -45,7 +41,7 @@ object SampleDataProvider {
 
         cardItems.add(
             JournalData(
-                id = cardItems.size,
+                id = 0,
                 images = bitmapList1,
                 text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
             )

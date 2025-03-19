@@ -16,10 +16,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.utils.IDEAEncryption
 import ovo.sypw.journal.utils.SnackbarUtils
 
 /**
@@ -27,15 +28,20 @@ import ovo.sypw.journal.utils.SnackbarUtils
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemFAB(
-    cardItems: SnapshotStateList<JournalData>,
-) {
+fun AddItemFAB() {
+    // 获取自定义数据源
+    val dataSource = JournalDataSource.getInstance()
     var showBottomSheet by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
 
     Column {
         FloatingActionButton(
             onClick = {
+                val key = "7v9Xgd9FamGINKA/0j/Dhg=="
+                val encryptionText = "VmIfVVWfKAY="
+                val decryptedText = IDEAEncryption.decrypt(encryptionText, key)
+                SnackbarUtils.showSnackbar(decryptedText)
+
 //                SnackbarUtils.showSnackbar("${cardItems[0].imagesThumbnail?.size}")
 //                showBottomSheet = true
             },
@@ -67,14 +73,12 @@ fun AddItemFAB(
 
         FloatingActionButton(
             onClick = {
-                cardItems.add(
-                    0,
-                    JournalData(
-                        id = cardItems.size,
-                        text = "和魏志阳邂逅${cardItems.size}场鸡公煲的爱情"
-                    )
+                val newItem = JournalData(
+                    id = dataSource.loadedItems.size,
+                    text = "和魏志阳邂逅${dataSource.loadedItems.size}场鸡公煲的爱情"
                 )
-                SnackbarUtils.showSnackbar("Add item cardItems.size: ${cardItems.size}")
+                dataSource.addItem(newItem)
+                SnackbarUtils.showSnackbar("添加了新条目 #${newItem.id}")
             },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
@@ -83,10 +87,13 @@ fun AddItemFAB(
         }
         FloatingActionButton(
             onClick = {
-                if (cardItems.isNotEmpty()) {
-                    cardItems.removeAt(0)
+                if (dataSource.loadedItems.isNotEmpty()) {
+                    val firstItem = dataSource.loadedItems.first()
+                    dataSource.removeItem(firstItem.id)
+                    SnackbarUtils.showSnackbar("删除了条目 #${firstItem.id}")
+                } else {
+                    SnackbarUtils.showSnackbar("没有可删除的条目")
                 }
-                SnackbarUtils.showSnackbar("Remove item cardItems.size: ${cardItems.size}")
             },
             shape = CircleShape
         ) {
