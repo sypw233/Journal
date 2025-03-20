@@ -156,7 +156,16 @@ class JournalDataSource private constructor() {
     fun removeItem(id: Int): Boolean {
         val removed = allItems.removeAll { it.id == id }
         _loadedItems.removeAll { it.id == id }
+        repository.deleteJournalById(id)
         return removed
+    }
+
+    /**
+     * 移除指定ID的数据项
+     * @param id 要移除的数据项ID
+     */
+    fun removeItemData(id: Int) {
+        repository.deleteJournalById(id)
     }
 
     /**

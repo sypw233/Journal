@@ -119,7 +119,7 @@ fun CustomLazyCardList(
                                     dataSource.addItem(waitToDeleteData, index)
                                 },
                                 onDismissed = {
-//                                    TODO 数据库删除
+                                    dataSource.removeItemData(id)
                                 })
                         } else {
                             SnackBarUtils.showSnackBar("删除条目 #${id} 失败")
