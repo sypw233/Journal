@@ -83,7 +83,7 @@ fun TopBarView(
 
             // 添加其他操作按钮
             IconButton(onClick = {
-                SnackbarUtils.showSnackbar("Search Clicked")
+                SnackbarUtils.showSnackBar("Search Clicked")
             }) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_foreground),

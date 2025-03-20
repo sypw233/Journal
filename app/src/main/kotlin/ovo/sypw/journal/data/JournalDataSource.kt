@@ -19,13 +19,15 @@ class JournalDataSource private constructor() {
 
         // 初始化示例数据
         init {
-            allItems.addAll(SampleDataProvider.generateSampleData())
-            allItems.addAll(List(50) { index ->
+
+            allItems.addAll(List(10) { index ->
                 JournalData(
                     id = index,
-                    text = "Journal Entry #${index}"
+                    images = SampleDataProvider.generateBitmapList(0),
+                    text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
                 )
             })
+//            allItems.addAll(SampleDataProvider.generateSampleData())
         }
 
         // 获取所有数据项的列表副本
@@ -91,9 +93,9 @@ class JournalDataSource private constructor() {
      * 添加新的数据项
      * @param item 要添加的数据项
      */
-    fun addItem(item: JournalData) {
-        allItems.add(item)
-        _loadedItems.add(item)
+    fun addItem(item: JournalData, index: Int = 0) {
+        allItems.add(index, item)
+        _loadedItems.add(index, item)
     }
 
     /**

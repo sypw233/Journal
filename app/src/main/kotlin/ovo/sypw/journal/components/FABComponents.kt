@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.utils.IDEAEncryption
 import ovo.sypw.journal.utils.SnackbarUtils
 
 /**
@@ -37,11 +36,6 @@ fun AddItemFAB() {
     Column {
         FloatingActionButton(
             onClick = {
-                val key = "7v9Xgd9FamGINKA/0j/Dhg=="
-                val encryptionText = "VmIfVVWfKAY="
-                val decryptedText = IDEAEncryption.decrypt(encryptionText, key)
-                SnackbarUtils.showSnackbar(decryptedText)
-
 //                SnackbarUtils.showSnackbar("${cardItems[0].imagesThumbnail?.size}")
 //                showBottomSheet = true
             },
@@ -78,7 +72,7 @@ fun AddItemFAB() {
                     text = "和魏志阳邂逅${dataSource.loadedItems.size}场鸡公煲的爱情"
                 )
                 dataSource.addItem(newItem)
-                SnackbarUtils.showSnackbar("添加了新条目 #${newItem.id}")
+                SnackbarUtils.showSnackBar("添加了新条目 #${newItem.id}")
             },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
@@ -90,9 +84,9 @@ fun AddItemFAB() {
                 if (dataSource.loadedItems.isNotEmpty()) {
                     val firstItem = dataSource.loadedItems.first()
                     dataSource.removeItem(firstItem.id)
-                    SnackbarUtils.showSnackbar("删除了条目 #${firstItem.id}")
+                    SnackbarUtils.showSnackBar("删除了条目 #${firstItem.id}")
                 } else {
-                    SnackbarUtils.showSnackbar("没有可删除的条目")
+                    SnackbarUtils.showSnackBar("没有可删除的条目")
                 }
             },
             shape = CircleShape

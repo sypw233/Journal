@@ -471,21 +471,21 @@ fun SwipeCard(
             confirmValueChange = { value ->
                 // 当滑动到END位置时触发删除
                 if (value == SwipeToDismissBoxValue.EndToStart
-                    && currentProgress.floatValue >= 0.5f && currentProgress.floatValue <= 1f
+                    && currentProgress.floatValue >= 0.4f && currentProgress.floatValue <= 1f
                 ) {
                     onDismiss()
                     false // 返回false防止状态更新为EndToStart
                     // 在这里直接调用onDismiss并返回false，防止状态变为EndToStart
 
                 } else if (value == SwipeToDismissBoxValue.StartToEnd
-                    && currentProgress.floatValue >= 0.5f && currentProgress.floatValue <= 1f
+                    && currentProgress.floatValue >= 0.4f && currentProgress.floatValue <= 1f
                 ) {
                     onMark()
                     false
                 }
                 false
             },
-            positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+            positionalThreshold = { totalDistance -> totalDistance * 0.3f }
         )
     ForUpdateData {
         currentProgress.floatValue = dismissState.progress

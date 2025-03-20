@@ -83,25 +83,25 @@ fun MainView(
                     journalData = cardItems[index],
                     onDismiss = {
                         if (index in cardItems.indices) {
-                            SnackbarUtils.showSnackbar("delete index $index")
+                            SnackbarUtils.showSnackBar("delete index $index")
                             cardItems.removeAt(index)
                         } else {
-                            SnackbarUtils.showSnackbar("delete index $index error")
+                            SnackbarUtils.showSnackBar("delete index $index error")
                         }
                     },
                     onMark = {
                         if (index in cardItems.indices) {
                             if (index in markedSet) {
-                                SnackbarUtils.showSnackbar("unmark index $index")
+                                SnackbarUtils.showSnackBar("unmark index $index")
                                 markedSet.remove(index)
                                 cardItems[index].isMark = false
                             } else {
-                                SnackbarUtils.showSnackbar("mark index $index")
+                                SnackbarUtils.showSnackBar("mark index $index")
                                 markedSet.add(index)
                                 cardItems[index].isMark = true
                             }
                         } else {
-                            SnackbarUtils.showSnackbar("mark index $index error")
+                            SnackbarUtils.showSnackBar("mark index $index error")
                         }
                     }
                 )

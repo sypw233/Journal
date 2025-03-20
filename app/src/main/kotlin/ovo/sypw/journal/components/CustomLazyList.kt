@@ -1,5 +1,7 @@
 package ovo.sypw.journal.components
 
+import android.util.Log
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,14 +41,17 @@ fun CustomLazyCardList(
     // 监听滚动状态
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
 
-    // 监听滚动到底部事件，触发加载更多
+    // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
         derivedStateOf {
-            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-            lastVisibleItem != null &&
-                    lastVisibleItem.index >= dataSource.loadedItems.size - 3 &&
-                    dataSource.hasMoreData() &&
-                    !isScrolling // 只有在不滚动时才加载更多
+            if (isScrolling) {
+                false // 滚动时不加载
+            } else {
+                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem != null &&
+                        lastVisibleItem.index >= dataSource.loadedItems.size - 3 &&
+                        dataSource.hasMoreData()
+            }
         }
     }
 
@@ -75,44 +80,73 @@ fun CustomLazyCardList(
     ) {
         items(
             count = dataSource.loadedItems.size,
-            key = { index -> dataSource.loadedItems[index].id }
+            // 使用稳定的唯一ID作为key，而不是依赖于索引位置
+            key = { index ->
+                // 确保即使在快速滑动时也能保持唯一性
+                val item = dataSource.loadedItems[index]
+                "journal_item_${item.id}"
+            }
         ) { index ->
-            val journalData = dataSource.loadedItems[index]
-            SwipeCard(
-                modifier = Modifier
-                    .animateItem(
-
-                    )
-                    .fillMaxSize(),
-                journalData = journalData,
-                onDismiss = {
-                    // 处理滑动删除
-                    val id = journalData.id
-                    val removed = dataSource.removeItem(id)
-                    if (removed) {
-                        SnackbarUtils.showSnackbar("删除了条目 #${id}")
-                    } else {
-                        SnackbarUtils.showSnackbar("删除条目 #${id} 失败")
-                    }
-                },
-                onMark = {
-                    // 处理标记
-                    val id = journalData.id
-                    if (id in markedSet) {
-                        SnackbarUtils.showSnackbar("取消标记条目 #${id}")
-                        markedSet.remove(id)
-                        dataSource.updateItem(id) { item ->
-                            item.copy(isMark = false)
+            // 添加安全检查，确保索引有效
+            if (index < dataSource.loadedItems.size) {
+                val journalData = dataSource.loadedItems[index]
+                Log.d(
+                    "JOURNAL_DEBUG",
+                    "CustomLazyCardList: current item index: $index id: ${journalData.id}"
+                )
+                SwipeCard(
+                    modifier = Modifier
+                        .animateItem(
+                            fadeInSpec = spring(
+                                dampingRatio = 0.5f,
+                                stiffness = 100f
+                            ),
+                            fadeOutSpec = spring(
+                                dampingRatio = 0.5f,
+                            )
+                        )
+                        .fillMaxSize(),
+                    journalData = journalData,
+                    onDismiss = {
+                        // 处理滑动删除
+                        val id = journalData.id
+                        val waitToDeleteData = journalData
+                        val removed = dataSource.removeItem(id)
+                        if (removed) {
+                            SnackbarUtils.showActionSnackBar(
+                                message = "删除条目 #${id}",
+                                actionLabel = "撤销",
+                                onActionPerformed = {
+                                    // 撤销删除
+                                    dataSource.addItem(waitToDeleteData, index)
+                                },
+                                onDismissed = {
+//                                    TODO 数据库删除
+                                }
+                            )
+                        } else {
+                            SnackbarUtils.showSnackBar("删除条目 #${id} 失败")
                         }
-                    } else {
-                        SnackbarUtils.showSnackbar("标记条目 #${id}")
-                        markedSet.add(id)
-                        dataSource.updateItem(id) { item ->
-                            item.copy(isMark = true)
+                    },
+                    onMark = {
+                        // 处理标记
+                        val id = journalData.id
+                        if (id in markedSet) {
+                            SnackbarUtils.showSnackBar("取消标记条目 #${id}")
+                            markedSet.remove(id)
+                            dataSource.updateItem(id) { item ->
+                                item.copy(isMark = false)
+                            }
+                        } else {
+                            SnackbarUtils.showSnackBar("标记条目 #${id}")
+                            markedSet.add(id)
+                            dataSource.updateItem(id) { item ->
+                                item.copy(isMark = true)
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         }
 
         // 如果还有更多数据，显示加载指示器
@@ -137,3 +171,4 @@ fun LoadingPlaceholder() {
         LinearProgressIndicator()
     }
 }
+
