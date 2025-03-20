@@ -26,6 +26,13 @@ class JournalDataSource private constructor() {
         private val allItems = mutableListOf<JournalData>()
         fun getAllItemsList() = allItems.toList()
 
+        private var dataBaseIdCount = 0
+        fun getDataBaseIdCount(): Int {
+            coroutineScope.launch {
+                dataBaseIdCount = repository.getJournalLastId() + 1
+            }
+            return dataBaseIdCount
+        }
         // 数据库相关
         private lateinit var repository: JournalRepository
         private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -39,12 +46,10 @@ class JournalDataSource private constructor() {
                 val database = JournalDatabase.getDatabase(context)
                 repository = JournalRepository(database.journalDao())
                 isInitialized = true
-
                 // 从数据库加载数据
 //                loadDataFromDatabase()
             }
         }
-
         fun firstLaunchDatabaseInit() {
             coroutineScope.launch {
                 val sampleData = List(10) { index ->
@@ -58,29 +63,6 @@ class JournalDataSource private constructor() {
             }
         }
 
-        /**
-         * 从数据库加载数据
-         */
-        private fun loadDataFromDatabase() {
-            coroutineScope.launch {
-                // 检查数据库是否有数据
-                val count = repository.getJournalCount()
-
-                if (count == 0) {
-                    SnackBarUtils.showSnackBar("DataBase has no data")
-                    // 如果数据库为空，添加示例数据
-                    val sampleData = List(10) { index ->
-                        JournalData(
-                            id = index,
-                            images = SampleDataProvider.generateBitmapList(0),
-                            text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
-                        )
-                    }
-                    repository.insertJournals(sampleData)
-                    allItems.addAll(sampleData)
-                }
-            }
-        }
     }
 
     // 当前加载的数据项
@@ -146,6 +128,7 @@ class JournalDataSource private constructor() {
     fun addItem(item: JournalData, index: Int = 0) {
         allItems.add(index, item)
         _loadedItems.add(index, item)
+        repository.insertJournal(item)
     }
 
     /**

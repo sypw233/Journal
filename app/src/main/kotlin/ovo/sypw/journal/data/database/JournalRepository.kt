@@ -104,4 +104,11 @@ class JournalRepository(private val journalDao: JournalDao) {
             journalDao.getJournalCount()
         }
     }
+
+    suspend fun getJournalLastId(): Int {
+        return withContext(Dispatchers.IO) {
+            journalDao.getJournalLastId()
+        }
+
+    }
 }

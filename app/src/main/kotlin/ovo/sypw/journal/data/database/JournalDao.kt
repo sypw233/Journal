@@ -78,4 +78,7 @@ interface JournalDao {
      */
     @Query("SELECT COUNT(*) FROM journals")
     suspend fun getJournalCount(): Int
+
+    @Query("SELECT MAX(id) FROM journals")
+    fun getJournalLastId(): Int
 }

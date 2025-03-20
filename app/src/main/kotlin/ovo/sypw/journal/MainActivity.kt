@@ -64,6 +64,9 @@ fun ContentViews() {
     val coroutineScope = rememberCoroutineScope()
     SnackBarUtils.initialize(snackbarHostState, coroutineScope)
     JournalDataSource.initDatabase(LocalContext.current)
+
+
+
     if (journalPreferences.isFirstLaunch()) {
         JournalDataSource.firstLaunchDatabaseInit()
     }

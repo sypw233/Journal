@@ -87,7 +87,7 @@ fun CustomLazyCardList(
             key = { index ->
                 // 确保即使在快速滑动时也能保持唯一性
                 val item = dataSource.loadedItems[index]
-                "journal_item_${item.id}"
+                "journal_item_${item.id + 1000}"
             }) { index ->
             // 添加安全检查，确保索引有效
             if (index < dataSource.loadedItems.size) {

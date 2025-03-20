@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
+import ovo.sypw.journal.data.JournalDataSource.Companion.getDataBaseIdCount
 import ovo.sypw.journal.model.JournalData
 import ovo.sypw.journal.utils.SnackBarUtils
 
@@ -67,9 +68,10 @@ fun AddItemFAB() {
 
         FloatingActionButton(
             onClick = {
+                val id = getDataBaseIdCount()
                 val newItem = JournalData(
-                    id = dataSource.loadedItems.size,
-                    text = "和魏志阳邂逅${dataSource.loadedItems.size}场鸡公煲的爱情"
+                    id = id,
+                    text = "和魏志阳邂逅${id}场鸡公煲的爱情"
                 )
                 dataSource.addItem(newItem)
                 SnackBarUtils.showSnackBar("添加了新条目 #${newItem.id}")
