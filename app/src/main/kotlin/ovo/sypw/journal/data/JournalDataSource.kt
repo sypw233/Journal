@@ -1,12 +1,21 @@
 package ovo.sypw.journal.data
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ovo.sypw.journal.data.database.JournalDatabase
+import ovo.sypw.journal.data.database.JournalRepository
 import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
  * 自定义日记数据源，用于替代Paging3的实现
  * 提供分页加载功能和数据操作方法
+ * 集成Room数据库实现数据持久化
  */
 class JournalDataSource private constructor() {
     companion object {
@@ -17,21 +26,61 @@ class JournalDataSource private constructor() {
         private val allItems = mutableListOf<JournalData>()
         fun getAllItemsList() = allItems.toList()
 
-        // 初始化示例数据
-        init {
+        // 数据库相关
+        private lateinit var repository: JournalRepository
+        private val coroutineScope = CoroutineScope(Dispatchers.IO)
+        private var isInitialized = false
 
-            allItems.addAll(List(10) { index ->
-                JournalData(
-                    id = index,
-                    images = SampleDataProvider.generateBitmapList(0),
-                    text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
-                )
-            })
-//            allItems.addAll(SampleDataProvider.generateSampleData())
+        /**
+         * 初始化数据库
+         */
+        fun initDatabase(context: Context) {
+            if (!isInitialized) {
+                val database = JournalDatabase.getDatabase(context)
+                repository = JournalRepository(database.journalDao())
+                isInitialized = true
+
+                // 从数据库加载数据
+//                loadDataFromDatabase()
+            }
         }
 
-        // 获取所有数据项的列表副本
+        fun firstLaunchDatabaseInit() {
+            coroutineScope.launch {
+                val sampleData = List(10) { index ->
+                    JournalData(
+                        id = index,
+                        images = SampleDataProvider.generateBitmapList(0),
+                        text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
+                    )
+                }
+                repository.insertJournals(sampleData)
+            }
+        }
 
+        /**
+         * 从数据库加载数据
+         */
+        private fun loadDataFromDatabase() {
+            coroutineScope.launch {
+                // 检查数据库是否有数据
+                val count = repository.getJournalCount()
+
+                if (count == 0) {
+                    SnackBarUtils.showSnackBar("DataBase has no data")
+                    // 如果数据库为空，添加示例数据
+                    val sampleData = List(10) { index ->
+                        JournalData(
+                            id = index,
+                            images = SampleDataProvider.generateBitmapList(0),
+                            text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
+                        )
+                    }
+                    repository.insertJournals(sampleData)
+                    allItems.addAll(sampleData)
+                }
+            }
+        }
     }
 
     // 当前加载的数据项
@@ -63,29 +112,30 @@ class JournalDataSource private constructor() {
 
         isLoading = true
         try {
-            val startIndex = currentPage * pageSize
-            val endIndex = minOf(startIndex + pageSize, allItems.size)
+            if (isInitialized) {
+                // 从数据库加载数据
+                coroutineScope.launch {
+//                    SnackBarUtils.showSnackBar("Loading page $currentPage")
+                    val offset = currentPage * pageSize
+                    val journals = repository.getJournalsPaged(offset, pageSize)
+                    SnackBarUtils.showSnackBar("Loading page $currentPage, now has ${journals.size}")
 
-            // 检查是否还有更多数据
-            if (startIndex >= allItems.size) {
-                hasMoreData = false
-                isLoading = false
-                return false
+                    withContext(Dispatchers.Main) {
+                        if (journals.isEmpty()) {
+                            hasMoreData = false
+                        } else {
+                            allItems.addAll(journals)
+                            _loadedItems.addAll(journals)
+                            currentPage += 1
+                            isLoading = false
+                        }
+                    }
+                }
             }
-
-            // 获取当前页的数据
-            val pageItems = allItems.subList(startIndex, endIndex)
-            _loadedItems.addAll(pageItems)
-
-            // 更新分页状态
-            currentPage++
-            hasMoreData = endIndex < allItems.size
             return true
         } catch (e: Exception) {
-            e.printStackTrace()
+            throw e
             return false
-        } finally {
-            isLoading = false
         }
     }
 

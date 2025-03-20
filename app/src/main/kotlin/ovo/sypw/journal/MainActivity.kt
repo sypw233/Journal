@@ -24,9 +24,10 @@ import ovo.sypw.journal.components.AddItemFAB
 import ovo.sypw.journal.components.CustomLazyCardList
 import ovo.sypw.journal.components.TopBarView
 import ovo.sypw.journal.data.JournalDataSource
+import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.ui.theme.JournalTheme
 import ovo.sypw.journal.utils.ImageLoadUtils
-import ovo.sypw.journal.utils.SnackbarUtils
+import ovo.sypw.journal.utils.SnackBarUtils
 
 @SuppressLint("RestrictedApi")
 class MainActivity : ComponentActivity() {
@@ -49,7 +50,8 @@ fun ContentViews() {
     ImageLoadUtils.init(context)
 
     // 使用自定义数据源
-    val dataSource = remember { JournalDataSource.getInstance() }
+//    val dataSource = remember { JournalDataSource.getInstance() }
+    val journalPreferences = remember { JournalPreferences(context) }
 
     // 配置列表状态
     val lazyListPrefetchStrategy = remember { LazyListPrefetchStrategy(10) }
@@ -60,7 +62,12 @@ fun ContentViews() {
     var markedSet: MutableSet<Int> = mutableSetOf()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    SnackbarUtils.initialize(snackbarHostState, coroutineScope)
+    SnackBarUtils.initialize(snackbarHostState, coroutineScope)
+    JournalDataSource.initDatabase(LocalContext.current)
+    if (journalPreferences.isFirstLaunch()) {
+        JournalDataSource.firstLaunchDatabaseInit()
+    }
+
 
     Scaffold(
         modifier = Modifier
@@ -81,3 +88,4 @@ fun ContentViews() {
         )
     }
 }
+

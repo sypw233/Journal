@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
-import ovo.sypw.journal.utils.SnackbarUtils
+import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
  * 自定义懒加载列表组件，使用CustomJournalDataSource实现分页加载
@@ -37,7 +37,7 @@ fun CustomLazyCardList(
 ) {
     // 获取数据源实例
     val dataSource = remember { JournalDataSource.getInstance() }
-
+//    dataSource.initialize()
     // 监听滚动状态
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
 
@@ -47,9 +47,10 @@ fun CustomLazyCardList(
             if (isScrolling) {
                 false // 滚动时不加载
             } else {
+//                最后一个ITEM可见
                 val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
                 lastVisibleItem != null &&
-                        lastVisibleItem.index >= dataSource.loadedItems.size - 3 &&
+                        lastVisibleItem.index >= dataSource.loadedItems.size - 4 &&
                         dataSource.hasMoreData()
             }
         }
@@ -57,8 +58,10 @@ fun CustomLazyCardList(
 
     // 当需要加载更多时，调用loadNextPage
     LaunchedEffect(shouldLoadMore) {
+        SnackBarUtils.showSnackBar("Is loading")
         if (shouldLoadMore && !dataSource.isLoading()) {
             val success = dataSource.loadNextPage()
+
             if (success) {
                 onLoadMore()
             }
@@ -85,8 +88,7 @@ fun CustomLazyCardList(
                 // 确保即使在快速滑动时也能保持唯一性
                 val item = dataSource.loadedItems[index]
                 "journal_item_${item.id}"
-            }
-        ) { index ->
+            }) { index ->
             // 添加安全检查，确保索引有效
             if (index < dataSource.loadedItems.size) {
                 val journalData = dataSource.loadedItems[index]
@@ -98,22 +100,18 @@ fun CustomLazyCardList(
                     modifier = Modifier
                         .animateItem(
                             fadeInSpec = spring(
-                                dampingRatio = 0.5f,
-                                stiffness = 100f
-                            ),
-                            fadeOutSpec = spring(
+                                dampingRatio = 0.5f, stiffness = 100f
+                            ), fadeOutSpec = spring(
                                 dampingRatio = 0.5f,
                             )
                         )
-                        .fillMaxSize(),
-                    journalData = journalData,
-                    onDismiss = {
+                        .fillMaxSize(), journalData = journalData, onDismiss = {
                         // 处理滑动删除
                         val id = journalData.id
                         val waitToDeleteData = journalData
                         val removed = dataSource.removeItem(id)
                         if (removed) {
-                            SnackbarUtils.showActionSnackBar(
+                            SnackBarUtils.showActionSnackBar(
                                 message = "删除条目 #${id}",
                                 actionLabel = "撤销",
                                 onActionPerformed = {
@@ -122,30 +120,27 @@ fun CustomLazyCardList(
                                 },
                                 onDismissed = {
 //                                    TODO 数据库删除
-                                }
-                            )
+                                })
                         } else {
-                            SnackbarUtils.showSnackBar("删除条目 #${id} 失败")
+                            SnackBarUtils.showSnackBar("删除条目 #${id} 失败")
                         }
-                    },
-                    onMark = {
+                    }, onMark = {
                         // 处理标记
                         val id = journalData.id
                         if (id in markedSet) {
-                            SnackbarUtils.showSnackBar("取消标记条目 #${id}")
+                            SnackBarUtils.showSnackBar("取消标记条目 #${id}")
                             markedSet.remove(id)
                             dataSource.updateItem(id) { item ->
                                 item.copy(isMark = false)
                             }
                         } else {
-                            SnackbarUtils.showSnackBar("标记条目 #${id}")
+                            SnackBarUtils.showSnackBar("标记条目 #${id}")
                             markedSet.add(id)
                             dataSource.updateItem(id) { item ->
                                 item.copy(isMark = true)
                             }
                         }
-                    }
-                )
+                    })
             }
         }
 
@@ -165,8 +160,7 @@ fun LoadingPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
-        contentAlignment = Alignment.Center
+            .height(48.dp), contentAlignment = Alignment.Center
     ) {
         LinearProgressIndicator()
     }

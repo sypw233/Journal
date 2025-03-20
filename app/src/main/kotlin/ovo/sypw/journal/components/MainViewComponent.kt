@@ -18,7 +18,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.utils.SnackbarUtils
+import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
  * 主视图组件，显示卡片列表
@@ -83,25 +83,25 @@ fun MainView(
                     journalData = cardItems[index],
                     onDismiss = {
                         if (index in cardItems.indices) {
-                            SnackbarUtils.showSnackBar("delete index $index")
+                            SnackBarUtils.showSnackBar("delete index $index")
                             cardItems.removeAt(index)
                         } else {
-                            SnackbarUtils.showSnackBar("delete index $index error")
+                            SnackBarUtils.showSnackBar("delete index $index error")
                         }
                     },
                     onMark = {
                         if (index in cardItems.indices) {
                             if (index in markedSet) {
-                                SnackbarUtils.showSnackBar("unmark index $index")
+                                SnackBarUtils.showSnackBar("unmark index $index")
                                 markedSet.remove(index)
                                 cardItems[index].isMark = false
                             } else {
-                                SnackbarUtils.showSnackBar("mark index $index")
+                                SnackBarUtils.showSnackBar("mark index $index")
                                 markedSet.add(index)
                                 cardItems[index].isMark = true
                             }
                         } else {
-                            SnackbarUtils.showSnackBar("mark index $index error")
+                            SnackBarUtils.showSnackBar("mark index $index error")
                         }
                     }
                 )

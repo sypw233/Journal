@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.utils.SnackbarUtils
+import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
  * 浮动操作按钮组件，包含添加和删除功能
@@ -72,7 +72,7 @@ fun AddItemFAB() {
                     text = "和魏志阳邂逅${dataSource.loadedItems.size}场鸡公煲的爱情"
                 )
                 dataSource.addItem(newItem)
-                SnackbarUtils.showSnackBar("添加了新条目 #${newItem.id}")
+                SnackBarUtils.showSnackBar("添加了新条目 #${newItem.id}")
             },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
@@ -84,9 +84,9 @@ fun AddItemFAB() {
                 if (dataSource.loadedItems.isNotEmpty()) {
                     val firstItem = dataSource.loadedItems.first()
                     dataSource.removeItem(firstItem.id)
-                    SnackbarUtils.showSnackBar("删除了条目 #${firstItem.id}")
+                    SnackBarUtils.showSnackBar("删除了条目 #${firstItem.id}")
                 } else {
-                    SnackbarUtils.showSnackBar("没有可删除的条目")
+                    SnackBarUtils.showSnackBar("没有可删除的条目")
                 }
             },
             shape = CircleShape

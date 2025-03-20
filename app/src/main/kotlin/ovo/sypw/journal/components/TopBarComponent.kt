@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import ovo.sypw.journal.R
-import ovo.sypw.journal.utils.SnackbarUtils
+import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
  * 顶部应用栏组件
@@ -83,7 +83,7 @@ fun TopBarView(
 
             // 添加其他操作按钮
             IconButton(onClick = {
-                SnackbarUtils.showSnackBar("Search Clicked")
+                SnackBarUtils.showSnackBar("Search Clicked")
             }) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_foreground),

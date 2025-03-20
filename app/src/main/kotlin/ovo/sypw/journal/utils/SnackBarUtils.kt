@@ -1,12 +1,13 @@
 package ovo.sypw.journal.utils
 
+import android.util.Log
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-object SnackbarUtils {
+object SnackBarUtils {
     private lateinit var snackBarHostState: SnackbarHostState
     private lateinit var coroutineScope: CoroutineScope
 
@@ -18,7 +19,7 @@ object SnackbarUtils {
 
     // 显示 SnackBar
     fun showSnackBar(message: String, duration: SnackbarDuration = SnackbarDuration.Short) {
-        println(message)
+        Log.d("SNACK_BAR_SHOW", message)
         coroutineScope.launch {
 //            关闭当前SnackBar
             snackBarHostState.currentSnackbarData?.dismiss()
