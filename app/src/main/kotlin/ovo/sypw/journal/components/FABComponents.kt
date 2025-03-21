@@ -19,8 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
-import ovo.sypw.journal.data.JournalDataSource.Companion.getDataBaseIdCount
-import ovo.sypw.journal.model.JournalData
 import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
@@ -45,41 +43,23 @@ fun AddItemFAB() {
         ) {
             Icon(Icons.Filled.Info, "Show images")
         }
-//
-//        if (showBottomSheet) {
-//            ModalBottomSheet(
-//                onDismissRequest = { showBottomSheet = false },
-//                sheetState = bottomSheetState
-//            ) {
-//                LazyRow(modifier = Modifier.padding(16.dp)) {
-//                    items(bitmapList) { bitmap ->
-//                        SnackbarUtils.showSnackbar("${bitmap.width} ${bitmap.height} ${bitmap.config.toString()}")
-//                        AsyncImage(
-//                            model = bitmap,
-//                            contentDescription = "Image",
-//                            modifier = Modifier
-//                                .size(200.dp)
-//                                .padding(horizontal = 8.dp)
-//                        )
-//                    }
-//                }
-//            }
-//        }
 
         FloatingActionButton(
-            onClick = {
-                val id = getDataBaseIdCount()
-                val newItem = JournalData(
-                    id = id,
-                    text = "和魏志阳邂逅${id}场鸡公煲的爱情"
-                )
-                dataSource.addItem(newItem)
-                SnackBarUtils.showSnackBar("添加了新条目 #${newItem.id}")
-            },
+            onClick = { showBottomSheet = true },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
         ) {
             Icon(Icons.Filled.Add, "Add item")
+        }
+
+        // 显示添加日记的底部弹出框
+        if (showBottomSheet) {
+            AddJournalBottomSheet(
+                onDismiss = { showBottomSheet = false },
+                onSave = { newJournal ->
+                    dataSource.addItem(newJournal)
+                }
+            )
         }
         FloatingActionButton(
             onClick = {

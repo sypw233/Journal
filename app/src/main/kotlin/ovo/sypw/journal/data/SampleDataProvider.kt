@@ -14,8 +14,8 @@ object SampleDataProvider {
      * @param count 图片数量
      * @return 图片列表
      */
-    internal fun generateBitmapList(count: Int): MutableList<Int> {
-        val bitmapList = mutableListOf<Int>()
+    internal fun generateBitmapList(count: Int): MutableList<Any> {
+        val bitmapList = mutableListOf<Any>()
         for (i in R.raw.test_image1..R.raw.test_image1 + count) {
             bitmapList.add(i)
         }

@@ -87,7 +87,7 @@ private val ROUNDED_SHAPE = RoundedCornerShape(12.dp)
 //}
 
 @Composable
-fun SingleImage(image: Int, onImageClick: (Int) -> Unit) {
+fun SingleImage(image: Any, onImageClick: (Int) -> Unit) {
 
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
@@ -104,7 +104,7 @@ fun SingleImage(image: Int, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun TwoImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
+fun TwoImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -151,7 +151,7 @@ fun TwoImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun ThreeImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
+fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -224,7 +224,7 @@ fun ThreeImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
 }
 
 @Composable
-fun MultipleImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
+fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -296,7 +296,7 @@ fun MultipleImages(images: MutableList<Int>, onImageClick: (Int) -> Unit) {
 
 @Composable
 fun ImageSection(
-    images: MutableList<Int>?,
+    images: MutableList<Any>?,
     onImageClick: (Int) -> Unit,
 ) {
     if (!images.isNullOrEmpty()) {

@@ -35,9 +35,12 @@ data class JournalEntity(
 
         val images = imagesJson?.let {
             try {
-                // 简单的字符串分割实现，实际项目中可以使用JSON库
+                // 解析存储的图片数据，可能是资源ID(Int)或URI字符串
                 if (it.isNotEmpty()) {
-                    it.split(",").mapNotNull { id -> id.toIntOrNull() }.toMutableList()
+                    it.split(",").mapNotNull { str ->
+                        // 尝试解析为整数（资源ID），如果失败则保留原始字符串（URI）
+                        str.toIntOrNull() ?: str
+                    }.toMutableList()
                 } else null
             } catch (e: Exception) {
                 null
@@ -50,7 +53,7 @@ data class JournalEntity(
             date = date,
             text = text,
             location = location,
-            images = images
+            images = images as MutableList<Any>?
         )
     }
 
@@ -67,7 +70,13 @@ data class JournalEntity(
                 locationName = journalData.location?.name,
                 latitude = journalData.location?.latitude,
                 longitude = journalData.location?.longitude,
-                imagesJson = journalData.images?.joinToString(",")
+                imagesJson = journalData.images?.joinToString(",") { image ->
+                    // 确保URI字符串和资源ID都能正确存储
+                    when (image) {
+                        is Int -> image.toString()
+                        else -> image.toString()
+                    }
+                }
             )
         }
     }

@@ -28,11 +28,17 @@ class JournalDataSource private constructor() {
 
         private var dataBaseIdCount = 0
         fun getDataBaseIdCount(): Int {
-            coroutineScope.launch {
-                dataBaseIdCount = repository.getJournalLastId() + 1
-            }
             return dataBaseIdCount
         }
+
+        fun setDataBaseIdCount(count: Int) {
+            dataBaseIdCount = count
+        }
+
+        fun getDataBaseIdCountWithPositive(): Int {
+            return dataBaseIdCount++
+        }
+
         // 数据库相关
         private lateinit var repository: JournalRepository
         private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -46,10 +52,12 @@ class JournalDataSource private constructor() {
                 val database = JournalDatabase.getDatabase(context)
                 repository = JournalRepository(database.journalDao())
                 isInitialized = true
-                // 从数据库加载数据
-//                loadDataFromDatabase()
+                coroutineScope.launch {
+                    dataBaseIdCount = repository.getJournalLastId() + 1
+                }
             }
         }
+
         fun firstLaunchDatabaseInit() {
             coroutineScope.launch {
                 val sampleData = List(10) { index ->

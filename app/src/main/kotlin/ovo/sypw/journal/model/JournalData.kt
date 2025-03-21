@@ -14,7 +14,7 @@ data class JournalData(
     val id: Int,
     var isMark: Boolean? = false,
     val date: Date? = Date(),
-    val images: MutableList<Int>? = null,
+    val images: MutableList<Any>? = null,
     val location: LocationData? = null,
     val text: String? = null,
 )

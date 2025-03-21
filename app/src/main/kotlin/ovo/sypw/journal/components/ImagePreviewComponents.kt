@@ -38,7 +38,7 @@ import coil3.request.crossfade
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageGalleryPreview(
-    images: List<Int>,
+    images: List<Any>,
     initialIndex: Int = 0,
     onDismiss: () -> Unit
 ) {

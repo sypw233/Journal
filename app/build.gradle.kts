@@ -1,3 +1,5 @@
+import java.util.regex.Pattern.compile
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -63,15 +65,13 @@ dependencies {
     implementation(libs.androidx.paging.compose)
 
     // Room数据库
-    val room_version = "2.6.1"
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
 
-    implementation("androidx.room:room-runtime:$room_version")
-
-    // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
-    // See Add the KSP plugin to your project
-    ksp("androidx.room:room-compiler:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
-
-
+//    高德api 必须使用compile
+    compile("com.amap.api:map2d:latest.integration")
+    compile("com.amap.api:search:latest.integration")
+    compile("com.amap.api:location:latest.integration")
 
 }
