@@ -26,6 +26,7 @@ import ovo.sypw.journal.components.TopBarView
 import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.ui.theme.JournalTheme
+import ovo.sypw.journal.utils.GetLocation
 import ovo.sypw.journal.utils.ImageLoadUtils
 import ovo.sypw.journal.utils.SnackBarUtils
 
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        GetLocation.initLocationClient(this)
         setContent {
             JournalTheme {
                 ContentViews()
@@ -64,6 +66,7 @@ fun ContentViews() {
     val coroutineScope = rememberCoroutineScope()
     SnackBarUtils.initialize(snackbarHostState, coroutineScope)
     JournalDataSource.initDatabase(LocalContext.current)
+    // 初始化高德地图定位客户端
 
 
 

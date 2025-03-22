@@ -1,5 +1,3 @@
-import java.util.regex.Pattern.compile
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,8 +15,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -42,9 +40,8 @@ android {
     }
     buildToolsVersion = "35.0.1"
 }
-
 dependencies {
-
+    implementation(fileTree(baseDir = "libs"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -69,9 +66,5 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
-//    高德api 必须使用compile
-    compile("com.amap.api:map2d:latest.integration")
-    compile("com.amap.api:search:latest.integration")
-    compile("com.amap.api:location:latest.integration")
 
 }

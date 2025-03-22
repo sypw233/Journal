@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
+import ovo.sypw.journal.utils.PermissionUtils
+import ovo.sypw.journal.utils.RequestPermissions
 import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
@@ -31,7 +33,18 @@ fun AddItemFAB() {
     val dataSource = JournalDataSource.getInstance()
     var showBottomSheet by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
-
+    RequestPermissions(
+        permissions = PermissionUtils.LOCATION_PERMISSIONS,
+        onPermissionResult = { granted ->
+            if (granted) {
+                // 权限已授予，可以获取位置
+                SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
+            } else {
+                // 权限被拒绝
+                SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
+            }
+        }
+    )
     Column {
         FloatingActionButton(
             onClick = {

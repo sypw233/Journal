@@ -58,6 +58,9 @@ import coil3.compose.AsyncImage
 import ovo.sypw.journal.data.JournalDataSource.Companion.getDataBaseIdCountWithPositive
 import ovo.sypw.journal.model.JournalData
 import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.utils.GetLocation
+import ovo.sypw.journal.utils.PermissionUtils
+import ovo.sypw.journal.utils.RequestPermissions
 import ovo.sypw.journal.utils.SnackBarUtils
 import java.util.Date
 
@@ -78,6 +81,7 @@ fun AddJournalBottomSheet(
     var journalText by remember { mutableStateOf("") }
     var journalDate by remember { mutableStateOf(Date()) }
     var locationName by remember { mutableStateOf("") }
+    var locationData by remember { mutableStateOf<LocationData?>(null) }
     val selectedImages = remember { mutableStateListOf<Any>() }
 
     // 日期选择器状态
@@ -161,9 +165,54 @@ fun AddJournalBottomSheet(
                     value = locationName,
                     onValueChange = { locationName = it },
                     label = { Text("位置") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.weight(1f),
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            // 检查定位权限
+                            if (PermissionUtils.hasPermissions(
+                                    context,
+                                    PermissionUtils.LOCATION_PERMISSIONS
+                                )
+                            ) {
+                                // 已有权限，直接获取位置
+                                GetLocation.getCurrentLocation(
+                                    context = context,
+                                    onSuccess = { location ->
+                                        locationName = location.name ?: ""
+                                        locationData = location
+                                        SnackBarUtils.showSnackBar("已获取当前位置")
+                                    },
+                                    onError = { errorMsg ->
+                                        SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
+                                    }
+                                )
+                            } else {
+                                // 请求权限
+                                SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "获取当前位置"
+                            )
+                        }
+                    }
                 )
             }
+
+            // 权限请求组件
+            RequestPermissions(
+                permissions = PermissionUtils.LOCATION_PERMISSIONS,
+                onPermissionResult = { granted ->
+                    if (granted) {
+                        // 权限已授予，可以获取位置
+                        SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
+                    } else {
+                        // 权限被拒绝
+                        SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
+                    }
+                }
+            )
 
             // 文字内容
             OutlinedTextField(
@@ -245,7 +294,8 @@ fun AddJournalBottomSheet(
                         date = journalDate,
                         text = journalText,
                         images = selectedImages.toMutableList(),
-                        location = if (locationName.isNotEmpty()) LocationData(name = locationName) else null
+                        location = locationData
+                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
                     )
                     onSave(newJournal)
                     onDismiss()
