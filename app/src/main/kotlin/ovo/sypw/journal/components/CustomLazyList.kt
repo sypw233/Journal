@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.utils.SnackBarUtils
 
+
+const val TAG = "JournalDataSource"
+var itemKeyCount = 0
+
 /**
  * 自定义懒加载列表组件，使用CustomJournalDataSource实现分页加载
  * 支持滑动删除功能
@@ -33,13 +37,14 @@ fun CustomLazyCardList(
     contentPadding: PaddingValues,
     listState: LazyListState = rememberLazyListState(),
     markedSet: MutableSet<Int>,
-    onLoadMore: () -> Unit = {}
+    onLoadMore: () -> Unit = {},
+    isScrolling: Boolean
 ) {
     // 获取数据源实例
     val dataSource = remember { JournalDataSource.getInstance() }
 //    dataSource.initialize()
     // 监听滚动状态
-    val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
+//    val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
 
     // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
@@ -58,7 +63,7 @@ fun CustomLazyCardList(
 
     // 当需要加载更多时，调用loadNextPage
     LaunchedEffect(shouldLoadMore) {
-        SnackBarUtils.showSnackBar("Is loading")
+        Log.i(TAG, "CustomLazyCardList: LaunchedEffect")
         if (shouldLoadMore && !dataSource.isLoading()) {
             val success = dataSource.loadNextPage()
 
@@ -81,13 +86,15 @@ fun CustomLazyCardList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         state = listState
     ) {
+
         items(
+
             count = dataSource.loadedItems.size,
             // 使用稳定的唯一ID作为key，而不是依赖于索引位置
             key = { index ->
                 // 确保即使在快速滑动时也能保持唯一性
                 val item = dataSource.loadedItems[index]
-                "journal_item_${item.id + 1000}"
+                "journal_item_${item.id}"
             }) { index ->
             // 添加安全检查，确保索引有效
             if (index < dataSource.loadedItems.size) {
@@ -119,7 +126,7 @@ fun CustomLazyCardList(
                                     dataSource.addItem(waitToDeleteData, index)
                                 },
                                 onDismissed = {
-                                    dataSource.removeItemData(id)
+                                    dataSource.removeItem(id)
                                 })
                         } else {
                             SnackBarUtils.showSnackBar("删除条目 #${id} 失败")
@@ -143,6 +150,9 @@ fun CustomLazyCardList(
                     })
             }
         }
+        item {
+            Box(Modifier.height(100.dp))
+        }
 
         // 如果还有更多数据，显示加载指示器
         // 在滚动时或加载中时都显示加载指示器
@@ -151,6 +161,7 @@ fun CustomLazyCardList(
                 LoadingPlaceholder()
             }
         }
+
     }
 }
 

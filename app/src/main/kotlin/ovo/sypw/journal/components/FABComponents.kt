@@ -1,5 +1,6 @@
 package ovo.sypw.journal.components
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -10,15 +11,11 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
+import ovo.sypw.journal.model.JournalData
 import ovo.sypw.journal.utils.PermissionUtils
 import ovo.sypw.journal.utils.RequestPermissions
 import ovo.sypw.journal.utils.SnackBarUtils
@@ -31,17 +28,15 @@ import ovo.sypw.journal.utils.SnackBarUtils
 fun AddItemFAB() {
     // 获取自定义数据源
     val dataSource = JournalDataSource.getInstance()
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val bottomSheetState = rememberModalBottomSheetState()
     RequestPermissions(
         permissions = PermissionUtils.LOCATION_PERMISSIONS,
         onPermissionResult = { granted ->
             if (granted) {
                 // 权限已授予，可以获取位置
-                SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
+                Log.i(TAG, "已获得定位权限，可以获取当前位置")
             } else {
                 // 权限被拒绝
-                SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
+                Log.e(TAG, "未获得定位权限，无法获取当前位置")
             }
         }
     )
@@ -58,22 +53,22 @@ fun AddItemFAB() {
         }
 
         FloatingActionButton(
-            onClick = { showBottomSheet = true },
+            onClick = {
+                val id = JournalDataSource.getDataBaseIdCountWithPositive()
+                dataSource.addItem(
+                    JournalData(
+                        id = id,
+                        text = "New item $id"
+                    )
+                )
+            },
             shape = CircleShape,
             modifier = Modifier.padding(vertical = 15.dp)
         ) {
             Icon(Icons.Filled.Add, "Add item")
         }
 
-        // 显示添加日记的底部弹出框
-        if (showBottomSheet) {
-            AddJournalBottomSheet(
-                onDismiss = { showBottomSheet = false },
-                onSave = { newJournal ->
-                    dataSource.addItem(newJournal)
-                }
-            )
-        }
+
         FloatingActionButton(
             onClick = {
                 if (dataSource.loadedItems.isNotEmpty()) {

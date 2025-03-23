@@ -16,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -36,24 +35,12 @@ fun TopBarView(
     listState: LazyListState,
     markedList: MutableSet<Int>
 ) {
-    val titleFontSize =
-        remember(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-            val maxFontSize = 30.sp
-            val minFontSize = 22.sp
-            val scrollThreshold = 150f // 滚动阈值
-            val scrollOffset = if (listState.firstVisibleItemIndex > 0) {
-                scrollThreshold
-            } else {
-                listState.firstVisibleItemScrollOffset.toFloat()
-            }
-            lerp(maxFontSize, minFontSize, (scrollOffset / scrollThreshold).coerceIn(0f, 1f))
-        }
-
+    val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     TopAppBar(
         title = {
             Text(
                 text = "Journal",
-                fontSize = titleFontSize
+                fontSize = titleFontSizeAnimate
             )
         },
 //        navigationIcon = {

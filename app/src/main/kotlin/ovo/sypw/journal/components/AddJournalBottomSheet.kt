@@ -34,12 +34,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -64,17 +62,14 @@ import ovo.sypw.journal.utils.RequestPermissions
 import ovo.sypw.journal.utils.SnackBarUtils
 import java.util.Date
 
-/**
- * 添加日记的底部弹出框组件
- * 支持选择定位、日期、文字和图片
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddJournalBottomSheet(
+fun BottomSheetContent(
     onDismiss: () -> Unit,
-    onSave: (JournalData) -> Unit
+    onSave: (JournalData) -> Unit,
+
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val context = LocalContext.current
 
     // 日记数据状态
@@ -113,224 +108,222 @@ fun AddJournalBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
+        Text(
+            text = "添加新日记",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // 日期选择
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(vertical = 8.dp)
+                .clickable { showDatePicker = true },
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "添加新日记",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "选择日期",
+                tint = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "日期: $journalDate")
+        }
 
-            // 日期选择
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { showDatePicker = true },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = "选择日期",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "日期: $journalDate")
-            }
-
-            // 位置选择
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "选择位置",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                OutlinedTextField(
-                    value = locationName,
-                    onValueChange = { locationName = it },
-                    label = { Text("位置") },
-                    modifier = Modifier.weight(1f),
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            // 检查定位权限
-                            if (PermissionUtils.hasPermissions(
-                                    context,
-                                    PermissionUtils.LOCATION_PERMISSIONS
-                                )
-                            ) {
-                                // 已有权限，直接获取位置
-                                GetLocation.getCurrentLocation(
-                                    context = context,
-                                    onSuccess = { location ->
-                                        locationName = location.name ?: ""
-                                        locationData = location
-                                        SnackBarUtils.showSnackBar("已获取当前位置")
-                                    },
-                                    onError = { errorMsg ->
-                                        SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
-                                    }
-                                )
-                            } else {
-                                // 请求权限
-                                SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "获取当前位置"
-                            )
-                        }
-                    }
-                )
-            }
-
-            // 权限请求组件
-            RequestPermissions(
-                permissions = PermissionUtils.LOCATION_PERMISSIONS,
-                onPermissionResult = { granted ->
-                    if (granted) {
-                        // 权限已授予，可以获取位置
-                        SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
-                    } else {
-                        // 权限被拒绝
-                        SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
-                    }
-                }
+        // 位置选择
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = "选择位置",
+                tint = MaterialTheme.colorScheme.primary
             )
-
-            // 文字内容
+            Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
-                value = journalText,
-                onValueChange = { journalText = it },
-                label = { Text("日记内容") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(vertical = 8.dp)
-            )
-
-            // 图片选择
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Face,
-                    contentDescription = "选择图片",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "添加多张图片")
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加多张图片")
-                }
-            }
-
-            // 已选图片预览
-            if (selectedImages.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    items(selectedImages) { imageRes ->
-                        Box(
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            AsyncImage(
-                                model = imageRes,
-                                contentDescription = "Selected Image",
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                value = locationName,
+                onValueChange = { locationName = it },
+                label = { Text("位置") },
+                modifier = Modifier.weight(1f),
+                trailingIcon = {
+                    IconButton(onClick = {
+                        // 检查定位权限
+                        if (PermissionUtils.hasPermissions(
+                                context,
+                                PermissionUtils.LOCATION_PERMISSIONS
                             )
-                            IconButton(
-                                onClick = { selectedImages.remove(imageRes) },
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .align(Alignment.TopEnd)
-                                    .background(
-                                        Color.White.copy(alpha = 0.7f),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove Image",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                        ) {
+                            // 已有权限，直接获取位置
+                            GetLocation.getCurrentLocation(
+                                context = context,
+                                onSuccess = { location ->
+                                    locationName = location.name ?: ""
+                                    locationData = location
+                                    SnackBarUtils.showSnackBar("已获取当前位置")
+                                },
+                                onError = { errorMsg ->
+                                    SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
+                                }
+                            )
+                        } else {
+                            // 请求权限
+                            SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
                         }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "获取当前位置"
+                        )
                     }
                 }
-            }
+            )
+        }
 
-            // 保存按钮
-            Button(
-                onClick = {
-                    val id = getDataBaseIdCountWithPositive()
-                    val newJournal = JournalData(
-                        id = id,
-                        date = journalDate,
-                        text = journalText,
-                        images = selectedImages.toMutableList(),
-                        location = locationData
-                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
-                    )
-                    onSave(newJournal)
-                    onDismiss()
-                    SnackBarUtils.showSnackBar("已添加新日记")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            ) {
-                Text("保存")
+        // 权限请求组件
+        RequestPermissions(
+            permissions = PermissionUtils.LOCATION_PERMISSIONS,
+            onPermissionResult = { granted ->
+                if (granted) {
+                    // 权限已授予，可以获取位置
+                    SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
+                } else {
+                    // 权限被拒绝
+                    SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
+                }
+            }
+        )
+
+        // 文字内容
+        OutlinedTextField(
+            value = journalText,
+            onValueChange = { journalText = it },
+            label = { Text("日记内容") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .padding(vertical = 8.dp)
+        )
+
+        // 图片选择
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Face,
+                contentDescription = "选择图片",
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "添加多张图片")
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                Icon(Icons.Default.Add, contentDescription = "添加多张图片")
             }
         }
 
-        // 日期选择器对话框
-        if (showDatePicker) {
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            journalDate = Date(it)
+        // 已选图片预览
+        if (selectedImages.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                items(selectedImages) { imageRes ->
+                    Box(
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = imageRes,
+                            contentDescription = "Selected Image",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                        )
+                        IconButton(
+                            onClick = { selectedImages.remove(imageRes) },
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.TopEnd)
+                                .background(
+                                    Color.White.copy(alpha = 0.7f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove Image",
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
-                        showDatePicker = false
-                    }) {
-                        Text("确定")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) {
-                        Text("取消")
                     }
                 }
-            ) {
-                DatePicker(state = datePickerState)
             }
+        }
+
+        // 保存按钮
+        Button(
+            onClick = {
+                val id = getDataBaseIdCountWithPositive()
+                val newJournal = JournalData(
+                    id = id,
+                    date = journalDate,
+                    text = journalText,
+                    images = selectedImages.toMutableList(),
+                    location = locationData
+                        ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
+                )
+                onSave(newJournal)
+//                scope.launch { scaffoldState.bottomSheetState.hide() }
+                onDismiss()
+                SnackBarUtils.showSnackBar("已添加新日记")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text("保存")
         }
     }
+
+    // 日期选择器对话框
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        journalDate = Date(it)
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("取消")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
 }

@@ -1,6 +1,7 @@
 package ovo.sypw.journal.data
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.coroutines.CoroutineScope
@@ -10,7 +11,9 @@ import kotlinx.coroutines.withContext
 import ovo.sypw.journal.data.database.JournalDatabase
 import ovo.sypw.journal.data.database.JournalRepository
 import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.utils.SnackBarUtils
+
+
+const val TAG = "JournalDataSource"
 
 /**
  * 自定义日记数据源，用于替代Paging3的实现
@@ -27,14 +30,6 @@ class JournalDataSource private constructor() {
         fun getAllItemsList() = allItems.toList()
 
         private var dataBaseIdCount = 0
-        fun getDataBaseIdCount(): Int {
-            return dataBaseIdCount
-        }
-
-        fun setDataBaseIdCount(count: Int) {
-            dataBaseIdCount = count
-        }
-
         fun getDataBaseIdCountWithPositive(): Int {
             return dataBaseIdCount++
         }
@@ -108,7 +103,7 @@ class JournalDataSource private constructor() {
 //                    SnackBarUtils.showSnackBar("Loading page $currentPage")
                     val offset = currentPage * pageSize
                     val journals = repository.getJournalsPaged(offset, pageSize)
-                    SnackBarUtils.showSnackBar("Loading page $currentPage, now has ${journals.size}")
+                    Log.i(TAG, "Loading page $currentPage, now has ${journals.size}")
 
                     withContext(Dispatchers.Main) {
                         if (journals.isEmpty()) {
@@ -155,9 +150,9 @@ class JournalDataSource private constructor() {
      * 移除指定ID的数据项
      * @param id 要移除的数据项ID
      */
-    fun removeItemData(id: Int) {
-        repository.deleteJournalById(id)
-    }
+//    fun removeItemData(id: Int) {
+//        repository.deleteJournalById(id)
+//    }
 
     /**
      * 更新指定ID的数据项
