@@ -1,11 +1,17 @@
 # Journal - Android Diary Application
 
+English | [简体中文](README_CN.md)
+
 ## Overview
 
 Journal is a modern Android diary application built with Jetpack Compose that allows users to
 create, manage, and organize their personal journal entries. The app provides a clean, intuitive
 interface for recording daily thoughts, attaching images, and tagging locations to preserve
 memories.
+
+## Preview
+
+![Image1](README_IMAGES/image1.jpg){width=200} ![Image2](README_IMAGES/image2.jpg){width=200}
 
 ## Features
 
