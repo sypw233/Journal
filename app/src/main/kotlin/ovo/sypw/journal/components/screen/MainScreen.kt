@@ -24,7 +24,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import ovo.sypw.journal.components.AddItemFAB
 import ovo.sypw.journal.components.BottomSheetContent
 import ovo.sypw.journal.components.CustomLazyCardList
 import ovo.sypw.journal.components.TopBarView
@@ -36,7 +35,7 @@ import ovo.sypw.journal.utils.SnackBarUtils
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen() {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
     ImageLoadUtils.init(context)
     val journalPreferences = remember { JournalPreferences(context) }
@@ -57,17 +56,17 @@ fun MainScreen() {
         JournalDataSource.firstLaunchDatabaseInit()
     }
 
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopBarView(scrollBehavior, listState, markedSet)
-        },
-        floatingActionButton = { AddItemFAB() },
+
+//        floatingActionButton = { AddItemFAB() },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
-        }) { innerPadding ->
+        }
+    ) { innerPadding ->
         val scope = rememberCoroutineScope()
         val scaffoldState = rememberBottomSheetScaffoldState(
             bottomSheetState = rememberStandardBottomSheetState(
@@ -82,9 +81,21 @@ fun MainScreen() {
         }
         val dataSource = JournalDataSource.getInstance()
         val bottomSheetHeightAnimate by animateDpAsState(targetValue = bottomSheetHeight)
+//        var isRefreshing = remember { false }
+//        PullToRefreshBox(
+//            isRefreshing = isRefreshing,
+//            onRefresh = {
+//                SnackBarUtils.showSnackBar("is refreshing")
+//                isRefreshing = false
+//            },
+//            indicator= {
+//
+//            }
+//        ) {
         BottomSheetScaffold(
             modifier = Modifier.animateContentSize(),
             scaffoldState = scaffoldState,
+            topBar = { TopBarView(scrollBehavior, listState, markedSet) },
             sheetPeekHeight = bottomSheetHeightAnimate,
             sheetShadowElevation = 10.dp,
             sheetContent = {
@@ -109,4 +120,7 @@ fun MainScreen() {
             )
         }
     }
+
+
+//    }
 }

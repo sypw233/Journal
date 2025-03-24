@@ -1,6 +1,8 @@
 package ovo.sypw.journal.components
 
 import android.util.Log
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.overscroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,11 +83,25 @@ fun CustomLazyCardList(
         }
     }
 
+    // 创建阻尼效果的弹性规格
+    val overscrollEffect = androidx.compose.foundation.overscroll.OverscrollEffect(
+        // 设置较低的弹性系数，使滑动更有阻尼感
+        springSpec = SpringSpec(
+            dampingRatio = 0.6f,
+            stiffness = Spring.StiffnessLow,
+        )
+    )
+    
     LazyColumn(
         contentPadding = contentPadding,
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            // 应用阻尼滑动效果
+            .overscroll(overscrollEffect),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        state = listState
+        state = listState,
+        // 允许超出边界滑动
+        userScrollEnabled = true
     ) {
 
         items(
