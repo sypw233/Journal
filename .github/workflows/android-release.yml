@@ -3,7 +3,7 @@ name: Android Release APK Build
 on:
   push:
     tags:
-      - 'v*' # 触发条件：推送以v开头的标签，如v1.0.0
+      - 'v*'
 
 jobs:
   build:
