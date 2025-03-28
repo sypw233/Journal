@@ -78,7 +78,13 @@ fun BottomSheetContent(
     var locationName by remember { mutableStateOf("") }
     var locationData by remember { mutableStateOf<LocationData?>(null) }
     val selectedImages = remember { mutableStateListOf<Any>() }
-
+    fun dataInit() {
+        journalText = ""
+        journalDate = Date()
+        locationName = ""
+        locationData = null
+        selectedImages.clear()
+    }
     // 日期选择器状态
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = journalDate.time)
@@ -292,6 +298,7 @@ fun BottomSheetContent(
                 onSave(newJournal)
 //                scope.launch { scaffoldState.bottomSheetState.hide() }
                 onDismiss()
+                dataInit()
                 SnackBarUtils.showSnackBar("已添加新日记")
             },
             modifier = Modifier

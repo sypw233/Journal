@@ -70,7 +70,7 @@ fun MainScreen() {
         val scope = rememberCoroutineScope()
         val scaffoldState = rememberBottomSheetScaffoldState(
             bottomSheetState = rememberStandardBottomSheetState(
-                skipHiddenState = false
+                skipHiddenState = true
             )
         )
         val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
@@ -81,17 +81,6 @@ fun MainScreen() {
         }
         val dataSource = JournalDataSource.getInstance()
         val bottomSheetHeightAnimate by animateDpAsState(targetValue = bottomSheetHeight)
-//        var isRefreshing = remember { false }
-//        PullToRefreshBox(
-//            isRefreshing = isRefreshing,
-//            onRefresh = {
-//                SnackBarUtils.showSnackBar("is refreshing")
-//                isRefreshing = false
-//            },
-//            indicator= {
-//
-//            }
-//        ) {
         BottomSheetScaffold(
             modifier = Modifier.animateContentSize(),
             scaffoldState = scaffoldState,
