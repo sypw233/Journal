@@ -5,7 +5,7 @@ import android.util.Log
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import kotlinx.coroutines.suspendCancellableCoroutine
-import ovo.sypw.journal.data.APIKey
+import ovo.sypw.journal.data.APIKey.API_KEY
 import ovo.sypw.journal.model.LocationData
 import kotlin.coroutines.resume
 
@@ -16,7 +16,7 @@ import kotlin.coroutines.resume
 class GetLocation {
     companion object {
         private const val TAG = "GetLocation"
-        private const val API_KEY = APIKey.API_KEY
+
 
         /**
          * 初始化AMapLocationClient
