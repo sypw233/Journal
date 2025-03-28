@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Signed Release APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
     
@@ -17,11 +19,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # 2. 设置JDK环境
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
 
       # 3. 设置Gradle可执行权限
