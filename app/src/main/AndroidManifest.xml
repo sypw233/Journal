@@ -36,9 +36,17 @@
             android:theme="@style/Theme.Journal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".TestActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Journal">
+            <!--            <intent-filter>-->
+            <!--                <action android:name="android.intent.action.MAIN" />-->
+            <!--                <category android:name="android.intent.category.LAUNCHER" />-->
+            <!--            </intent-filter>-->
         </activity>
     </application>
     <!--允许访问网络，必选权限-->

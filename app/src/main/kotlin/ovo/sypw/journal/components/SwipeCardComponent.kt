@@ -31,8 +31,10 @@ fun SwipeCard(
     journalData: JournalData,
     onDismiss: () -> Unit,
     onMark: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enableScroll: Boolean
 ) {
+
     var currentProgress = remember { mutableFloatStateOf(0f) }
     // 创建滑动状态
     val dismissState =
@@ -60,9 +62,10 @@ fun SwipeCard(
         currentProgress.floatValue = dismissState.progress
     }
     SwipeToDismissBox(
+
         state = dismissState,
-        enableDismissFromStartToEnd = true, // 允许从左向右滑动
-        enableDismissFromEndToStart = true, // 允许从右向左滑动
+        enableDismissFromStartToEnd = enableScroll, // 允许从左向右滑动
+        enableDismissFromEndToStart = enableScroll, // 允许从右向左滑动
         backgroundContent = {
             Box(
                 modifier =

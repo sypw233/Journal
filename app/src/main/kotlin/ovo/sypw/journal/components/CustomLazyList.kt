@@ -39,6 +39,7 @@ fun CustomLazyCardList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
     listState: LazyListState = rememberLazyListState(),
+//    overscrollEffect: VerticalOverscroll,
     markedSet: MutableSet<Int>,
     onLoadMore: () -> Unit = {},
     isScrolling: Boolean
@@ -83,19 +84,18 @@ fun CustomLazyCardList(
         }
     }
 
-
-//    val overscrollEffect = rememberOverscrollEffect()
+    val isListScrolling by remember {
+        derivedStateOf {
+            listState.isScrollInProgress
+        }
+    }
     LazyColumn(
         contentPadding = contentPadding,
         modifier = modifier
             .fillMaxSize(),
-//            .overscroll(overscrollEffect)
-//            .scrollable(state = listState,
-//                orientation  = Orientation.Vertical,),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         state = listState,
-        // 允许超出边界滑动
-        userScrollEnabled = true
+        userScrollEnabled = false
     ) {
 
         items(
@@ -110,10 +110,10 @@ fun CustomLazyCardList(
             // 添加安全检查，确保索引有效
             if (index < dataSource.loadedItems.size) {
                 val journalData = dataSource.loadedItems[index]
-                Log.d(
-                    "JOURNAL_DEBUG",
-                    "CustomLazyCardList: current item index: $index id: ${journalData.id}"
-                )
+//                Log.d(
+//                    "JOURNAL_DEBUG",
+//                    "CustomLazyCardList: current item index: $index id: ${journalData.id}"
+//                )
                 SwipeCard(
                     modifier = Modifier
                         .animateItem(
@@ -123,7 +123,10 @@ fun CustomLazyCardList(
                                 dampingRatio = 0.5f,
                             )
                         )
-                        .fillMaxSize(), journalData = journalData, onDismiss = {
+                        .fillMaxSize(),
+                    enableScroll = !isListScrolling,
+                    journalData = journalData,
+                    onDismiss = {
                         // 处理滑动删除
                         val id = journalData.id
                         val waitToDeleteData = journalData

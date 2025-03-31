@@ -1,5 +1,9 @@
 package ovo.sypw.journal.components
 
+import android.app.Activity.RESULT_OK
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -18,11 +22,13 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import ovo.sypw.journal.R
+import ovo.sypw.journal.TestActivity
 import ovo.sypw.journal.utils.SnackBarUtils
 
 /**
@@ -68,9 +74,20 @@ fun TopBarView(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
+            val context = LocalContext.current
+            val forActivityResult = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    val data = result.data
+                    SnackBarUtils.showSnackBar(data?.data.toString())
+                }
+            }
             // 添加其他操作按钮
             IconButton(onClick = {
-                SnackBarUtils.showSnackBar("Search Clicked")
+                val intent = Intent(context, TestActivity::class.java)
+                forActivityResult.launch(intent)
+                SnackBarUtils.showSnackBar("Turn to TestActivity")
             }) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_foreground),
