@@ -43,7 +43,7 @@ import kotlin.math.roundToInt
 fun TestScreen(
     modifier: Modifier = Modifier
         .fillMaxSize()
-        .padding(50.dp),
+        .padding(0.dp),
     contentAlignment: Alignment = Alignment.Center
 ) {
     Box(
@@ -53,7 +53,8 @@ fun TestScreen(
 //        DraggableText()
 //        DraggableTextLowLevel()
 //        TestList()
-        TestLazyList()
+//        TestLazyList()
+        AIChatScreen()
     }
 }
 

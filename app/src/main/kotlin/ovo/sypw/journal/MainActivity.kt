@@ -5,28 +5,33 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import ovo.sypw.journal.components.screen.MainScreen
 import ovo.sypw.journal.ui.theme.JournalTheme
-import ovo.sypw.journal.utils.GetLocation
-import ovo.sypw.journal.utils.SnackBarUtils
+import ovo.sypw.journal.viewmodel.MainViewModel
 
+@AndroidEntryPoint
 @SuppressLint("RestrictedApi")
 class MainActivity : ComponentActivity() {
+    // 使用Hilt注入ViewModel
+    private val viewModel: MainViewModel by viewModels()
+    
     override fun onCreate(savedInstanceState: Bundle?) {
-        val forActivityResult =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    val data = result.data
-                    SnackBarUtils.showSnackBar(data?.data.toString())
-                }
-            }
+//        val forActivityResult =
+//            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+//                if (result.resultCode == RESULT_OK) {
+//                    val data = result.data
+//                    SnackBarUtils.showSnackBar(data?.data.toString())
+//                }
+//            }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        GetLocation.initLocationClient(this)
+        // GetLocation已在Application中初始化
         setContent {
             JournalTheme {
-                MainScreen()
+                // 传递ViewModel到MainScreen
+                MainScreen(viewModel = viewModel)
             }
         }
     }

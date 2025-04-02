@@ -3,7 +3,6 @@ package ovo.sypw.journal.data
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import ovo.sypw.journal.utils.SnackBarUtils
 
 class JournalPreferences(context: Context) {
     private val sharedPreferences: SharedPreferences =
@@ -16,10 +15,10 @@ class JournalPreferences(context: Context) {
     fun isFirstLaunch(): Boolean {
         val isFirstLaunch = sharedPreferences.getBoolean(keyFirstLaunch, true)
         if (isFirstLaunch) {
-            SnackBarUtils.showSnackBar("First Launch")
+//            SnackBarUtils.showSnackBar("First Launch")
             sharedPreferences.edit { putBoolean(keyFirstLaunch, false) }
         } else {
-            SnackBarUtils.showSnackBar("Not First Launch")
+//            SnackBarUtils.showSnackBar("Not First Launch")
         }
         return isFirstLaunch
     }

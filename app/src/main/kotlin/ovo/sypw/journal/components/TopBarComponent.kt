@@ -39,7 +39,7 @@ import ovo.sypw.journal.utils.SnackBarUtils
 fun TopBarView(
     scrollBehavior: TopAppBarScrollBehavior,
     listState: LazyListState,
-    markedList: MutableSet<Int>
+    markedSet: Set<Any?>
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     MediumTopAppBar(
@@ -58,7 +58,7 @@ fun TopBarView(
 //        },
         actions = {
             // 显示标记数量
-            if (markedList.isNotEmpty()) {
+            if (markedSet.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
@@ -66,7 +66,7 @@ fun TopBarView(
                         .padding(4.dp)
                 ) {
                     Text(
-                        text = markedList.size.toString(),
+                        text = markedSet.size.toString(),
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 12.sp
                     )

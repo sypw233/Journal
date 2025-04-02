@@ -16,21 +16,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ovo.sypw.journal.data.JournalDataSource
 import ovo.sypw.journal.utils.SnackBarUtils
+import ovo.sypw.journal.viewmodel.JournalListViewModel
 
 
-const val TAG = "JournalDataSource"
-var itemKeyCount = 0
+const val TAG = "CustomLazyList"
 
 /**
- * 自定义懒加载列表组件，使用CustomJournalDataSource实现分页加载
+ * 自定义懒加载列表组件，使用ViewModel实现分页加载
  * 支持滑动删除功能
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -39,56 +39,57 @@ fun CustomLazyCardList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
     listState: LazyListState = rememberLazyListState(),
-//    overscrollEffect: VerticalOverscroll,
-    markedSet: MutableSet<Int>,
-    onLoadMore: () -> Unit = {},
-    isScrolling: Boolean
+    viewModel: JournalListViewModel
 ) {
-    // 获取数据源实例
-    val dataSource = remember { JournalDataSource.getInstance() }
-//    dataSource.initialize()
-    // 监听滚动状态
-//    val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
-
+    // 从ViewModel获取UI状态
+    val uiState by viewModel.uiState.collectAsState()
+    
     // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
         derivedStateOf {
-            if (isScrolling) {
+            if (uiState.isScrolling) {
                 false // 滚动时不加载
             } else {
-//                最后一个ITEM可见
+                // 最后一个ITEM可见
                 val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
                 lastVisibleItem != null &&
-                        lastVisibleItem.index >= dataSource.loadedItems.size - 4 &&
-                        dataSource.hasMoreData()
+                        lastVisibleItem.index >= uiState.journals.size - 4 &&
+                        uiState.hasMoreData
             }
         }
     }
 
-    // 当需要加载更多时，调用loadNextPage
+    // 当需要加载更多时，调用ViewModel的loadNextPage方法
     LaunchedEffect(shouldLoadMore) {
         Log.i(TAG, "CustomLazyCardList: LaunchedEffect")
-        if (shouldLoadMore && !dataSource.isLoading()) {
-            val success = dataSource.loadNextPage()
-
-            if (success) {
-                onLoadMore()
-            }
+        if (shouldLoadMore) {
+            viewModel.loadNextPage()
         }
     }
 
-    // 初始化数据源
-    LaunchedEffect(Unit) {
-        if (dataSource.loadedItems.isEmpty()) {
-            dataSource.initialize()
-        }
-    }
-
+    // 监听列表滚动状态并通知ViewModel
     val isListScrolling by remember {
         derivedStateOf {
             listState.isScrollInProgress
         }
     }
+
+    // 当滚动状态改变时通知ViewModel
+    LaunchedEffect(isListScrolling) {
+        viewModel.setScrolling(isListScrolling)
+    }
+
+    // 监听scrollToPosition状态变化，当需要滚动到特定位置时执行滚动
+    LaunchedEffect(uiState.scrollToPosition) {
+        uiState.scrollToPosition?.let { position ->
+            // 使用动画滚动到指定位置
+            listState.animateScrollToItem(position)
+
+            // 滚动完成后重置scrollToPosition状态为null
+            viewModel.resetScrollPosition()
+        }
+    }
+    
     LazyColumn(
         contentPadding = contentPadding,
         modifier = modifier
@@ -99,21 +100,16 @@ fun CustomLazyCardList(
     ) {
 
         items(
-
-            count = dataSource.loadedItems.size,
+            count = uiState.journals.size,
             // 使用稳定的唯一ID作为key，而不是依赖于索引位置
             key = { index ->
                 // 确保即使在快速滑动时也能保持唯一性
-                val item = dataSource.loadedItems[index]
+                val item = uiState.journals[index]
                 "journal_item_${item.id}"
             }) { index ->
             // 添加安全检查，确保索引有效
-            if (index < dataSource.loadedItems.size) {
-                val journalData = dataSource.loadedItems[index]
-//                Log.d(
-//                    "JOURNAL_DEBUG",
-//                    "CustomLazyCardList: current item index: $index id: ${journalData.id}"
-//                )
+            if (index < uiState.journals.size) {
+                val journalData = uiState.journals[index]
                 SwipeCard(
                     modifier = Modifier
                         .animateItem(
@@ -127,39 +123,24 @@ fun CustomLazyCardList(
                     enableScroll = !isListScrolling,
                     journalData = journalData,
                     onDismiss = {
-                        // 处理滑动删除
+                        // 处理滑动删除，调用ViewModel的方法
                         val id = journalData.id
-                        val waitToDeleteData = journalData
-                        val removed = dataSource.removeItem(id)
-                        if (removed) {
-                            SnackBarUtils.showActionSnackBar(
-                                message = "删除条目 #${id}",
-                                actionLabel = "撤销",
-                                onActionPerformed = {
-                                    // 撤销删除
-                                    dataSource.addItem(waitToDeleteData, index)
-                                },
-                                onDismissed = {
-                                    dataSource.removeItem(id)
-                                })
-                        } else {
-                            SnackBarUtils.showSnackBar("删除条目 #${id} 失败")
-                        }
+                        viewModel.deleteJournal(id)
+                        // 使用带有撤销按钮的Snackbar
+                        SnackBarUtils.showActionSnackBar(
+                            message = "已删除 #${id}",
+                            actionLabel = "撤销",
+                            onActionPerformed = { viewModel.undoDelete() },
+                            onDismissed = {}
+                        )
                     }, onMark = {
-                        // 处理标记
+                        // 处理标记，调用ViewModel的方法
                         val id = journalData.id
-                        if (id in markedSet) {
-                            SnackBarUtils.showSnackBar("取消标记条目 #${id}")
-                            markedSet.remove(id)
-                            dataSource.updateItem(id) { item ->
-                                item.copy(isMark = false)
-                            }
+                        viewModel.toggleMarkJournal(id)
+                        if (id in uiState.markedItems) {
+                            SnackBarUtils.showSnackBar("Cancel mark #${id}")
                         } else {
-                            SnackBarUtils.showSnackBar("标记条目 #${id}")
-                            markedSet.add(id)
-                            dataSource.updateItem(id) { item ->
-                                item.copy(isMark = true)
-                            }
+                            SnackBarUtils.showSnackBar("Mark #${id}")
                         }
                     })
             }
@@ -168,18 +149,16 @@ fun CustomLazyCardList(
             Box(Modifier.height(100.dp))
         }
 
-        // 如果还有更多数据，显示加载指示器
-        // 在滚动时或加载中时都显示加载指示器
-        if (dataSource.hasMoreData() && (isScrolling || dataSource.isLoading())) {
+        // 如果还有更多数据且正在加载，显示加载指示器
+        if (uiState.hasMoreData && uiState.isLoading) {
             item {
                 LoadingPlaceholder()
             }
         }
-
     }
 }
 
-// 如果LoadingPlaceholder组件不存在，添加实现
+// 加载指示器组件
 @Composable
 fun LoadingPlaceholder() {
     Box(

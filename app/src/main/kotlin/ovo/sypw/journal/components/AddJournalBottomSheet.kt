@@ -105,11 +105,11 @@ fun BottomSheetContent(
                     selectedImages.add(uri)
                     successCount++
                 } catch (e: Exception) {
-                    SnackBarUtils.showSnackBar("无法获取部分图片的持久访问权限: ${e.message}")
+                    SnackBarUtils.showSnackBar("Unable to obtain persistent access for some images: ${e.message}")
                 }
             }
             if (successCount > 0) {
-                SnackBarUtils.showSnackBar("已添加${successCount}张图片")
+                SnackBarUtils.showSnackBar("Already add ${successCount}images")
             }
         }
     }
@@ -123,7 +123,7 @@ fun BottomSheetContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "添加新日记",
+            text = "ADD NEW JOURNAL",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -139,11 +139,11 @@ fun BottomSheetContent(
         ) {
             Icon(
                 imageVector = Icons.Default.DateRange,
-                contentDescription = "选择日期",
+                contentDescription = "Select Date",
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "日期: $journalDate")
+            Text(text = "Date: $journalDate")
         }
 
         // 位置选择
@@ -155,14 +155,14 @@ fun BottomSheetContent(
         ) {
             Icon(
                 imageVector = Icons.Default.LocationOn,
-                contentDescription = "选择位置",
+                contentDescription = "Select Location",
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
                 value = locationName,
                 onValueChange = { locationName = it },
-                label = { Text("位置") },
+                label = { Text("Location") },
                 modifier = Modifier.weight(1f),
                 trailingIcon = {
                     IconButton(onClick = {
@@ -178,20 +178,20 @@ fun BottomSheetContent(
                                 onSuccess = { location ->
                                     locationName = location.name ?: ""
                                     locationData = location
-                                    SnackBarUtils.showSnackBar("已获取当前位置")
+                                    SnackBarUtils.showSnackBar("Already get location")
                                 },
                                 onError = { errorMsg ->
-                                    SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
+                                    SnackBarUtils.showSnackBar("Get location fail: $errorMsg")
                                 }
                             )
                         } else {
                             // 请求权限
-                            SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
+                            SnackBarUtils.showSnackBar("Location permissions are required to obtain the current location")
                         }
                     }) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "获取当前位置"
+                            contentDescription = "Get Location"
                         )
                     }
                 }
@@ -204,10 +204,10 @@ fun BottomSheetContent(
             onPermissionResult = { granted ->
                 if (granted) {
                     // 权限已授予，可以获取位置
-                    SnackBarUtils.showSnackBar("已获得定位权限，可以获取当前位置")
+                    SnackBarUtils.showSnackBar("Already get location permission")
                 } else {
                     // 权限被拒绝
-                    SnackBarUtils.showSnackBar("未获得定位权限，无法获取当前位置")
+                    SnackBarUtils.showSnackBar("No location permission")
                 }
             }
         )
@@ -216,7 +216,7 @@ fun BottomSheetContent(
         OutlinedTextField(
             value = journalText,
             onValueChange = { journalText = it },
-            label = { Text("日记内容") },
+            label = { Text("Journal content") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
@@ -232,14 +232,14 @@ fun BottomSheetContent(
         ) {
             Icon(
                 imageVector = Icons.Default.Face,
-                contentDescription = "选择图片",
+                contentDescription = "Select images",
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "添加多张图片")
+            Text(text = "Add images")
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                Icon(Icons.Default.Add, contentDescription = "添加多张图片")
+                Icon(Icons.Default.Add, contentDescription = "Add images")
             }
         }
 
@@ -299,13 +299,13 @@ fun BottomSheetContent(
 //                scope.launch { scaffoldState.bottomSheetState.hide() }
                 onDismiss()
                 dataInit()
-                SnackBarUtils.showSnackBar("已添加新日记")
+                SnackBarUtils.showSnackBar("Already add journal")
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
         ) {
-            Text("保存")
+            Text("Save")
         }
     }
 
@@ -320,12 +320,12 @@ fun BottomSheetContent(
                     }
                     showDatePicker = false
                 }) {
-                    Text("确定")
+                    Text("Confirm")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("取消")
+                    Text("Cancel")
                 }
             }
         ) {

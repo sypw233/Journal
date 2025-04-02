@@ -12,18 +12,20 @@ import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.overscroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -33,26 +35,30 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.components.BottomSheetContent
 import ovo.sypw.journal.components.CustomLazyCardList
 import ovo.sypw.journal.components.TopBarView
-import ovo.sypw.journal.data.JournalDataSource
-import ovo.sypw.journal.data.JournalPreferences
+import ovo.sypw.journal.ui.main.MainScreenState
 import ovo.sypw.journal.ui.theme.animiation.VerticalOverscrollWithChange
-import ovo.sypw.journal.utils.ImageLoadUtils
 import ovo.sypw.journal.utils.SnackBarUtils
+import ovo.sypw.journal.viewmodel.MainViewModel
 
 private const val TAG = "MainScreen"
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(viewModel: MainViewModel) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    SnackBarUtils.initialize(snackbarHostState, coroutineScope)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
-    ImageLoadUtils.init(context)
-    val journalPreferences = remember { JournalPreferences(context) }
+
+    // 从ViewModel获取UI状态
+    val uiState by viewModel.uiState.collectAsState()
 
     // 配置列表状态
     val lazyListPrefetchStrategy = remember { LazyListPrefetchStrategy(10) }
@@ -60,22 +66,48 @@ fun MainScreen() {
         initialFirstVisibleItemIndex = 0,
         prefetchStrategy = lazyListPrefetchStrategy,
     )
-    var markedSet: MutableSet<Int> = mutableSetOf()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    SnackBarUtils.initialize(snackbarHostState, coroutineScope)
-    JournalDataSource.initDatabase(LocalContext.current)
 
-    if (journalPreferences.isFirstLaunch()) {
-        JournalDataSource.firstLaunchDatabaseInit()
+
+    // 根据UI状态渲染不同的界面
+    when (val state = uiState) {
+        is MainScreenState.Initial, is MainScreenState.Loading -> {
+            // 可以显示加载中的UI
+        }
+
+        is MainScreenState.Error -> {
+            // 显示错误信息
+            SnackBarUtils.showSnackBar(state.error)
+        }
+
+        is MainScreenState.Success -> {
+            // 显示主界面
+            MainScreenContent(
+                state = state,
+                viewModel = viewModel,
+                scrollBehavior = scrollBehavior,
+                listState = listState,
+                snackbarHostState = snackbarHostState,
+                coroutineScope = coroutineScope
+            )
+        }
     }
+}
 
-
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun MainScreenContent(
+    state: MainScreenState.Success,
+    viewModel: MainViewModel,
+    scrollBehavior: TopAppBarScrollBehavior,
+    listState: LazyListState,
+    snackbarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope
+) {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-//        floatingActionButton = { AddItemFAB() },
+        topBar = { TopBarView(scrollBehavior, listState, state.markedItems) },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }
@@ -86,38 +118,37 @@ fun MainScreen() {
                 skipHiddenState = true
             )
         )
-        val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
-//        val bottomSheetHeight by remember {
-//            derivedStateOf {
-//                if (listState.lastScrolledForward) 30.dp else 100.dp
-//            }
-//        }
-//        val bottomSheetHeightAnimate by animateDpAsState(targetValue = bottomSheetHeight)
-        var bottomSheetHeight = remember { derivedStateOf { Animatable(30f) } }
-        val dataSource = JournalDataSource.getInstance()
-        val isSheetExpanded by remember {
-            derivedStateOf { scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded }
+        val isScrolling = state.isScrolling
+        // 使用ViewModel中的状态
+        var bottomSheetHeight = remember { derivedStateOf { Animatable(state.bottomSheetHeight) } }
+        val isSheetExpanded = state.isBottomSheetExpanded
+
+        // 当滚动状态改变时通知ViewModel
+        val isScrollingState by remember { derivedStateOf { listState.isScrollInProgress } }
+        if (isScrollingState != state.isScrolling) {
+            viewModel.setScrolling(isScrollingState)
         }
+
         val overscrollEffect = remember(coroutineScope) {
             VerticalOverscrollWithChange(
                 scope = coroutineScope,
                 onChangeScroll = { scrollOffset ->
-
                     Log.d(TAG, "MainScreen: ${bottomSheetHeight.value.value}")
-                    if (bottomSheetHeight.value.value >= 30f) {
+                    if (scrollOffset * 0.8f + bottomSheetHeight.value.value >= 30) {
                         scope.launch {
-                            bottomSheetHeight.value.animateTo(scrollOffset * 0.8f + bottomSheetHeight.value.value)
+                            val newHeight = scrollOffset * 0.8f + bottomSheetHeight.value.value
+                            bottomSheetHeight.value.animateTo(newHeight)
+                            viewModel.setBottomSheetHeight(newHeight)
                         }
                     }
-
-
                 },
                 onChangeFling = { remaining ->
-
                     if (bottomSheetHeight.value.value >= 150f) {
                         scope.launch {
                             scaffoldState.bottomSheetState.expand()
                             bottomSheetHeight.value.animateTo(30f)
+                            viewModel.setBottomSheetHeight(30f)
+                            viewModel.setBottomSheetExpanded(true)
                         }
                     } else {
                         scope.launch {
@@ -129,20 +160,17 @@ fun MainScreen() {
                                     easing = EaseOutQuad   // 使用缓出曲线
                                 )
                             )
+                            viewModel.setBottomSheetHeight(30f)
                         }
-
                     }
                 },
-
-                )
+            )
         }
 
 
         BottomSheetScaffold(
             modifier = Modifier.animateContentSize(),
             scaffoldState = scaffoldState,
-            topBar = { TopBarView(scrollBehavior, listState, markedSet) },
-
             sheetPeekHeight = bottomSheetHeight.value.value.dp,
             sheetShadowElevation = 10.dp,
             sheetContent = {
@@ -151,11 +179,12 @@ fun MainScreen() {
                         scope.launch {
                             scaffoldState.bottomSheetState.partialExpand()
                             listState.animateScrollToItem(0)
+                            viewModel.setBottomSheetExpanded(false)
                         }
                     },
                     onSave = { newJournal ->
-                        dataSource.addItem(newJournal)
-                        SnackBarUtils.showSnackBar("add item success ${newJournal.id}")
+                        // 使用ViewModel添加日记
+                        viewModel.addJournal(newJournal)
                     }
                 )
             }) {
@@ -171,8 +200,7 @@ fun MainScreen() {
                     ),
                 contentPadding = innerPadding,
                 listState = listState,
-                markedSet = markedSet,
-                isScrolling = isScrolling,
+                viewModel = viewModel.journalListViewModel
             )
             if (isSheetExpanded) {
                 Box(
@@ -183,14 +211,11 @@ fun MainScreen() {
                             // 拦截所有点击事件
                             scope.launch {
                                 scaffoldState.bottomSheetState.partialExpand()
+                                viewModel.setBottomSheetExpanded(false)
                             }
                         }
                 )
             }
-
         }
     }
-
-
-//    }
 }
