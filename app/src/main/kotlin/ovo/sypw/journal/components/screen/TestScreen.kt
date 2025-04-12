@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,9 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.ui.theme.animiation.VerticalOverscroll
+import ovo.sypw.journal.utils.SnackBarUtils
+import ovo.sypw.journal.viewmodel.AIChatViewModel
 import kotlin.math.roundToInt
 
 @Composable
@@ -46,6 +51,9 @@ fun TestScreen(
         .padding(0.dp),
     contentAlignment: Alignment = Alignment.Center
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    SnackBarUtils.initialize(snackbarHostState, coroutineScope)
     Box(
         modifier = modifier,
         contentAlignment = contentAlignment
@@ -54,7 +62,8 @@ fun TestScreen(
 //        DraggableTextLowLevel()
 //        TestList()
 //        TestLazyList()
-        AIChatScreen()
+        val content = LocalContext.current
+        AIChatScreen(viewModel = viewModel { AIChatViewModel(content) })
     }
 }
 

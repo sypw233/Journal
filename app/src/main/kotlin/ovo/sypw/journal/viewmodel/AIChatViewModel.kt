@@ -1,5 +1,6 @@
 package ovo.sypw.journal.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import ovo.sypw.journal.components.screen.ChatMessage
 import ovo.sypw.journal.data.APIKey
+import ovo.sypw.journal.utils.ImageBase64Utils
 import java.io.IOException
 
 /**
@@ -30,17 +32,25 @@ data class AIChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedModel: String = "qvq-max",
-    val availableModels: List<String> = listOf("qvq-max", "qwen-vl-plus", "qwen-max", "qwen-turbo"),
+    val availableModels: List<String> = listOf(
+        "qvq-max",
+        "qwen-vl-plus",
+        "qwen-max",
+        "qwen-turbo",
+        "deepseek-r1",
+        "deepseek-v3",
+        "dicksuck-sb"
+    ),
     val thinking: String? = null
 )
 
 /**
  * AI聊天ViewModel，负责管理聊天状态和处理API请求
  */
-class AIChatViewModel : ViewModel() {
+class AIChatViewModel(private val context: Context) : ViewModel() {
     companion object {
         // 模型思考过程的键名
-        private const val THINKING_KEY = "thinking"
+        private const val THINKING_KEY = "reasoning_content"
     }
 
     private val TAG = "AIChatViewModel"
@@ -107,16 +117,24 @@ class AIChatViewModel : ViewModel() {
         userMessage.put("role", "user")
         val userContent = JSONArray()
 
-        // 添加图片（实际实现需要将Uri转换为Base64或URL）
+        // 添加图片（将Uri转换为Base64）
         for (imageUri in images) {
             val imageContent = JSONObject()
             imageContent.put("type", "image_url")
             val imageUrlObj = JSONObject()
-            // 这里应该是将Uri转换为可访问的URL或Base64
-            // 示例中使用占位符
-            imageUrlObj.put("url", imageUri.toString())
-            imageContent.put("image_url", imageUrlObj)
-            userContent.put(imageContent)
+
+            // 将Uri转换为Base64格式
+            val base64Image = ImageBase64Utils.uriToBase64(context, imageUri)
+
+            if (base64Image != null) {
+                // 使用转换后的Base64字符串
+                imageUrlObj.put("url", base64Image)
+                imageContent.put("image_url", imageUrlObj)
+                userContent.put(imageContent)
+            } else {
+                Log.e(TAG, "Failed to convert image to Base64: $imageUri")
+                _uiState.update { it.copy(error = "图片处理失败，请重试") }
+            }
         }
 
         // 添加文本
@@ -143,6 +161,7 @@ class AIChatViewModel : ViewModel() {
         // 添加思考过程参数
         val parameters = JSONObject()
         parameters.put(THINKING_KEY, true)
+        parameters.put("vl_high_resolution_images", true)
         requestBody.put("parameters", parameters)
 
         // 发送请求
@@ -216,7 +235,8 @@ class AIChatViewModel : ViewModel() {
             .build()
 
         // 创建一个StringBuilder来收集流式响应
-        val responseBuilder = StringBuilder()
+        val contextBuilder = StringBuilder()
+        val thinkingBuilder = StringBuilder()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -241,7 +261,7 @@ class AIChatViewModel : ViewModel() {
                     response.body?.source()?.let { source ->
                         // 初始化AI回复消息
                         val aiMessage = ChatMessage(
-                            content = "",
+                            content = "\n",
                             isUser = false,
                             thinking = null
                         )
@@ -254,10 +274,14 @@ class AIChatViewModel : ViewModel() {
 
                         while (!source.exhausted()) {
                             val line = source.readUtf8Line() ?: continue
+                            if (line.isEmpty()) continue
+                            Log.d(TAG, "onResponse: $line")
                             if (line.startsWith("data: ")) {
                                 val jsonData = line.substring(6)
                                 if (jsonData == "[DONE]") {
                                     // 流结束
+                                    Log.d(TAG, "Thinking: $thinkingBuilder")
+                                    Log.d(TAG, "Context: $contextBuilder")
                                     break
                                 }
 
@@ -267,20 +291,16 @@ class AIChatViewModel : ViewModel() {
                                         val choices = jsonObject.getJSONArray("choices")
                                         if (choices.length() > 0) {
                                             val choice = choices.getJSONObject(0)
-
-                                            // 处理思考过程
-                                            if (choice.has("delta") && choice.getJSONObject("delta")
-                                                    .has(THINKING_KEY)
-                                            ) {
-                                                try {
-                                                    val thinking = choice.getJSONObject("delta")
-                                                        .getString(THINKING_KEY)
-                                                    Log.d(TAG, "Thinking: $thinking")
-
-                                                    // 更新UI状态中的thinking字段
-                                                    _uiState.update { it.copy(thinking = thinking) }
-
-                                                    // 更新最后一条消息的thinking字段
+                                            // 处理内容
+                                            if (choice.has("delta")) {
+                                                val delta = choice.getJSONObject("delta")
+                                                if (delta.has(THINKING_KEY) && delta.getString(
+                                                        THINKING_KEY
+                                                    ) != "null"
+                                                ) {
+                                                    val content = delta.getString(THINKING_KEY)
+                                                    thinkingBuilder.append(content)
+                                                    // 更新UI状态中的最后一条消息
                                                     _uiState.update { currentState ->
                                                         val updatedMessages =
                                                             currentState.messages.toMutableList()
@@ -290,22 +310,14 @@ class AIChatViewModel : ViewModel() {
                                                                 updatedMessages[lastIndex]
                                                             updatedMessages[lastIndex] =
                                                                 lastMessage.copy(
-                                                                    thinking = thinking
+                                                                    thinking = thinkingBuilder.toString()
                                                                 )
                                                         }
                                                         currentState.copy(messages = updatedMessages)
                                                     }
-                                                } catch (e: Exception) {
-                                                    Log.e(TAG, "Error parsing thinking", e)
-                                                }
-                                            }
-
-                                            // 处理内容
-                                            if (choice.has("delta")) {
-                                                val delta = choice.getJSONObject("delta")
-                                                if (delta.has("content")) {
+                                                } else if (delta.has("content")) {
                                                     val content = delta.getString("content")
-                                                    responseBuilder.append(content)
+                                                    contextBuilder.append(content)
 
                                                     // 更新UI状态中的最后一条消息
                                                     _uiState.update { currentState ->
@@ -317,7 +329,7 @@ class AIChatViewModel : ViewModel() {
                                                                 updatedMessages[lastIndex]
                                                             updatedMessages[lastIndex] =
                                                                 lastMessage.copy(
-                                                                    content = responseBuilder.toString()
+                                                                    content = contextBuilder.toString()
                                                                 )
                                                         }
                                                         currentState.copy(messages = updatedMessages)

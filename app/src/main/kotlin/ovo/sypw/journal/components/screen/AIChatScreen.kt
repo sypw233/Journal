@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Refresh
@@ -54,9 +55,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.utils.SnackBarUtils
 import ovo.sypw.journal.viewmodel.AIChatViewModel
@@ -80,7 +84,7 @@ data class ChatMessage(
 @Composable
 fun AIChatScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
-    viewModel: AIChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: AIChatViewModel
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -107,7 +111,7 @@ fun AIChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI 助手对话") },
+                title = { },
                 actions = {
                     // 模型选择下拉菜单
                     Box {
@@ -294,13 +298,13 @@ fun AIChatScreen(
             }
 
             // 显示加载指示器
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp)
-                )
-            }
+//            if (uiState.isLoading) {
+//                CircularProgressIndicator(
+//                    modifier = Modifier
+//                        .align(Alignment.Center)
+//                        .padding(16.dp)
+//                )
+//            }
         }
     }
 }
@@ -310,6 +314,9 @@ fun AIChatScreen(
  */
 @Composable
 fun ChatMessageItem(message: ChatMessage) {
+    // 添加思考窗口展开/收起状态
+    var isThinkingExpanded by remember { mutableStateOf(true) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,7 +325,7 @@ fun ChatMessageItem(message: ChatMessage) {
     ) {
         // 发送者标签
         Text(
-            text = if (message.isUser) "你" else "AI助手",
+            text = if (message.isUser) "" else "",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 4.dp)
@@ -352,12 +359,48 @@ fun ChatMessageItem(message: ChatMessage) {
                     .widthIn(max = 280.dp)
                     .padding(bottom = 8.dp)
             ) {
-                Text(
-                    text = "思考过程: ${message.thinking}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 思考过程标题和展开/收起按钮
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "思考过程",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp,
+                        )
+
+                        // 展开/收起按钮
+                        IconButton(
+                            onClick = { isThinkingExpanded = !isThinkingExpanded },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isThinkingExpanded) Icons.Default.Close else Icons.Default.ArrowDropDown,
+                                contentDescription = if (isThinkingExpanded) "收起" else "展开",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 思考过程内容，根据展开状态显示或隐藏
+                if (isThinkingExpanded) {
+                    Text(
+                        text = "\n" + message.thinking,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
 
@@ -366,13 +409,31 @@ fun ChatMessageItem(message: ChatMessage) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = if (message.isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.widthIn(max = 280.dp)
+                modifier = Modifier.widthIn(max = 320.dp)
             ) {
-                Text(
-                    text = message.content,
-                    color = if (message.isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(12.dp)
-                )
+                if (message.isUser) {
+                    Text(
+                        text = message.content,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(12.dp),
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp,
+                        textAlign = TextAlign.Left
+                    )
+                } else {
+                    MarkdownText(
+                        markdown = message.content,
+                        modifier = Modifier.padding(12.dp),
+                        style = TextStyle(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            lineHeight = 18.sp,
+                            textAlign = TextAlign.Left,
+                        ),
+                    )
+                }
+
+
             }
         }
     }
