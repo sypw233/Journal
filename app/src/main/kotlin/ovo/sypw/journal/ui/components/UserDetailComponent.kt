@@ -1,0 +1,149 @@
+package ovo.sypw.journal.ui.components
+
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ovo.sypw.journal.data.model.AuthState
+import ovo.sypw.journal.viewmodel.AuthViewModel
+
+
+
+@Composable
+fun UserDetailDialog(
+    authViewModel: AuthViewModel = viewModel(),
+    onDismiss: () -> Unit
+) {
+    val authState by authViewModel.authState.collectAsState()
+    
+    if (authState is AuthState.Authenticated) {
+        val user = (authState as AuthState.Authenticated).user
+        Log.d(TAG, "UserDetailDialog: $user")
+        Dialog(onDismissRequest = onDismiss) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // 用户头像
+                    Surface(
+                        modifier = Modifier
+                            .size(80.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = user.username.first().toString(),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                        }
+                    }
+                    
+                    // 用户名
+                    Text(
+                        text = user.username,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    
+                    // 用户信息列表
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        // 邮箱
+                        user.email?.let {
+                            Text(
+                                text = "邮箱: $it",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        
+                        // 手机号
+                        user.phone?.let {
+                            Text(
+                                text = "手机号:$it",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        
+                        // 注册时间
+                        user.dateJoined?.let {
+                            Text(
+                                text = "注册时间: $it",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        
+                        // 上次登录时间
+                        user.lastLogin?.let {
+                            Text(
+                                text = "上次同步时间: $it",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                    
+                    // 退出登录按钮
+                    Button(
+                        onClick = {
+                            authViewModel.logout()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Text("退出登录")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@Preview
+fun UserDetailToastPreview() {
+    var showToast = false
+    UserDetailDialog(
+        onDismiss = { showToast = false }
+    )
+
+}

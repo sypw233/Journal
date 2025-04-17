@@ -1,6 +1,6 @@
 package ovo.sypw.journal.ui.list
 
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 
 /**
  * 日记列表UI状态

@@ -6,7 +6,7 @@ import com.amap.api.location.AMapLocationClient
 import com.amap.api.location.AMapLocationClientOption
 import kotlinx.coroutines.suspendCancellableCoroutine
 import ovo.sypw.journal.data.APIKey
-import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.data.model.LocationData
 import kotlin.coroutines.resume
 
 /**

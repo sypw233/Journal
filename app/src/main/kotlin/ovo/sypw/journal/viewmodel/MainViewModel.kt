@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.repository.JournalRepository
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.ui.main.MainScreenState
 import ovo.sypw.journal.utils.SnackBarUtils
 import javax.inject.Inject

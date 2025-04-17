@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components.screen
+package ovo.sypw.journal.ui.screen
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult

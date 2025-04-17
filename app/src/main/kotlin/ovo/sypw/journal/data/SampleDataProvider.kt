@@ -1,7 +1,7 @@
 package ovo.sypw.journal.data
 
 import ovo.sypw.journal.R
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 
 /**
  * 示例数据提供者

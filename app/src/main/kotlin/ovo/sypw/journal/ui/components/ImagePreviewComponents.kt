@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 /**
@@ -68,7 +69,7 @@ fun ImageGalleryPreview(
     // 启动时的入场动画
     LaunchedEffect(Unit) {
         // 短暂延迟后重置动画状态，完成从缩略图到全屏的过渡
-        kotlinx.coroutines.delay(300)
+        delay(300)
         animateFromThumbnail = false
         initialScale = 1f
     }

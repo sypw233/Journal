@@ -1,7 +1,7 @@
 package ovo.sypw.journal.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 
 /**
  * 日记仓库接口

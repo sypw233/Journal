@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components.screen
+package ovo.sypw.journal.ui.screen
 
 import android.annotation.SuppressLint
 import android.util.Log
@@ -37,10 +37,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import ovo.sypw.journal.components.BottomSheetContent
-import ovo.sypw.journal.components.CustomLazyCardList
-import ovo.sypw.journal.components.TopBarView
+import ovo.sypw.journal.ui.components.BottomSheetContent
+import ovo.sypw.journal.ui.components.CustomLazyCardList
+import ovo.sypw.journal.ui.components.TopBarView
 import ovo.sypw.journal.ui.main.MainScreenState
+import ovo.sypw.journal.viewmodel.AuthViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.ui.theme.animiation.VerticalOverscrollWithChange
 import ovo.sypw.journal.utils.SnackBarUtils
 import ovo.sypw.journal.viewmodel.MainViewModel
@@ -50,7 +52,7 @@ private const val TAG = "MainScreen"
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(viewModel: MainViewModel) {
+fun MainScreen(viewModel: MainViewModel, authViewModel: AuthViewModel = viewModel()) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     SnackBarUtils.initialize(snackbarHostState, coroutineScope)
@@ -66,7 +68,6 @@ fun MainScreen(viewModel: MainViewModel) {
         initialFirstVisibleItemIndex = 0,
         prefetchStrategy = lazyListPrefetchStrategy,
     )
-
 
     // 根据UI状态渲染不同的界面
     when (val state = uiState) {
@@ -84,6 +85,7 @@ fun MainScreen(viewModel: MainViewModel) {
             MainScreenContent(
                 state = state,
                 viewModel = viewModel,
+                authViewModel = authViewModel,
                 scrollBehavior = scrollBehavior,
                 listState = listState,
                 snackbarHostState = snackbarHostState,
@@ -98,6 +100,7 @@ fun MainScreen(viewModel: MainViewModel) {
 private fun MainScreenContent(
     state: MainScreenState.Success,
     viewModel: MainViewModel,
+    authViewModel: AuthViewModel,
     scrollBehavior: TopAppBarScrollBehavior,
     listState: LazyListState,
     snackbarHostState: SnackbarHostState,
@@ -107,7 +110,7 @@ private fun MainScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { TopBarView(scrollBehavior, listState, state.markedItems) },
+        topBar = { TopBarView(scrollBehavior, listState, state.markedItems, authViewModel) },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }

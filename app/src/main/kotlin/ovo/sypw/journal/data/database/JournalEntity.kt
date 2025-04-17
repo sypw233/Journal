@@ -4,8 +4,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.data.model.LocationData
 import java.util.Date
 
 /**

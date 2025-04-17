@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import ovo.sypw.journal.data.database.JournalDao
 import ovo.sypw.journal.data.database.JournalEntity
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 import javax.inject.Inject
 import javax.inject.Singleton
 

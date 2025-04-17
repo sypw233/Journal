@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import ovo.sypw.journal.R
-import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.data.model.LocationData
 import ovo.sypw.journal.utils.ImageLoadUtils
 import java.text.SimpleDateFormat
 import java.util.Date

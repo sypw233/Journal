@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Box
@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.R
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 
 /** 可滑动卡片组件，支持左右滑动进行标记和删除操作 */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import android.content.Intent
 import android.net.Uri
@@ -54,8 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ovo.sypw.journal.data.JournalDataSource.Companion.getDataBaseIdCountWithPositive
-import ovo.sypw.journal.model.JournalData
-import ovo.sypw.journal.model.LocationData
+import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.data.model.LocationData
 import ovo.sypw.journal.utils.GetLocation
 import ovo.sypw.journal.utils.PermissionUtils
 import ovo.sypw.journal.utils.RequestPermissions

@@ -1,4 +1,4 @@
-package ovo.sypw.journal.model
+package ovo.sypw.journal.data.model
 
 import java.util.Date
 

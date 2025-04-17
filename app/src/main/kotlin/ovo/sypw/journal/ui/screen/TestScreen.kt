@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components.screen
+package ovo.sypw.journal.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation

@@ -7,15 +7,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
-import ovo.sypw.journal.components.screen.MainScreen
+import ovo.sypw.journal.ui.screen.MainScreen
+import ovo.sypw.journal.data.api.AuthService
 import ovo.sypw.journal.ui.theme.JournalTheme
 import ovo.sypw.journal.viewmodel.MainViewModel
+import javax.inject.Inject
 
 @AndroidEntryPoint
 @SuppressLint("RestrictedApi")
 class MainActivity : ComponentActivity() {
     // 使用Hilt注入ViewModel
     private val viewModel: MainViewModel by viewModels()
+    
+    // 注入AuthService
+    @Inject
+    lateinit var authService: AuthService
     
     override fun onCreate(savedInstanceState: Bundle?) {
 //        val forActivityResult =
@@ -30,7 +36,7 @@ class MainActivity : ComponentActivity() {
         // GetLocation已在Application中初始化
         setContent {
             JournalTheme {
-                // 传递ViewModel到MainScreen
+                // 传递ViewModel和AuthService到MainScreen
                 MainScreen(viewModel = viewModel)
             }
         }

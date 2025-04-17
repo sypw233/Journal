@@ -1,6 +1,6 @@
 package ovo.sypw.journal.ui.main
 
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 
 /**
  * MainScreen的UI状态

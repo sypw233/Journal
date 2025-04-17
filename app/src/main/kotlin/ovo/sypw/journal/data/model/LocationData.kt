@@ -1,4 +1,4 @@
-package ovo.sypw.journal.model
+package ovo.sypw.journal.data.model
 
 /**
  * 位置数据类

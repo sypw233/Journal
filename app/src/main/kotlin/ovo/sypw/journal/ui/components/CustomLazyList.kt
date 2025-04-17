@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import android.util.Log
 import androidx.compose.animation.core.spring

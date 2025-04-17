@@ -19,7 +19,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
-import ovo.sypw.journal.components.screen.ChatMessage
+import ovo.sypw.journal.ui.screen.ChatMessage
 import ovo.sypw.journal.data.APIKey
 import ovo.sypw.journal.utils.ImageBase64Utils
 import java.io.IOException

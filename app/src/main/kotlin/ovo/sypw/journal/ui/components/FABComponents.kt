@@ -1,4 +1,4 @@
-package ovo.sypw.journal.components
+package ovo.sypw.journal.ui.components
 
 import android.util.Log
 import androidx.compose.foundation.layout.Column
@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.data.JournalDataSource
-import ovo.sypw.journal.model.JournalData
+import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.utils.PermissionUtils
 import ovo.sypw.journal.utils.RequestPermissions
 import ovo.sypw.journal.utils.SnackBarUtils
