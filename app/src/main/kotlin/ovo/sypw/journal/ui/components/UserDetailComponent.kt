@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -19,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +39,13 @@ fun UserDetailDialog(
     onDismiss: () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    
+    // 在组件加载时获取用户详情
+    remember {
+        authViewModel.getUserProfile()
+        true
+    }
     
     if (authState is AuthState.Authenticated) {
         val user = (authState as AuthState.Authenticated).user
@@ -102,22 +112,31 @@ fun UserDetailDialog(
                         }
                         
                         // 注册时间
-                        user.dateJoined?.let {
+                        user.registerDateTime()?.let {
                             Text(
                                 text = "注册时间: $it",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
-                        
                         // 上次登录时间
-                        user.lastLogin?.let {
+                        user.lastSyncDateTime()?.let {
                             Text(
                                 text = "上次同步时间: $it",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
+                    }
+                    
+                    // 修改密码按钮
+                    Button(
+                        onClick = { showChangePasswordDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Text("修改密码")
                     }
                     
                     // 退出登录按钮
@@ -128,13 +147,21 @@ fun UserDetailDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp)
+                            .padding(top = 8.dp)
                     ) {
                         Text("退出登录")
                     }
                 }
             }
         }
+    }
+    
+    // 显示修改密码对话框
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            authViewModel = authViewModel,
+            onDismiss = { showChangePasswordDialog = false }
+        )
     }
 }
 

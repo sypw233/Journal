@@ -3,9 +3,7 @@ package ovo.sypw.journal.data.api
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.compose.material3.Snackbar
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +15,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import ovo.sypw.journal.data.model.AuthResponse
 import ovo.sypw.journal.data.model.AuthState
+import ovo.sypw.journal.data.model.ChangePasswordRequest
 import ovo.sypw.journal.data.model.LoginRequest
 import ovo.sypw.journal.data.model.RegisterRequest
 import ovo.sypw.journal.data.model.User
@@ -102,7 +101,6 @@ class AuthService @Inject constructor(private val context: Context) {
                         email = userJson.optString("email",null),
                         phone = userJson.optString("phone", null),
                         userType = userJson.optString("user_type", "1"),
-                        isActive = userJson.optBoolean("is_active", true)
                     )
                     
                     val authResponse = AuthResponse(user, refreshToken, accessToken)
@@ -164,14 +162,18 @@ class AuthService @Inject constructor(private val context: Context) {
                     val refreshToken = jsonResponse.getString("refresh")
                     val accessToken = jsonResponse.getString("access")
                     val userJson = jsonResponse.getJSONObject("user")
-                    
+                    Log.d(TAG, "login: $userJson")
                     val user = User(
                         id = userJson.optInt("id", 0),
                         username = userJson.getString("username"),
                         email = userJson.optString("email",""),
                         phone = userJson.optString("phone", ""),
-                        userType = userJson.optString("user_type", "free"),
-                        isActive = userJson.optBoolean("is_active", true)
+                        userType = userJson.optString("user_type", "1"),
+                        lastDataSyncTime = userJson.optString("last_data_sync_time", ""),
+                        registerTime = userJson.optString("register_time", ""),
+                        isStaff = userJson.optBoolean("is_staff", false),
+                        isSuperuser = userJson.optBoolean("is_superuser", false),
+
                     )
                     
                     val authResponse = AuthResponse(user, refreshToken, accessToken)
@@ -236,6 +238,129 @@ class AuthService @Inject constructor(private val context: Context) {
         return when (val state = authState.value) {
             is AuthState.Authenticated -> state.user
             else -> null
+        }
+    }
+    
+    /**
+     * 获取用户详情
+     */
+    suspend fun getUserProfile(): Result<User> = withContext(Dispatchers.IO) {
+        try {
+            val token = getAuthToken()
+            if (token == null) {
+                val errorMessage = "未登录"
+                _authState.value = AuthState.Unauthenticated(errorMessage)
+                return@withContext Result.failure(IOException(errorMessage))
+            }
+            
+            val httpRequest = Request.Builder()
+                .url("$BASE_URL/users/profile/")
+                .get()
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+                
+            client.newCall(httpRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    val userJson = JSONObject(responseBody)
+                    
+                    val user = User(
+                        id = userJson.optInt("id", 0),
+                        username = userJson.getString("username"),
+                        email = userJson.optString("email", null),
+                        phone = userJson.optString("phone", null),
+                        userType = userJson.optString("user_type", "1"),
+                        lastDataSyncTime = userJson.optString("last_data_sync_time", null),
+                        registerTime = userJson.optString("register_time", null),
+                        isStaff = userJson.optBoolean("is_staff", false),
+                        isSuperuser = userJson.optBoolean("is_superuser", false)
+                    )
+                    
+                    // 更新当前认证状态中的用户信息
+                    if (authState.value is AuthState.Authenticated) {
+                        val currentToken = (authState.value as AuthState.Authenticated).accessToken
+                        _authState.value = AuthState.Authenticated(user, currentToken)
+                    }
+                    
+                    Result.success(user)
+                } else {
+                    val errorBody = response.body?.string()
+                    val errorMessage = try {
+                        JSONObject(errorBody ?: "").optString("message", "获取用户信息失败")
+                    } catch (e: Exception) {
+                        "获取用户信息失败: ${response.code}"
+                    }
+                    
+                    if (response.code == 401) {
+                        _authState.value = AuthState.Unauthenticated(errorMessage)
+                    } else {
+                        _authState.value = AuthState.Error(errorMessage)
+                    }
+                    
+                    Result.failure(IOException(errorMessage))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Get user profile error", e)
+            val errorMessage = "获取用户信息失败: ${e.message}"
+            _authState.value = AuthState.Error(errorMessage)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * 修改密码
+     */
+    suspend fun changePassword(request: ChangePasswordRequest): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = getAuthToken()
+            if (token == null) {
+                val errorMessage = "未登录"
+                _authState.value = AuthState.Unauthenticated(errorMessage)
+                return@withContext Result.failure(IOException(errorMessage))
+            }
+            
+            val jsonObject = JSONObject().apply {
+                put("old_password", request.oldPassword)
+                put("new_password", request.newPassword)
+            }
+            
+            val mediaType = "application/json; charset=utf-8".toMediaType()
+            val requestBody = jsonObject.toString().toRequestBody(mediaType)
+            
+            val httpRequest = Request.Builder()
+                .url("$BASE_URL/users/change-password/")
+                .put(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+                
+            client.newCall(httpRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    SnackBarUtils.showSnackBar("密码修改成功")
+                    Result.success(Unit)
+                } else {
+                    val errorBody = response.body?.string()
+                    val errorMessage = try {
+                        JSONObject(errorBody ?: "").optString("message", "密码修改失败")
+                    } catch (e: Exception) {
+                        "密码修改失败: ${response.code}"
+                    }
+                    
+                    if (response.code == 401) {
+                        _authState.value = AuthState.Unauthenticated(errorMessage)
+                    } else {
+                        SnackBarUtils.showSnackBar(errorMessage)
+                    }
+                    
+                    Result.failure(IOException(errorMessage))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Change password error", e)
+            val errorMessage = "密码修改失败: ${e.message}"
+            SnackBarUtils.showSnackBar(errorMessage)
+            Result.failure(e)
         }
     }
     

@@ -31,10 +31,10 @@ fun LoginDialog(
     onDismiss: () -> Unit
 ) {
     var isLogin by remember { mutableStateOf(true) }
-    var username by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("sypw") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("wesd2008") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     
@@ -91,7 +91,7 @@ fun LoginDialog(
                     onValueChange = { username = it },
                     label = { Text("用户名") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))

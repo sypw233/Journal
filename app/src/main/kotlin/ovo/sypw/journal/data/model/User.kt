@@ -1,5 +1,8 @@
 package ovo.sypw.journal.data.model
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 /**
  * 用户数据模型
  */
@@ -9,12 +12,20 @@ data class User(
     val email: String? = null,
     val phone: String? = null,
     val userType: String = "1",  // 1 or 0
-    val isActive: Boolean = true,
     val isStaff: Boolean = false,
     val isSuperuser: Boolean = false,
-    val lastLogin: String? = null,
-    val dateJoined: String? = null
-)
+    val registerTime: String? = null,
+    val lastDataSyncTime: String? = null,
+) {
+    // 将ISO 8601格式的字符串转换为LocalDateTime
+    fun registerDateTime(): LocalDateTime? = registerTime?.let {
+        LocalDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME)
+    }
+    
+    fun lastSyncDateTime(): LocalDateTime? = lastDataSyncTime?.let {
+        LocalDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME)
+    }
+}
 
 /**
  * 用户注册请求模型
@@ -32,6 +43,14 @@ data class RegisterRequest(
 data class LoginRequest(
     val username: String,
     val password: String
+)
+
+/**
+ * 修改密码请求模型
+ */
+data class ChangePasswordRequest(
+    val oldPassword: String,
+    val newPassword: String
 )
 
 /**

@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.data.api.AuthService
 import ovo.sypw.journal.data.model.AuthState
+import ovo.sypw.journal.data.model.ChangePasswordRequest
 import ovo.sypw.journal.data.model.LoginRequest
 import ovo.sypw.journal.data.model.RegisterRequest
+import ovo.sypw.journal.data.model.User
 import ovo.sypw.journal.utils.SnackBarUtils
 import javax.inject.Inject
 
@@ -58,5 +60,35 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             authService.logout()
         }
+    }
+    
+    /**
+     * 修改密码
+     */
+    fun changePassword(oldPassword: String, newPassword: String) {
+        if (oldPassword.isBlank() || newPassword.isBlank()) {
+            SnackBarUtils.showSnackBar("请填写完整信息")
+            return
+        }
+        
+        viewModelScope.launch {
+            authService.changePassword(ChangePasswordRequest(oldPassword, newPassword))
+        }
+    }
+    
+    /**
+     * 获取用户详情
+     */
+    fun getUserProfile() {
+        viewModelScope.launch {
+            authService.getUserProfile()
+        }
+    }
+    
+    /**
+     * 获取当前用户
+     */
+    fun getCurrentUser(): User? {
+        return authService.getCurrentUser()
     }
 }

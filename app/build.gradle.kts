@@ -76,4 +76,6 @@ dependencies {
 
 //    markdown
     implementation("com.github.jeziellago:compose-markdown:0.5.7")
+
+    implementation ("com.google.mediapipe:tasks-genai:0.10.22")
 }
