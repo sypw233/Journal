@@ -377,6 +377,20 @@ class AuthService @Inject constructor(private val context: Context) {
         }
     }
     
+    /**
+     * 获取访问令牌
+     */
+    fun getAccessToken(): String? {
+        return prefs.getString(KEY_TOKEN, null)
+    }
+    
+    /**
+     * 获取刷新令牌
+     */
+    fun getRefreshToken(): String? {
+        return prefs.getString(KEY_REFRESH_TOKEN, null)
+    }
+    
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"

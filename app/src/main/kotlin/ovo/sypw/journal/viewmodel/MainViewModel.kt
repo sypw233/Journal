@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.data.JournalPreferences
+import ovo.sypw.journal.data.api.EntryService
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.ui.main.MainScreenState
@@ -26,7 +27,7 @@ private const val PAGE_SIZE = 10
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: JournalRepository,
-    private val preferences: JournalPreferences
+    private val preferences: JournalPreferences,
 ) : ViewModel() {
 
     // 创建JournalListViewModel实例
