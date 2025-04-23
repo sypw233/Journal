@@ -43,7 +43,7 @@ fun CustomLazyCardList(
 ) {
     // 从ViewModel获取UI状态
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -89,7 +89,7 @@ fun CustomLazyCardList(
             viewModel.resetScrollPosition()
         }
     }
-    
+
     LazyColumn(
         contentPadding = contentPadding,
         modifier = modifier
@@ -131,7 +131,8 @@ fun CustomLazyCardList(
                             message = "已删除 #${id}",
                             actionLabel = "撤销",
                             onActionPerformed = { viewModel.undoDelete() },
-                            onDismissed = {}
+//                            onDismissed = { viewModel.deleteJournalFromServer(id) }
+                            onDismissed = { }
                         )
                     }, onMark = {
                         // 处理标记，调用ViewModel的方法

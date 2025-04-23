@@ -11,27 +11,28 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.api.EntryService
-import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.ui.main.MainScreenState
 import ovo.sypw.journal.utils.SnackBarUtils
 import javax.inject.Inject
 
 private const val TAG = "MainViewModel"
-private const val PAGE_SIZE = 10
 
 /**
  * MainScreen的ViewModel
  * 负责管理UI状态和处理业务逻辑
+ * 主要管理底部表单和滚动状态，列表数据由JournalListViewModel管理
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: JournalRepository,
     private val preferences: JournalPreferences,
+    private val entryService: EntryService
 ) : ViewModel() {
 
     // 创建JournalListViewModel实例
-    val journalListViewModel = JournalListViewModel(repository)
+    val journalListViewModel = JournalListViewModel(repository, entryService)
 
     // UI状态
     private val _uiState = MutableStateFlow<MainScreenState>(MainScreenState.Initial)
@@ -75,8 +76,6 @@ class MainViewModel @Inject constructor(
         _uiState.update { MainScreenState.Success() }
     }
 
-    // 加载下一页数据的功能已移至JournalListViewModel
-
     /**
      * 添加新的日记
      */
@@ -88,51 +87,16 @@ class MainViewModel @Inject constructor(
                 repository.insertJournal(newJournal)
                 SnackBarUtils.showSnackBar("添加成功: ${newJournal.id}")
 
-                // 更新UI状态
-                val currentState = _uiState.value
-                if (currentState is MainScreenState.Success) {
-                    _uiState.value = currentState.copy(
-                        journals = listOf(newJournal) + currentState.journals
-                    )
-                }
-
                 // 重置JournalListViewModel以刷新列表数据
                 journalListViewModel.resetList()
+//                TODO
+                journalListViewModel.logDPrintJournalList()
             } catch (e: Exception) {
                 Log.e(TAG, "Error adding journal", e)
                 SnackBarUtils.showSnackBar("添加失败: ${e.message}")
             }
         }
     }
-
-    // 删除日记的功能已移至JournalListViewModel
-
-    /**
-     * 更新日记
-     */
-    fun updateJournal(id: Int, updater: (JournalData) -> JournalData) {
-        viewModelScope.launch {
-            try {
-                val journal = repository.getJournalById(id) ?: return@launch
-                val updatedJournal = updater(journal)
-                repository.updateJournal(updatedJournal)
-
-                // 更新UI状态
-                val currentState = _uiState.value
-                if (currentState is MainScreenState.Success) {
-                    val updatedJournals = currentState.journals.map {
-                        if (it.id == id) updatedJournal else it
-                    }
-                    _uiState.value = currentState.copy(journals = updatedJournals)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error updating journal", e)
-                SnackBarUtils.showSnackBar("更新失败: ${e.message}")
-            }
-        }
-    }
-
-    // 切换日记标记状态的功能已移至JournalListViewModel
 
 
     /**

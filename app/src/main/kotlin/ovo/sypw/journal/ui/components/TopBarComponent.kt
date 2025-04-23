@@ -33,14 +33,13 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.R
 import ovo.sypw.journal.TestActivity
-import ovo.sypw.journal.viewmodel.AuthViewModel
-import ovo.sypw.journal.viewmodel.EntryViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.utils.SnackBarUtils
-import ovo.sypw.journal.ui.components.SyncButton
+import ovo.sypw.journal.viewmodel.AuthViewModel
+import ovo.sypw.journal.viewmodel.JournalListViewModel
 
 /**
  * 顶部应用栏组件
@@ -52,7 +51,7 @@ fun TopBarView(
     listState: LazyListState,
     markedSet: Set<Any?>,
     authViewModel: AuthViewModel = viewModel(),
-    entryViewModel: EntryViewModel = viewModel()
+    journalListViewModel: JournalListViewModel = viewModel()
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -125,7 +124,7 @@ fun TopBarView(
                 Spacer(modifier = Modifier.width(8.dp))
                 
                 // 添加同步按钮
-                SyncButton(entryViewModel = entryViewModel)
+                SyncButton(journalListViewModel = journalListViewModel)
                 
                 Spacer(modifier = Modifier.width(8.dp))
                 

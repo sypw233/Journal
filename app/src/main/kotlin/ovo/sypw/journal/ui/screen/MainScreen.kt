@@ -18,7 +18,6 @@ import androidx.compose.foundation.overscroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -35,16 +34,17 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.ui.components.BottomSheetContent
 import ovo.sypw.journal.ui.components.CustomLazyCardList
 import ovo.sypw.journal.ui.components.TopBarView
 import ovo.sypw.journal.ui.main.MainScreenState
-import ovo.sypw.journal.viewmodel.AuthViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.ui.theme.animiation.VerticalOverscrollWithChange
 import ovo.sypw.journal.utils.SnackBarUtils
+import ovo.sypw.journal.utils.TopSnackbarHost
+import ovo.sypw.journal.viewmodel.AuthViewModel
 import ovo.sypw.journal.viewmodel.MainViewModel
 
 private const val TAG = "MainScreen"
@@ -106,13 +106,23 @@ private fun MainScreenContent(
     snackbarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope
 ) {
+    // 获取JournalListViewModel的状态
+    val journalListState by viewModel.journalListViewModel.uiState.collectAsState()
+    
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { TopBarView(scrollBehavior, listState, state.markedItems, authViewModel) },
+        topBar = {
+            TopBarView(
+                scrollBehavior,
+                listState,
+                journalListState.markedItems,
+                authViewModel
+            )
+        },
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
+            TopSnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
         val scope = rememberCoroutineScope()
@@ -121,15 +131,15 @@ private fun MainScreenContent(
                 skipHiddenState = true
             )
         )
-        val isScrolling = state.isScrolling
         // 使用ViewModel中的状态
         var bottomSheetHeight = remember { derivedStateOf { Animatable(state.bottomSheetHeight) } }
         val isSheetExpanded = state.isBottomSheetExpanded
 
-        // 当滚动状态改变时通知ViewModel
+        // 当滚动状态改变时通知两个ViewModel
         val isScrollingState by remember { derivedStateOf { listState.isScrollInProgress } }
         if (isScrollingState != state.isScrolling) {
             viewModel.setScrolling(isScrollingState)
+            viewModel.journalListViewModel.setScrolling(isScrollingState)
         }
 
         val overscrollEffect = remember(coroutineScope) {

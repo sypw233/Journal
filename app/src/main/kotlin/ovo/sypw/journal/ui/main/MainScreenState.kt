@@ -1,7 +1,5 @@
 package ovo.sypw.journal.ui.main
 
-import ovo.sypw.journal.data.model.JournalData
-
 /**
  * MainScreen的UI状态
  * 使用sealed class定义不同的状态
@@ -19,16 +17,12 @@ sealed class MainScreenState {
 
     /**
      * 加载成功状态
-     * @property journals 日记列表
-     * @property hasMoreData 是否有更多数据
      * @property isBottomSheetExpanded 底部表单是否展开
-     * @property markedItems 标记的日记ID集合
+     * @property bottomSheetHeight 底部表单高度
+     * @property isScrolling 是否正在滚动
      */
     data class Success(
-        val journals: List<JournalData> = emptyList(),
-        val hasMoreData: Boolean = true,
         val isBottomSheetExpanded: Boolean = false,
-        val markedItems: Set<Int> = emptySet(),
         val bottomSheetHeight: Float = 30f,
         val isScrolling: Boolean = false
     ) : MainScreenState()

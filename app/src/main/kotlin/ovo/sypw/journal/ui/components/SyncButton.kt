@@ -23,18 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import ovo.sypw.journal.viewmodel.EntryViewModel
+import ovo.sypw.journal.viewmodel.JournalListViewModel
 
 /**
  * 同步按钮组件
  * 显示在顶部应用栏中，用于触发日记条目的同步功能
+ * 使用JournalListViewModel管理同步状态和操作
  */
 @Composable
 fun SyncButton(
-    entryViewModel: EntryViewModel,
+    journalListViewModel: JournalListViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by entryViewModel.uiState.collectAsState()
+    val uiState by journalListViewModel.uiState.collectAsState()
     
     // 旋转动画
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
@@ -69,7 +70,7 @@ fun SyncButton(
             // 显示同步按钮
             IconButton(
                 onClick = {
-                    entryViewModel.syncEntriesFromServer()
+                    journalListViewModel.syncWithServer()
                 }
             ) {
                 Icon(
