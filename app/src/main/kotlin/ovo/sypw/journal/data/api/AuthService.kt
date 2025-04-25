@@ -390,6 +390,78 @@ class AuthService @Inject constructor(private val context: Context) {
     fun getRefreshToken(): String? {
         return prefs.getString(KEY_REFRESH_TOKEN, null)
     }
+
+    /**
+     * 刷新访问令牌
+     * 使用刷新令牌获取新的访问令牌
+     * @return 刷新结果，成功返回新的访问令牌，失败返回null
+     */
+    suspend fun refreshToken(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val refreshToken = getRefreshToken()
+            if (refreshToken == null) {
+                val errorMessage = "刷新令牌不存在"
+                _authState.value = AuthState.Unauthenticated(errorMessage)
+                return@withContext Result.failure(IOException(errorMessage))
+            }
+
+            val jsonObject = JSONObject().apply {
+                put("refresh", refreshToken)
+            }
+
+            val mediaType = "application/json; charset=utf-8".toMediaType()
+            val requestBody = jsonObject.toString().toRequestBody(mediaType)
+
+            val httpRequest = Request.Builder()
+                .url("$BASE_URL/users/token/refresh/")
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            client.newCall(httpRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    val jsonResponse = JSONObject(responseBody)
+
+                    val newAccessToken = jsonResponse.getString("access")
+
+                    // 更新保存的访问令牌
+                    prefs.edit().putString(KEY_TOKEN, newAccessToken).apply()
+
+                    // 更新认证状态
+                    val currentUser = getCurrentUser()
+                    if (currentUser != null) {
+                        _authState.value = AuthState.Authenticated(currentUser, newAccessToken)
+                    }
+
+                    return@withContext Result.success(newAccessToken)
+                } else {
+                    // 如果刷新令牌也过期，则退出登录
+                    if (response.code == 401) {
+                        logout()
+                        val errorMessage = "登录已过期，请重新登录"
+                        _authState.value = AuthState.Unauthenticated(errorMessage)
+                        return@withContext Result.failure(IOException(errorMessage))
+                    } else {
+                        val errorBody = response.body?.string()
+                        val errorMessage = try {
+                            JSONObject(errorBody ?: "").optString("message", "刷新令牌失败")
+                        } catch (e: Exception) {
+                            "刷新令牌失败: ${response.code}"
+                        }
+
+                        _authState.value = AuthState.Error(errorMessage)
+                        return@withContext Result.failure(IOException(errorMessage))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Refresh token error", e)
+            val errorMessage = "刷新令牌失败: ${e.message}"
+            _authState.value = AuthState.Error(errorMessage)
+            return@withContext Result.failure(e)
+        }
+    }
     
     companion object {
         private const val KEY_TOKEN = "auth_token"

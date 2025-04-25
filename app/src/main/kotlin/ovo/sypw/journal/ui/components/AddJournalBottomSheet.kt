@@ -53,7 +53,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import ovo.sypw.journal.data.JournalDataSource.Companion.getDataBaseIdCountWithPositive
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.LocationData
 import ovo.sypw.journal.utils.GetLocation
@@ -286,7 +285,7 @@ fun BottomSheetContent(
         // 保存按钮
         Button(
             onClick = {
-                val id = getDataBaseIdCountWithPositive()
+                val id = 0
                 val newJournal = JournalData(
                     id = id,
                     date = journalDate,

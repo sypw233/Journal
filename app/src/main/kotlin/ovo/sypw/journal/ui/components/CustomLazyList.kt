@@ -96,7 +96,7 @@ fun CustomLazyCardList(
             .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         state = listState,
-        userScrollEnabled = false
+        userScrollEnabled = true
     ) {
 
         items(
@@ -131,7 +131,6 @@ fun CustomLazyCardList(
                             message = "已删除 #${id}",
                             actionLabel = "撤销",
                             onActionPerformed = { viewModel.undoDelete() },
-//                            onDismissed = { viewModel.deleteJournalFromServer(id) }
                             onDismissed = { }
                         )
                     }, onMark = {

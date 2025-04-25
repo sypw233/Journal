@@ -1,6 +1,5 @@
 package ovo.sypw.journal.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +13,6 @@ import ovo.sypw.journal.data.api.EntryService
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.ui.main.MainScreenState
-import ovo.sypw.journal.utils.SnackBarUtils
 import javax.inject.Inject
 
 private const val TAG = "MainViewModel"
@@ -32,22 +30,15 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     // 创建JournalListViewModel实例
-    val journalListViewModel = JournalListViewModel(repository, entryService)
+    val journalListViewModel = JournalListViewModel(repository)
 
     // UI状态
     private val _uiState = MutableStateFlow<MainScreenState>(MainScreenState.Initial)
     val uiState: StateFlow<MainScreenState> = _uiState.asStateFlow()
 
-    // 数据库ID计数
-    private var dataBaseIdCount = 0
-
     init {
         // 初始化数据
         initialize()
-        // 获取数据库ID计数
-        viewModelScope.launch {
-            dataBaseIdCount = repository.getJournalLastId() + 1
-        }
     }
 
     /**
@@ -75,29 +66,6 @@ class MainViewModel @Inject constructor(
         // 更新UI状态为成功
         _uiState.update { MainScreenState.Success() }
     }
-
-    /**
-     * 添加新的日记
-     */
-    fun addJournal(journal: JournalData) {
-        viewModelScope.launch {
-            try {
-                // 使用数据库ID计数器生成新ID
-                val newJournal = journal.copy(id = getNextId())
-                repository.insertJournal(newJournal)
-                SnackBarUtils.showSnackBar("添加成功: ${newJournal.id}")
-
-                // 重置JournalListViewModel以刷新列表数据
-                journalListViewModel.resetList()
-//                TODO
-                journalListViewModel.logDPrintJournalList()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error adding journal", e)
-                SnackBarUtils.showSnackBar("添加失败: ${e.message}")
-            }
-        }
-    }
-
 
     /**
      * 设置底部表单状态
@@ -129,10 +97,8 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 获取下一个ID
-     */
-    private fun getNextId(): Int {
-        return dataBaseIdCount++
+    fun addJournal(newJournal: JournalData) {
+        journalListViewModel.addJournal(newJournal)
+
     }
 }

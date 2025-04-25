@@ -8,6 +8,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import ovo.sypw.journal.data.database.JournalDao
 import ovo.sypw.journal.data.database.JournalDatabase
+import ovo.sypw.journal.data.database.SyncAwareJournalDao
+import ovo.sypw.journal.data.database.SyncDao
 import javax.inject.Singleton
 
 /**
@@ -34,5 +36,23 @@ object DatabaseModule {
     @Singleton
     fun provideJournalDao(database: JournalDatabase): JournalDao {
         return database.journalDao()
+    }
+
+    /**
+     * 提供SyncDao实例
+     */
+    @Provides
+    @Singleton
+    fun provideSyncDao(database: JournalDatabase): SyncDao {
+        return database.syncDao()
+    }
+
+    /**
+     * 提供SyncAwareJournalDao实例
+     */
+    @Provides
+    @Singleton
+    fun provideSyncAwareJournalDao(database: JournalDatabase): SyncAwareJournalDao {
+        return database.syncAwareJournalDao()
     }
 }

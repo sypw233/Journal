@@ -1,14 +1,11 @@
 package ovo.sypw.journal.ui.components
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -19,8 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,16 +27,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.viewmodel.AuthViewModel
-
+import ovo.sypw.journal.viewmodel.SyncViewModel
 
 
 @Composable
 fun UserDetailDialog(
     authViewModel: AuthViewModel = viewModel(),
+    syncViewModel: SyncViewModel = viewModel(),
     onDismiss: () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
     var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showSyncDialog by remember { mutableStateOf(false) }
     
     // 在组件加载时获取用户详情
     remember {
@@ -119,15 +118,22 @@ fun UserDetailDialog(
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
-                        // 上次登录时间
+
+                        // 最后同步时间
                         user.lastSyncDateTime()?.let {
                             Text(
-                                text = "上次同步时间: $it",
+                                text = "最后同步时间: $it",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
                     }
+
+                    // 同步按钮
+                    SyncButton(
+                        syncViewModel = syncViewModel,
+                        onSyncClick = { showSyncDialog = true }
+                    )
                     
                     // 修改密码按钮
                     Button(
@@ -161,6 +167,14 @@ fun UserDetailDialog(
         ChangePasswordDialog(
             authViewModel = authViewModel,
             onDismiss = { showChangePasswordDialog = false }
+        )
+    }
+
+    // 显示同步状态对话框
+    if (showSyncDialog) {
+        SyncStatusDialog(
+            syncViewModel = syncViewModel,
+            onDismiss = { showSyncDialog = false }
         )
     }
 }

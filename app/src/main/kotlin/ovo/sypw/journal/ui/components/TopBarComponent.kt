@@ -4,19 +4,16 @@ import android.app.Activity.RESULT_OK
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -34,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import ovo.sypw.journal.R
 import ovo.sypw.journal.TestActivity
 import ovo.sypw.journal.data.model.AuthState
@@ -47,8 +46,9 @@ import ovo.sypw.journal.viewmodel.JournalListViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarView(
+    scope: CoroutineScope,
     scrollBehavior: TopAppBarScrollBehavior,
-    listState: LazyListState,
+    scaffoldState: BottomSheetScaffoldState,
     markedSet: Set<Any?>,
     authViewModel: AuthViewModel = viewModel(),
     journalListViewModel: JournalListViewModel = viewModel()
@@ -80,22 +80,7 @@ fun TopBarView(
 //            }
 //        },
         actions = {
-            // 显示标记数量
-            if (markedSet.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        .padding(4.dp)
-                ) {
-                    Text(
-                        text = markedSet.size.toString(),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 12.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-            }
+
 
             val context = LocalContext.current
             val forActivityResult = rememberLauncherForActivityResult(
@@ -106,9 +91,22 @@ fun TopBarView(
                     SnackBarUtils.showSnackBar(data?.data.toString())
                 }
             }
-            
             // 添加登录/用户头像按钮
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // 显示标记数量
+//                Box(
+//                    modifier = Modifier
+//                        .size(24.dp)
+//                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+//                        .padding(4.dp)
+//                ) {
+//                    Text(
+//                        text = markedSet.size.toString(),
+//                        color = MaterialTheme.colorScheme.onPrimary,
+//                        fontSize = 12.sp
+//                    )
+//                }
+//                Spacer(modifier = Modifier.width(8.dp))
                 UserAvatar(
                     authViewModel = authViewModel,
                     onClick = {
@@ -127,8 +125,30 @@ fun TopBarView(
                 SyncButton(journalListViewModel = journalListViewModel)
                 
                 Spacer(modifier = Modifier.width(8.dp))
-                
-                // 添加其他操作按钮
+//              打开添加框
+                IconButton(onClick = {
+                    scope.launch {
+                        scaffoldState.bottomSheetState.expand()
+                    }
+
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Search"
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+//                添加新条目
+                IconButton(onClick = {
+
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = "Add"
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                // 跳转到测试页面
                 IconButton(onClick = {
                     val intent = Intent(context, TestActivity::class.java)
                     forActivityResult.launch(intent)
@@ -136,7 +156,7 @@ fun TopBarView(
                 }) {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_foreground),
-                        contentDescription = "Search"
+                        contentDescription = "Test"
                     )
                 }
             }

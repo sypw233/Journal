@@ -15,13 +15,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import ovo.sypw.journal.data.model.Entry
 import ovo.sypw.journal.data.model.EntryRequest
-import ovo.sypw.journal.utils.SnackBarUtils
 import java.io.IOException
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAccessor
 import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,9 +35,89 @@ class EntryService @Inject constructor(
     
     // API基础URL
     private val BASE_URL = "http://10.0.2.2:8000/users" // 替换为实际的API地址
-    
-    // OkHttp客户端
-    private val client = OkHttpClient.Builder().build()
+
+    // 创建一个互斥锁，用于防止多个请求同时刷新令牌
+    private val refreshTokenLock = Any()
+
+    // 标记是否正在刷新令牌
+    private var isRefreshingToken = false
+
+    // OkHttp客户端，添加拦截器处理401错误
+    private val client = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            // 原始请求
+            val originalRequest = chain.request()
+
+            // 执行请求
+            val response = chain.proceed(originalRequest)
+
+            // 如果返回401 Unauthorized，尝试刷新令牌并重试请求
+            if (response.code == 401) {
+                response.close() // 关闭原始响应
+
+                // 使用互斥锁确保同一时间只有一个请求在刷新令牌
+                synchronized(refreshTokenLock) {
+                    // 如果已经有其他请求在刷新令牌，等待完成
+                    if (isRefreshingToken) {
+                        // 等待其他请求完成刷新
+                        while (isRefreshingToken) {
+                            try {
+                                Thread.sleep(100)
+                            } catch (e: InterruptedException) {
+                                Thread.currentThread().interrupt()
+                                break
+                            }
+                        }
+                    } else {
+                        // 标记为正在刷新令牌
+                        isRefreshingToken = true
+
+                        try {
+                            // 尝试刷新令牌
+                            val refreshResult =
+                                kotlinx.coroutines.runBlocking { authService.refreshToken() }
+
+                            if (refreshResult.isSuccess) {
+                                // 令牌刷新成功，使用新令牌重试请求
+                                val newToken = refreshResult.getOrThrow()
+                                val newRequest = originalRequest.newBuilder()
+                                    .header("Authorization", "Bearer $newToken")
+                                    .build()
+
+                                isRefreshingToken = false
+                                return@addInterceptor chain.proceed(newRequest)
+                            } else {
+                                // 令牌刷新失败，可能是refresh token也过期了
+                                // AuthService的refreshToken方法会处理登出逻辑
+                                Log.e(
+                                    TAG,
+                                    "Token refresh failed: ${refreshResult.exceptionOrNull()?.message}"
+                                )
+                                isRefreshingToken = false
+                                return@addInterceptor response
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error refreshing token", e)
+                            isRefreshingToken = false
+                            return@addInterceptor response
+                        }
+                    }
+
+                    // 如果等待其他请求刷新令牌后，重试当前请求
+                    val newToken = authService.getAccessToken()
+                    if (newToken != null) {
+                        val newRequest = originalRequest.newBuilder()
+                            .header("Authorization", "Bearer $newToken")
+                            .build()
+                        return@addInterceptor chain.proceed(newRequest)
+                    }
+                }
+            }
+
+            // 返回原始响应
+            return@addInterceptor response
+        }
+        .build()
     
     // 日期格式化
     private val dateFormat = DateTimeFormatter.ISO_OFFSET_DATE_TIME

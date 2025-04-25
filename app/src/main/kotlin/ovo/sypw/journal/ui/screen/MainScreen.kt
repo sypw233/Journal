@@ -32,7 +32,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +56,6 @@ fun MainScreen(viewModel: MainViewModel, authViewModel: AuthViewModel = viewMode
     val coroutineScope = rememberCoroutineScope()
     SnackBarUtils.initialize(snackbarHostState, coroutineScope)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val context = LocalContext.current
 
     // 从ViewModel获取UI状态
     val uiState by viewModel.uiState.collectAsState()
@@ -108,15 +106,31 @@ private fun MainScreenContent(
 ) {
     // 获取JournalListViewModel的状态
     val journalListState by viewModel.journalListViewModel.uiState.collectAsState()
-    
+    // 使用ViewModel中的状态
+    var bottomSheetHeight = remember { derivedStateOf { Animatable(state.bottomSheetHeight) } }
+    val isSheetExpanded = state.isBottomSheetExpanded
+
+    // 当滚动状态改变时通知两个ViewModel
+    val isScrollingState by remember { derivedStateOf { listState.isScrollInProgress } }
+    if (isScrollingState != state.isScrolling) {
+        viewModel.setScrolling(isScrollingState)
+        viewModel.journalListViewModel.setScrolling(isScrollingState)
+    }
+    val scope = rememberCoroutineScope()
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            skipHiddenState = true
+        )
+    )
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopBarView(
+                scope,
                 scrollBehavior,
-                listState,
+                scaffoldState,
                 journalListState.markedItems,
                 authViewModel
             )
@@ -125,22 +139,7 @@ private fun MainScreenContent(
             TopSnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        val scope = rememberCoroutineScope()
-        val scaffoldState = rememberBottomSheetScaffoldState(
-            bottomSheetState = rememberStandardBottomSheetState(
-                skipHiddenState = true
-            )
-        )
-        // 使用ViewModel中的状态
-        var bottomSheetHeight = remember { derivedStateOf { Animatable(state.bottomSheetHeight) } }
-        val isSheetExpanded = state.isBottomSheetExpanded
 
-        // 当滚动状态改变时通知两个ViewModel
-        val isScrollingState by remember { derivedStateOf { listState.isScrollInProgress } }
-        if (isScrollingState != state.isScrolling) {
-            viewModel.setScrolling(isScrollingState)
-            viewModel.journalListViewModel.setScrolling(isScrollingState)
-        }
 
         val overscrollEffect = remember(coroutineScope) {
             VerticalOverscrollWithChange(
