@@ -100,7 +100,6 @@ class AuthService @Inject constructor(private val context: Context) {
                         username = userJson.getString("username"),
                         email = userJson.optString("email",null),
                         phone = userJson.optString("phone", null),
-                        userType = userJson.optString("user_type", "1"),
                     )
                     
                     val authResponse = AuthResponse(user, refreshToken, accessToken)
@@ -168,12 +167,9 @@ class AuthService @Inject constructor(private val context: Context) {
                         username = userJson.getString("username"),
                         email = userJson.optString("email",""),
                         phone = userJson.optString("phone", ""),
-                        userType = userJson.optString("user_type", "1"),
                         lastDataSyncTime = userJson.optString("last_data_sync_time", ""),
                         registerTime = userJson.optString("register_time", ""),
                         isStaff = userJson.optBoolean("is_staff", false),
-                        isSuperuser = userJson.optBoolean("is_superuser", false),
-
                     )
                     
                     val authResponse = AuthResponse(user, refreshToken, accessToken)
@@ -269,11 +265,9 @@ class AuthService @Inject constructor(private val context: Context) {
                         username = userJson.getString("username"),
                         email = userJson.optString("email", null),
                         phone = userJson.optString("phone", null),
-                        userType = userJson.optString("user_type", "1"),
                         lastDataSyncTime = userJson.optString("last_data_sync_time", null),
                         registerTime = userJson.optString("register_time", null),
                         isStaff = userJson.optBoolean("is_staff", false),
-                        isSuperuser = userJson.optBoolean("is_superuser", false)
                     )
                     
                     // 更新当前认证状态中的用户信息

@@ -11,9 +11,7 @@ data class User(
     val username: String,
     val email: String? = null,
     val phone: String? = null,
-    val userType: String = "1",  // 1 or 0
     val isStaff: Boolean = false,
-    val isSuperuser: Boolean = false,
     val registerTime: String? = null,
     val lastDataSyncTime: String? = null,
 ) {
