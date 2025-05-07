@@ -5,16 +5,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import ovo.sypw.journal.ui.screen.TestScreen
-import ovo.sypw.journal.ui.theme.JournalTheme
-import ovo.sypw.journal.utils.GetLocation
+import ovo.sypw.journal.common.theme.JournalTheme
+import ovo.sypw.journal.common.utils.AMapLocationUtils
+import ovo.sypw.journal.presentation.screens.TestScreen
 
 @SuppressLint("RestrictedApi")
 class TestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        GetLocation.initLocationClient(this)
+        AMapLocationUtils.initLocationClient(this)
         setContent {
             JournalTheme {
                 TestScreen()

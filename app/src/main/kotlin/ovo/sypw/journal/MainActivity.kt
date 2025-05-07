@@ -7,10 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
-import ovo.sypw.journal.ui.screen.MainScreen
-import ovo.sypw.journal.data.api.AuthService
-import ovo.sypw.journal.ui.theme.JournalTheme
-import ovo.sypw.journal.viewmodel.MainViewModel
+import ovo.sypw.journal.common.theme.JournalTheme
+import ovo.sypw.journal.data.remote.api.AuthService
+import ovo.sypw.journal.presentation.screens.MainScreen
+import ovo.sypw.journal.presentation.viewmodels.MainViewModel
 import javax.inject.Inject
 
 @AndroidEntryPoint

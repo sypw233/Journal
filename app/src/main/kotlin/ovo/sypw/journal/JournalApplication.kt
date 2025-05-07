@@ -2,8 +2,8 @@ package ovo.sypw.journal
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
-import ovo.sypw.journal.utils.GetLocation
-import ovo.sypw.journal.utils.ImageLoadUtils
+import ovo.sypw.journal.common.utils.AMapLocationUtils
+import ovo.sypw.journal.common.utils.ImageLoadUtils
 
 /**
  * 应用程序类
@@ -14,7 +14,7 @@ class JournalApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // 初始化工具类
-        GetLocation.initLocationClient(this)
+        AMapLocationUtils.initLocationClient(this)
         ImageLoadUtils.init(this)
     }
 }

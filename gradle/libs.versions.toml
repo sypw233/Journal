@@ -15,6 +15,7 @@ composeBom = "2025.03.01"
 pagingCompose = "3.3.6"
 roomRuntime = "2.6.1"
 squishy = "1.0.3"
+retrofit = "2.11.0"
 
 
 [libraries]
@@ -45,6 +46,7 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 squishy = { module = "com.github.iamjosephmj:Squishy", version.ref = "squishy" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
