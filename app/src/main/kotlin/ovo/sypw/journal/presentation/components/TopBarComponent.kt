@@ -1,6 +1,7 @@
 package ovo.sypw.journal.presentation.components
 
 import android.app.Activity.RESULT_OK
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.R
+import ovo.sypw.journal.TestActivity
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
@@ -144,9 +146,9 @@ fun TopBarView(
                 // 跳转到测试页面
                 IconButton(onClick = {
 //                    showSyncDialog=true
-//                    val intent = Intent(context, TestActivity::class.java)
-//                    forActivityResult.launch(intent)
-//                    SnackBarUtils.showSnackBar("Turn to TestActivity")
+                    val intent = Intent(context, TestActivity::class.java)
+                    forActivityResult.launch(intent)
+                    SnackBarUtils.showSnackBar("Turn to TestActivity")
                 }) {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_foreground),

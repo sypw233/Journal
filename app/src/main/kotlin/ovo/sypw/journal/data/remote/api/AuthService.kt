@@ -32,7 +32,7 @@ class AuthService @Inject constructor(private val context: Context) {
     private val TAG = "AuthService"
 
     // API基础URL
-    private val BASE_URL = "http://10.0.2.2:8000" // 替换为实际的API地址
+    private val BASE_URL = "http://10.0.2.2:8000/api" // 替换为实际的API地址
 
     // OkHttp客户端
     private val client = OkHttpClient.Builder().build()
@@ -74,37 +74,31 @@ class AuthService @Inject constructor(private val context: Context) {
                 val jsonObject = JSONObject().apply {
                     put("username", request.username)
                     put("email", request.email)
-                    put("phone", request.phone)
                     put("password", request.password)
-                    request.phone?.let { put("phone", it) }
                 }
 
                 val mediaType = "application/json; charset=utf-8".toMediaType()
                 val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
                 val httpRequest = Request.Builder()
-                    .url("$BASE_URL/users/register/")
+                    .url("$BASE_URL/register/")
                     .post(requestBody)
                     .addHeader("Content-Type", "application/json")
                     .build()
 
                 client.newCall(httpRequest).execute().use { response ->
                     if (response.isSuccessful) {
-                        val responseBody = response.body?.string()
+                        val responseBody = response.body!!.string()
                         val jsonResponse = JSONObject(responseBody)
-
-                        val refreshToken = jsonResponse.getString("refresh")
-                        val accessToken = jsonResponse.getString("access")
+                        val accessToken = jsonResponse.getString("token")
                         val userJson = jsonResponse.getJSONObject("user")
 
                         val user = User(
-                            id = userJson.optInt("id", 0),
                             username = userJson.getString("username"),
-                            email = userJson.optString("email", null),
-                            phone = userJson.optString("phone", null),
+                            email = userJson.optString("email", ""),
                         )
 
-                        val authResponse = AuthResponse(user, refreshToken, accessToken)
+                        val authResponse = AuthResponse(user, accessToken)
 
                         // 保存认证信息
                         saveAuthInfo(authResponse)
@@ -113,6 +107,8 @@ class AuthService @Inject constructor(private val context: Context) {
                         _authState.value = AuthState.Authenticated(user, accessToken)
 
                         Result.success(authResponse)
+
+
                     } else {
                         val errorBody = response.body?.string()
                         val errorMessage = try {
@@ -150,31 +146,23 @@ class AuthService @Inject constructor(private val context: Context) {
             val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/users/login/")
+                .url("$BASE_URL/token/")
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
                 .build()
 
             client.newCall(httpRequest).execute().use { response ->
                 if (response.isSuccessful) {
-                    val responseBody = response.body?.string()
+                    val responseBody = response.body!!.string()
                     val jsonResponse = JSONObject(responseBody)
 
-                    val refreshToken = jsonResponse.getString("refresh")
-                    val accessToken = jsonResponse.getString("access")
-                    val userJson = jsonResponse.getJSONObject("user")
-                    Log.d(TAG, "login: $userJson")
+                    val accessToken = jsonResponse.getString("token")
+                    val username = jsonResponse.getString("username")
                     val user = User(
-                        id = userJson.optInt("id", 0),
-                        username = userJson.getString("username"),
-                        email = userJson.optString("email", ""),
-                        phone = userJson.optString("phone", ""),
-                        lastDataSyncTime = userJson.optString("last_data_sync_time", ""),
-                        registerTime = userJson.optString("register_time", ""),
-                        isStaff = userJson.optBoolean("is_staff", false),
+                        username = username,
                     )
 
-                    val authResponse = AuthResponse(user, refreshToken, accessToken)
+                    val authResponse = AuthResponse(user, accessToken)
 
                     // 保存认证信息
                     saveAuthInfo(authResponse)
@@ -252,27 +240,24 @@ class AuthService @Inject constructor(private val context: Context) {
             }
 
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/users/profile/")
+                .url("$BASE_URL/userinfo/")
                 .get()
                 .addHeader("Authorization", "Bearer $token")
                 .build()
 
             client.newCall(httpRequest).execute().use { response ->
                 if (response.isSuccessful) {
-                    val responseBody = response.body?.string()
-                    val userJson = JSONObject(responseBody)
+                    val responseBody = response.body!!.string()
+                    val userJson = JSONObject(responseBody).getJSONObject("user")
 
                     val user = User(
-                        id = userJson.optInt("id", 0),
                         username = userJson.getString("username"),
-                        email = userJson.optString("email", null),
-                        phone = userJson.optString("phone", null),
-                        lastDataSyncTime = userJson.optString("last_data_sync_time", null),
-                        registerTime = userJson.optString("register_time", null),
+                        email = userJson.optString("email", ""),
+                        phone = userJson.optString("phone", ""),
                         isStaff = userJson.optBoolean("is_staff", false),
                     )
 
-                    // 更新当前认证状态中的用户信息
+                    // 更新当前认证状态中的用户信
                     if (authState.value is AuthState.Authenticated) {
                         val currentToken = (authState.value as AuthState.Authenticated).accessToken
                         _authState.value = AuthState.Authenticated(user, currentToken)
@@ -367,7 +352,6 @@ class AuthService @Inject constructor(private val context: Context) {
     private fun saveAuthInfo(authResponse: AuthResponse) {
         prefs.edit().apply {
             putString(KEY_TOKEN, authResponse.access)
-            putString(KEY_REFRESH_TOKEN, authResponse.refresh)
             putString(KEY_USERNAME, authResponse.user.username)
             putString(KEY_EMAIL, authResponse.user.email)
             apply()
@@ -381,88 +365,10 @@ class AuthService @Inject constructor(private val context: Context) {
         return prefs.getString(KEY_TOKEN, null)
     }
 
-    /**
-     * 获取刷新令牌
-     */
-    fun getRefreshToken(): String? {
-        return prefs.getString(KEY_REFRESH_TOKEN, null)
-    }
 
-    /**
-     * 刷新访问令牌
-     * 使用刷新令牌获取新的访问令牌
-     * @return 刷新结果，成功返回新的访问令牌，失败返回null
-     */
-    suspend fun refreshToken(): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val refreshToken = getRefreshToken()
-            if (refreshToken == null) {
-                val errorMessage = "刷新令牌不存在"
-                _authState.value = AuthState.Unauthenticated(errorMessage)
-                return@withContext Result.failure(IOException(errorMessage))
-            }
-
-            val jsonObject = JSONObject().apply {
-                put("refresh", refreshToken)
-            }
-
-            val mediaType = "application/json; charset=utf-8".toMediaType()
-            val requestBody = jsonObject.toString().toRequestBody(mediaType)
-
-            val httpRequest = Request.Builder()
-                .url("$BASE_URL/users/token/refresh/")
-                .post(requestBody)
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            client.newCall(httpRequest).execute().use { response ->
-                if (response.isSuccessful) {
-                    val responseBody = response.body?.string()
-                    val jsonResponse = JSONObject(responseBody)
-
-                    val newAccessToken = jsonResponse.getString("access")
-
-                    // 更新保存的访问令牌
-                    prefs.edit().putString(KEY_TOKEN, newAccessToken).apply()
-
-                    // 更新认证状态
-                    val currentUser = getCurrentUser()
-                    if (currentUser != null) {
-                        _authState.value = AuthState.Authenticated(currentUser, newAccessToken)
-                    }
-
-                    return@withContext Result.success(newAccessToken)
-                } else {
-                    // 如果刷新令牌也过期，则退出登录
-                    if (response.code == 401) {
-                        logout()
-                        val errorMessage = "登录已过期，请重新登录"
-                        _authState.value = AuthState.Unauthenticated(errorMessage)
-                        return@withContext Result.failure(IOException(errorMessage))
-                    } else {
-                        val errorBody = response.body?.string()
-                        val errorMessage = try {
-                            JSONObject(errorBody ?: "").optString("message", "刷新令牌失败")
-                        } catch (e: Exception) {
-                            "刷新令牌失败: ${response.code}"
-                        }
-
-                        _authState.value = AuthState.Error(errorMessage)
-                        return@withContext Result.failure(IOException(errorMessage))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Refresh token error", e)
-            val errorMessage = "刷新令牌失败: ${e.message}"
-            _authState.value = AuthState.Error(errorMessage)
-            return@withContext Result.failure(e)
-        }
-    }
 
     companion object {
         private const val KEY_TOKEN = "auth_token"
-        private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USERNAME = "auth_username"
         private const val KEY_EMAIL = "auth_email"
     }

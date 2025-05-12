@@ -51,10 +51,10 @@ fun LoginDialog(
     onDismiss: () -> Unit
 ) {
     var isLogin by remember { mutableStateOf(true) }
-    var username by remember { mutableStateOf("sypw") }
+    var username by remember { mutableStateOf("admin") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("wesd2008") }
+    var password by remember { mutableStateOf("123456") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 

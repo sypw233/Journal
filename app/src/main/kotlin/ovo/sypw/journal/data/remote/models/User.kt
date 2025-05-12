@@ -56,7 +56,6 @@ data class ChangePasswordRequest(
  */
 data class AuthResponse(
     val user: User,
-    val refresh: String,
     val access: String
 )
 
