@@ -60,23 +60,6 @@ import java.util.Locale
 private val IMAGE_HEIGHT = 180.dp
 private val ROUNDED_SHAPE = RoundedCornerShape(12.dp)
 
-/** 普通卡片组件 */
-//@Composable
-//fun ElevatedCard(showText: String) {
-//    ElevatedCard(
-//        colors =
-//            CardDefaults.elevatedCardColors(
-//                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-//                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-//            ),
-//        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-//        modifier =
-//            Modifier
-//                .fillMaxWidth()
-//                .padding(horizontal = 16.dp, vertical = 10.dp)
-//                .height(240.dp)
-//    ) { Text(text = showText, modifier = Modifier.padding(15.dp)) }
-//}
 
 @Composable
 fun SingleImage(image: Any, onImageClick: (Int) -> Unit) {

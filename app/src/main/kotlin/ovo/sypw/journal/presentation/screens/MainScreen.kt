@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutQuad
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.overscroll
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
@@ -214,7 +216,9 @@ private fun MainScreenContent(
             )
         },
         sheetPeekHeight = sheetPeekHeight,
-        snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     ) { paddingValues ->
         // 不使用paddings，使用Scaffold重新布局
         Scaffold(
@@ -231,12 +235,14 @@ private fun MainScreenContent(
                     onShowLoginDialog = onShowLoginDialog
                 )
             },
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 // 使用现有的CustomLazyCardList的API
                 CustomLazyCardList(

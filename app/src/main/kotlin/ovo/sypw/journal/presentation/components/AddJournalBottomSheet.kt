@@ -117,6 +117,7 @@ fun BottomSheetContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -125,6 +126,7 @@ fun BottomSheetContent(
             text = "ADD NEW JOURNAL",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 

@@ -3,17 +3,20 @@ package ovo.sypw.journal.presentation.components
 import android.util.Log
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,10 +94,16 @@ fun CustomLazyCardList(
     }
 
     LazyColumn(
-        contentPadding = contentPadding,
+        contentPadding = PaddingValues(
+            start = 0.dp,
+            end = 0.dp,
+            top = 2.dp,
+            bottom = contentPadding.calculateBottomPadding() + 2.dp
+        ),
         modifier = modifier
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
         state = listState,
         userScrollEnabled = true
     ) {
@@ -164,9 +173,14 @@ fun LoadingPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp), contentAlignment = Alignment.Center
+            .height(48.dp), 
+        contentAlignment = Alignment.Center
     ) {
-        LinearProgressIndicator()
+        LinearProgressIndicator(
+            modifier = Modifier.width(120.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     }
 }
 

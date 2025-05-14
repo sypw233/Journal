@@ -299,24 +299,24 @@ class DatabaseManager @Inject constructor(
                 val response = result.getOrThrow()
                 val message = "数据库已上传到: ${response.path}"
                 Log.i(TAG, message)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                }
+//                withContext(Dispatchers.Main) {
+//                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+//                }
                 Result.success(response.path)
             } else {
                 val exception = result.exceptionOrNull() ?: Exception("上传失败")
                 Log.e(TAG, "上传数据库失败", exception)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "上传失败: ${exception.message}", Toast.LENGTH_SHORT)
-                        .show()
-                }
+//                withContext(Dispatchers.Main) {
+//                    Toast.makeText(context, "上传失败: ${exception.message}", Toast.LENGTH_SHORT)
+//                        .show()
+//                }
                 Result.failure(exception)
             }
         } catch (e: Exception) {
             Log.e(TAG, "上传数据库失败", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "上传失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(context, "上传失败: ${e.message}", Toast.LENGTH_SHORT).show()
+//            }
             Result.failure(e)
         }
     }
@@ -346,20 +346,20 @@ class DatabaseManager @Inject constructor(
                     val file = result.getOrThrow()
                     val message = "数据库已下载到: ${file.absolutePath}"
                     Log.i(TAG, message)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                    }
+//                    withContext(Dispatchers.Main) {
+//                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+//                    }
                     Result.success(file)
                 } else {
                     val exception = result.exceptionOrNull() ?: Exception("下载失败")
                     Log.e(TAG, "下载数据库失败", exception)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            "下载失败: ${exception.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+//                    withContext(Dispatchers.Main) {
+//                        Toast.makeText(
+//                            context,
+//                            "下载失败: ${exception.message}",
+//                            Toast.LENGTH_SHORT
+//                        ).show()
+//                    }
                     Result.failure(exception)
                 }
             } catch (e: Exception) {
@@ -449,16 +449,16 @@ class DatabaseManager @Inject constructor(
 
             val message = "数据库已恢复"
             Log.i(TAG, message)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+//            }
 
             Result.success(true)
         } catch (e: Exception) {
             Log.e(TAG, "恢复数据库失败", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_SHORT).show()
+//            }
             Result.failure(e)
         }
     }
