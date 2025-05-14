@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
 
+private const val TAG = "UserDetailComponent"
 
 @Composable
 fun UserDetailDialog(

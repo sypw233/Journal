@@ -27,7 +27,7 @@ import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 
 
-const val TAG = "CustomLazyList"
+private const val TAG = "CustomLazyList"
 
 /**
  * 自定义懒加载列表组件，使用ViewModel实现分页加载

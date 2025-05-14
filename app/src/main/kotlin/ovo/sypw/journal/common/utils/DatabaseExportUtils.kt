@@ -32,7 +32,7 @@ object DatabaseExporter {
             // 确保数据库存在
             if (!dbFile.exists()) {
                 Log.e(TAG, "数据库文件不存在: $databaseName")
-                Toast.makeText(context, "数据库文件不存在", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "数据库文件不存在", Toast.LENGTH_SHORT).show()
                 return null
             }
 
@@ -57,14 +57,14 @@ object DatabaseExporter {
             }
 
             Log.i(TAG, "数据库已导出到: ${exportFile.absolutePath}")
-            Toast.makeText(context, "数据库已导出到: ${exportFile.absolutePath}", Toast.LENGTH_LONG)
-                .show()
+//            Toast.makeText(context, "数据库已导出到: ${exportFile.absolutePath}", Toast.LENGTH_LONG)
+//                .show()
 
             return exportFile
 
         } catch (e: Exception) {
             Log.e(TAG, "导出数据库失败", e)
-            Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
             return null
         }
     }
