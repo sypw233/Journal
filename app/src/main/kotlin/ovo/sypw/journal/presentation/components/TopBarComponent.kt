@@ -35,9 +35,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.R
 import ovo.sypw.journal.TestActivity
+import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
+import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 
 /**
@@ -51,7 +53,10 @@ fun TopBarView(
     scaffoldState: BottomSheetScaffoldState,
     markedSet: Set<Any?>,
     authViewModel: AuthViewModel = viewModel(),
-    journalListViewModel: JournalListViewModel = viewModel()
+    journalListViewModel: JournalListViewModel = viewModel(),
+    databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
+    autoSyncManager: AutoSyncManager? = null,
+    onShowLoginDialog: () -> Unit
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -79,8 +84,6 @@ fun TopBarView(
 //            }
 //        },
         actions = {
-
-
             val context = LocalContext.current
             val forActivityResult = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
@@ -106,16 +109,19 @@ fun TopBarView(
 //                    )
 //                }
 //                Spacer(modifier = Modifier.width(8.dp))
+                
+                // 添加同步按钮
+                autoSyncManager?.let {
+                    SyncStatusButton(
+                        autoSyncManager = it,
+                        showText = false  // 在顶部栏不显示文本，只显示图标
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                
                 UserAvatar(
                     authViewModel = authViewModel,
-                    onClick = {
-                        val currentState = authViewModel.authState.value
-                        if (currentState is AuthState.Authenticated) {
-                            showUserMenu = true
-                        } else {
-                            showLoginDialog = true
-                        }
-                    }
+                    onClick = onShowLoginDialog
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))

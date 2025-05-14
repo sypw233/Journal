@@ -402,7 +402,7 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+//        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 4.dp)

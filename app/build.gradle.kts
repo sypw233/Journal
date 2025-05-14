@@ -52,6 +52,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    
+    // 添加Material图标支持
+    implementation("androidx.compose.material:material")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
+    
     implementation(libs.retrofit)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -76,7 +82,7 @@ dependencies {
     ksp(libs.hilt.android.compiler)
 
 //    markdown
-    implementation("com.github.jeziellago:compose-markdown:0.5.7")
+    implementation(libs.compose.markdown)
 
-    implementation ("com.google.mediapipe:tasks-genai:0.10.22")
+    implementation (libs.tasks.genai)
 }

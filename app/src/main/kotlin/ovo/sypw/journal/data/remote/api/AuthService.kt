@@ -21,6 +21,7 @@ import ovo.sypw.journal.data.model.LoginRequest
 import ovo.sypw.journal.data.model.RegisterRequest
 import ovo.sypw.journal.data.model.User
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +36,11 @@ class AuthService @Inject constructor(private val context: Context) {
     private val BASE_URL = "http://10.0.2.2:8000/api" // 替换为实际的API地址
 
     // OkHttp客户端
-    private val client = OkHttpClient.Builder().build()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
 
     // SharedPreferences用于存储认证信息
     private val prefs: SharedPreferences =
@@ -46,21 +51,155 @@ class AuthService @Inject constructor(private val context: Context) {
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     init {
+        // 初始化时先设置为加载状态
+        _authState.value = AuthState.Loading
+        
         // 检查是否有保存的access token
         val savedAccessToken = prefs.getString(KEY_TOKEN, null)
         val savedUsername = prefs.getString(KEY_USERNAME, null)
         val savedEmail = prefs.getString(KEY_EMAIL, null)
-
-        if (savedAccessToken != null && savedUsername != null && savedEmail != null) {
-            // 如果有保存的access token，创建用户对象并更新认证状态
-            val user = User(
-                username = savedUsername,
-                email = savedEmail
-            )
-            _authState.value = AuthState.Authenticated(user, savedAccessToken)
+        val tokenExpiryTime = prefs.getLong(KEY_TOKEN_EXPIRY, 0)
+        
+        if (savedAccessToken != null && savedUsername != null) {
+            // 检查token是否已过期
+            val currentTime = System.currentTimeMillis()
+            if (tokenExpiryTime > currentTime) {
+                // token没有过期，直接设置为认证状态
+                val user = User(
+                    username = savedUsername,
+                    email = savedEmail ?: ""
+                )
+                _authState.value = AuthState.Authenticated(user, savedAccessToken)
+                
+                // 如果token快过期了（比如还有30分钟过期），可以在后台刷新token
+                if (tokenExpiryTime - currentTime < 30 * 60 * 1000) {
+                    // 后台刷新token
+                    refreshTokenInBackground()
+                }
+            } else {
+                // token已过期，设置为未认证状态
+                Log.d(TAG, "Token已过期，需要重新登录")
+                _authState.value = AuthState.Unauthenticated("登录已过期，请重新登录")
+                // 清除过期的token信息
+                logout()
+            }
         } else {
+            // 没有保存的token，设置为未认证状态
             _authState.value = AuthState.Unauthenticated()
         }
+    }
+    
+    /**
+     * 后台刷新token
+     * 在token即将过期时调用，保持用户登录状态
+     */
+    private fun refreshTokenInBackground() {
+        // 在后台线程中执行token刷新
+        Thread {
+            try {
+                // 尝试刷新token
+                val result = kotlinx.coroutines.runBlocking {
+                    refreshToken()
+                }
+                
+                if (!result) {
+                    // 如果刷新失败，验证当前token
+                    val isValid = kotlinx.coroutines.runBlocking {
+                        validateToken()
+                    }
+                    
+                    if (!isValid) {
+                        // token已失效且无法刷新，需要重新登录
+                        Log.d(TAG, "Token已失效且无法刷新，需要重新登录")
+                        _authState.value = AuthState.Unauthenticated("登录已过期，请重新登录")
+                        logout()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "刷新token失败", e)
+            }
+        }.start()
+    }
+    
+    /**
+     * 验证token有效性
+     * 返回token是否有效
+     */
+    suspend fun validateToken(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val token = getAuthToken()
+            if (token == null) {
+                Log.d(TAG, "无token，未登录状态")
+                _authState.value = AuthState.Unauthenticated("未登录")
+                return@withContext false
+            }
+
+            // 使用token调用用户信息接口来验证token有效性
+            val httpRequest = Request.Builder()
+                .url("$BASE_URL/userinfo/")
+                .get()
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+
+            client.newCall(httpRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    // token有效，更新用户信息和token过期时间
+                    val responseBody = response.body!!.string()
+                    val userJson = JSONObject(responseBody).getJSONObject("user")
+                    
+                    val user = User(
+                        username = userJson.getString("username"),
+                        email = userJson.optString("email", ""),
+                        phone = userJson.optString("phone", ""),
+                        isStaff = userJson.optBoolean("is_staff", false),
+                    )
+                    
+                    // 更新当前认证状态中的用户信息
+                    _authState.value = AuthState.Authenticated(user, token)
+                    
+                    // 更新token过期时间（假设为24小时）
+                    updateTokenExpiry(24 * 60 * 60 * 1000L)
+                    
+                    Log.d(TAG, "Token验证成功")
+                    return@withContext true
+                } else {
+                    // token无效或过期
+                    val errorMessage = when (response.code) {
+                        401 -> "登录已过期，请重新登录"
+                        403 -> "权限不足，请重新登录"
+                        else -> "登录状态异常，请重新登录"
+                    }
+                    
+                    Log.d(TAG, "Token验证失败: ${response.code}")
+                    
+                    // 尝试刷新token
+                    val refreshed = refreshToken()
+                    if (refreshed) {
+                        Log.d(TAG, "Token刷新成功")
+                        return@withContext true
+                    }
+                    
+                    // 刷新失败，清除认证信息并更新状态
+                    logout()
+                    _authState.value = AuthState.Unauthenticated(errorMessage)
+                    return@withContext false
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "验证token出错", e)
+            // 网络错误或其他异常时，保持当前状态，不强制登出
+            // 如果需要处理特定错误，可以在这里添加条件判断
+            return@withContext false
+        }
+    }
+    
+    /**
+     * 更新token过期时间
+     * @param validityInMillis token有效期（毫秒）
+     */
+    private fun updateTokenExpiry(validityInMillis: Long) {
+        val expiryTime = System.currentTimeMillis() + validityInMillis
+        prefs.edit().putLong(KEY_TOKEN_EXPIRY, expiryTime).apply()
     }
 
     /**
@@ -350,10 +489,14 @@ class AuthService @Inject constructor(private val context: Context) {
      * 保存认证信息到SharedPreferences
      */
     private fun saveAuthInfo(authResponse: AuthResponse) {
+        // 设置token过期时间，假设有效期为24小时
+        val expiryTime = System.currentTimeMillis() + 24 * 60 * 60 * 1000L
+        
         prefs.edit().apply {
             putString(KEY_TOKEN, authResponse.access)
             putString(KEY_USERNAME, authResponse.user.username)
             putString(KEY_EMAIL, authResponse.user.email)
+            putLong(KEY_TOKEN_EXPIRY, expiryTime)
             apply()
         }
     }
@@ -365,11 +508,60 @@ class AuthService @Inject constructor(private val context: Context) {
         return prefs.getString(KEY_TOKEN, null)
     }
 
+    /**
+     * 刷新token
+     * 尝试使用refresh token获取新的access token
+     * 实际使用时应根据后端实现来修改
+     */
+    suspend fun refreshToken(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val currentToken = getAuthToken()
+            if (currentToken == null) {
+                return@withContext false
+            }
 
+            // 示例：使用当前token获取新token
+            // 注意：实际应用中，应该使用refresh_token而不是access_token来获取新token
+            val httpRequest = Request.Builder()
+                .url("$BASE_URL/token/refresh/")
+                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .addHeader("Authorization", "Bearer $currentToken")
+                .build()
+
+            client.newCall(httpRequest).execute().use { response ->
+                if (response.isSuccessful) {
+                    val responseBody = response.body!!.string()
+                    val jsonResponse = JSONObject(responseBody)
+                    val newToken = jsonResponse.optString("token", null)
+                    
+                    if (newToken != null) {
+                        // 更新存储的token
+                        val currentUser = getCurrentUser()
+                        if (currentUser != null) {
+                            // 保存新token
+                            val authResponse = AuthResponse(currentUser, newToken)
+                            saveAuthInfo(authResponse)
+                            // 更新认证状态
+                            _authState.value = AuthState.Authenticated(currentUser, newToken)
+                            Log.d(TAG, "Token刷新成功")
+                            return@withContext true
+                        }
+                    }
+                }
+                // 刷新失败
+                Log.d(TAG, "Token刷新失败: ${response.code}")
+                return@withContext false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "刷新token出错", e)
+            return@withContext false
+        }
+    }
 
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_USERNAME = "auth_username"
         private const val KEY_EMAIL = "auth_email"
+        private const val KEY_TOKEN_EXPIRY = "auth_token_expiry"
     }
 }

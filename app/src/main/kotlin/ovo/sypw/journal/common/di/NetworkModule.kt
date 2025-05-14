@@ -6,7 +6,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import ovo.sypw.journal.common.utils.DatabaseManager
 import ovo.sypw.journal.data.remote.api.AuthService
 import ovo.sypw.journal.data.remote.api.FileService
 import javax.inject.Singleton
@@ -29,17 +28,5 @@ object NetworkModule {
         authService: AuthService
     ): FileService {
         return FileService(context, authService)
-    }
-
-    /**
-     * 提供DatabaseManager实例
-     */
-    @Provides
-    @Singleton
-    fun provideDatabaseManager(
-        @ApplicationContext context: Context,
-        fileService: FileService
-    ): DatabaseManager {
-        return DatabaseManager(context, fileService)
     }
 } 

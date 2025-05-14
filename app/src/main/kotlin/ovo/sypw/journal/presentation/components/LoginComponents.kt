@@ -250,7 +250,7 @@ fun UserAvatar(
         else -> {
             // 显示登录按钮
             Button(
-                onClick = onClick,
+                onClick = onClick,  // 直接调用传入的onClick回调显示登录对话框
                 modifier = Modifier.height(36.dp)
             ) {
                 Text("登录")

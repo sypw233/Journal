@@ -32,7 +32,7 @@ fun SwipeCard(
     onDismiss: () -> Unit,
     onMark: () -> Unit,
     modifier: Modifier = Modifier,
-    enableScroll: Boolean
+    enableScroll: Boolean = true
 ) {
 
     var currentProgress = remember { mutableFloatStateOf(0f) }

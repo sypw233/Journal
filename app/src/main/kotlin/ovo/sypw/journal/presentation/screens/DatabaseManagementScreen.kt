@@ -1,6 +1,7 @@
 package ovo.sypw.journal.presentation.screens
 
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
@@ -29,20 +33,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.presentation.viewmodels.DatabaseCompareResult
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import java.io.File
 import java.text.SimpleDateFormat
@@ -72,6 +81,8 @@ fun DatabaseManagementScreen(
     val localFiles by viewModel.localDbFiles.collectAsState()
     val remoteFiles by viewModel.remoteDbFiles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val compareResult by viewModel.databaseCompareResult.collectAsState()
+    val showRestartDialog by viewModel.showRestartDialog.collectAsState()
 
     Scaffold(
         topBar = {
@@ -110,6 +121,15 @@ fun DatabaseManagementScreen(
                     enabled = !isLoading
                 ) {
                     Text("上传数据库")
+                }
+                
+                Button(
+                    onClick = { viewModel.syncDatabase() },
+                    enabled = !isLoading
+                ) {
+                    Text("同步数据库")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Default.Refresh, contentDescription = "同步")
                 }
 
                 Button(
@@ -205,7 +225,137 @@ fun DatabaseManagementScreen(
                 }
             }
         }
+        
+        // 显示数据库比较对话框
+        if (compareResult != null) {
+            DatabaseCompareDialog(
+                compareResult = compareResult!!,
+                onDismiss = { viewModel.clearCompareResult() },
+                onUseLocal = { viewModel.useLocalDatabase() },
+                onUseRemote = { viewModel.useRemoteDatabase() }
+            )
+        }
+        
+        // 显示重启应用提示对话框
+        if (showRestartDialog) {
+            RestartAppDialog(
+                onDismiss = { viewModel.dismissRestartDialog() },
+                onRestart = {
+                    // 重启应用
+                    val packageManager = context.packageManager
+                    val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    // 结束当前进程
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                }
+            )
+        }
     }
+}
+
+/**
+ * 数据库比较对话框
+ */
+@Composable
+fun DatabaseCompareDialog(
+    compareResult: DatabaseCompareResult,
+    onDismiss: () -> Unit,
+    onUseLocal: () -> Unit,
+    onUseRemote: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("数据库同步") },
+        text = {
+            Column {
+                Text(
+                    "请选择要保留的数据库版本：",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 本地数据库信息
+                Text(
+                    "本地数据库:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("条目数量: ${compareResult.localEntryCount}")
+                Text("最后修改: ${formatLocalDate(compareResult.localLastModified)}")
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 远程数据库信息
+                Text(
+                    "远程数据库:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("条目数量: ${compareResult.remoteEntryCount}")
+                Text("最后修改: ${formatDate(compareResult.remoteLastModified / 1000)}")  // 转换为秒
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 推荐选择
+                val isRemoteNewer = compareResult.remoteLastModified > compareResult.localLastModified
+                val hasMoreEntries = compareResult.remoteEntryCount > compareResult.localEntryCount
+                
+                if (isRemoteNewer && hasMoreEntries) {
+                    Text(
+                        "推荐: 使用远程数据库（更新且条目更多）",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else if (isRemoteNewer) {
+                    Text(
+                        "推荐: 使用远程数据库（更新）",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else if (hasMoreEntries) {
+                    Text(
+                        "推荐: 使用远程数据库（条目更多）",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        "推荐: 使用本地数据库（更新且/或条目更多）",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onUseRemote()
+                    onDismiss()
+                }
+            ) {
+                Text("使用远程数据库")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onUseLocal()
+                    onDismiss()
+                }
+            ) {
+                Text("使用本地数据库")
+            }
+        }
+    )
 }
 
 /**
@@ -358,4 +508,31 @@ private fun formatDate(timestamp: Long): String {
 private fun formatLocalDate(timestamp: Long): String {
     // 本地文件的时间戳单位已经是毫秒，不需要转换
     return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
+}
+
+/**
+ * 重启应用对话框
+ */
+@Composable
+fun RestartAppDialog(
+    onDismiss: () -> Unit,
+    onRestart: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("数据库已恢复") },
+        text = {
+            Text("数据库已成功恢复，需要重启应用才能生效。现在重启应用吗？")
+        },
+        confirmButton = {
+            Button(onClick = onRestart) {
+                Text("重启应用")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("稍后重启")
+            }
+        }
+    )
 } 

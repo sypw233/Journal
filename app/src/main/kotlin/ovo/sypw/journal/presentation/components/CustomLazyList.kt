@@ -37,7 +37,7 @@ const val TAG = "CustomLazyList"
 @Composable
 fun CustomLazyCardList(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     listState: LazyListState = rememberLazyListState(),
     viewModel: JournalListViewModel
 ) {
