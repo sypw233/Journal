@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SwipeToDismissBox
@@ -24,13 +25,13 @@ import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.R
 import ovo.sypw.journal.data.model.JournalData
 
-/** 可滑动卡片组件，支持左右滑动进行标记和删除操作 */
+/** 可滑动卡片组件，支持左右滑动进行编辑和删除操作 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeCard(
     journalData: JournalData,
     onDismiss: () -> Unit,
-    onMark: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
     enableScroll: Boolean = true
 ) {
@@ -51,7 +52,7 @@ fun SwipeCard(
                 } else if (value == SwipeToDismissBoxValue.StartToEnd
                     && currentProgress.floatValue >= 0.4f && currentProgress.floatValue <= 1f
                 ) {
-                    onMark()
+                    onEdit()
                     false
                 }
                 false
@@ -75,8 +76,8 @@ fun SwipeCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.bookmark_border_24),
-                    contentDescription = "mark",
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = "编辑",
                     modifier = Modifier
                         .offset((-150).dp)
                         .padding(start = 16.dp)
@@ -84,7 +85,7 @@ fun SwipeCard(
                 )
                 Icon(
                     imageVector = Icons.Outlined.Delete,
-                    contentDescription = "delete",
+                    contentDescription = "删除",
                     modifier = Modifier
                         .offset(150.dp)
                         .padding(end = 16.dp)

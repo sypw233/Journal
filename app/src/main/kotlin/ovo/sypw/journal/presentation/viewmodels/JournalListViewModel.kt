@@ -318,4 +318,12 @@ class JournalListViewModel @Inject constructor(
 
         return true
     }
+
+    /**
+     * 更新日记
+     * 用于编辑界面更新日记
+     */
+    fun updateJournal(journalData: JournalData) {
+        updateEntry(journalData)
+    }
 }

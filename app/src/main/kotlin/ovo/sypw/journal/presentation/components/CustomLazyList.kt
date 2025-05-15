@@ -22,11 +22,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.presentation.screens.JournalEditScreen
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 
 
@@ -46,6 +50,10 @@ fun CustomLazyCardList(
 ) {
     // 从ViewModel获取UI状态
     val uiState by viewModel.uiState.collectAsState()
+    
+    // 编辑日记状态
+    var showEditScreen by remember { mutableStateOf(false) }
+    var editingJournal by remember { mutableStateOf<JournalData?>(null) }
 
     // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
@@ -93,75 +101,90 @@ fun CustomLazyCardList(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(
-            start = 0.dp,
-            end = 0.dp,
-            top = 2.dp,
-            bottom = contentPadding.calculateBottomPadding() + 2.dp
-        ),
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
-        state = listState,
-        userScrollEnabled = true
-    ) {
+    // 显示编辑界面
+    if (showEditScreen && editingJournal != null) {
+        JournalEditScreen(
+            journalData = editingJournal!!,
+            onSave = { updatedJournal ->
+                // 调用ViewModel的更新日记方法
+                viewModel.updateJournal(updatedJournal)
+                showEditScreen = false
+                editingJournal = null
+            },
+            onCancel = {
+                showEditScreen = false
+                editingJournal = null
+            },
+            viewModel = viewModel
+        )
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = 0.dp,
+                end = 0.dp,
+                top = 2.dp,
+                bottom = contentPadding.calculateBottomPadding() + 2.dp
+            ),
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+            state = listState,
+            userScrollEnabled = true
+        ) {
 
-        items(
-            count = uiState.journals.size,
-            // 使用稳定的唯一ID作为key，而不是依赖于索引位置
-            key = { index ->
-                // 确保即使在快速滑动时也能保持唯一性
-                val item = uiState.journals[index]
-                "journal_item_${item.id}"
-            }) { index ->
-            // 添加安全检查，确保索引有效
-            if (index < uiState.journals.size) {
-                val journalData = uiState.journals[index]
-                SwipeCard(
-                    modifier = Modifier
-                        .animateItem(
-                            fadeInSpec = spring(
-                                dampingRatio = 0.5f, stiffness = 100f
-                            ), fadeOutSpec = spring(
-                                dampingRatio = 0.5f,
+            items(
+                count = uiState.journals.size,
+                // 使用稳定的唯一ID作为key，而不是依赖于索引位置
+                key = { index ->
+                    // 确保即使在快速滑动时也能保持唯一性
+                    val item = uiState.journals[index]
+                    "journal_item_${item.id}"
+                }) { index ->
+                // 添加安全检查，确保索引有效
+                if (index < uiState.journals.size) {
+                    val journalData = uiState.journals[index]
+                    SwipeCard(
+                        modifier = Modifier
+                            .animateItem(
+                                fadeInSpec = spring(
+                                    dampingRatio = 0.5f, stiffness = 100f
+                                ), fadeOutSpec = spring(
+                                    dampingRatio = 0.5f,
+                                )
                             )
-                        )
-                        .fillMaxSize(),
-                    enableScroll = !isListScrolling,
-                    journalData = journalData,
-                    onDismiss = {
-                        // 处理滑动删除，调用ViewModel的方法
-                        val id = journalData.id
-                        viewModel.deleteJournal(id)
-                        // 使用带有撤销按钮的Snackbar
-                        SnackBarUtils.showActionSnackBar(
-                            message = "已删除 #${id}",
-                            actionLabel = "撤销",
-                            onActionPerformed = { viewModel.undoDelete() },
-                            onDismissed = { }
-                        )
-                    }, onMark = {
-                        // 处理标记，调用ViewModel的方法
-                        val id = journalData.id
-                        viewModel.toggleMarkJournal(id)
-                        if (id in uiState.markedItems) {
-                            SnackBarUtils.showSnackBar("Cancel mark #${id}")
-                        } else {
-                            SnackBarUtils.showSnackBar("Mark #${id}")
+                            .fillMaxSize(),
+                        enableScroll = !isListScrolling,
+                        journalData = journalData,
+                        onDismiss = {
+                            // 处理滑动删除，调用ViewModel的方法
+                            val id = journalData.id
+                            viewModel.deleteJournal(id)
+                            // 使用带有撤销按钮的Snackbar
+                            SnackBarUtils.showActionSnackBar(
+                                message = "已删除 #${id}",
+                                actionLabel = "撤销",
+                                onActionPerformed = { viewModel.undoDelete() },
+                                onDismissed = { }
+                            )
+                        },
+                        onEdit = {
+                            // 处理右滑编辑，显示编辑界面
+                            editingJournal = journalData
+                            showEditScreen = true
                         }
-                    })
+                    )
+                }
             }
-        }
-        item {
-            Box(Modifier.height(100.dp))
-        }
-
-        // 如果还有更多数据且正在加载，显示加载指示器
-        if (uiState.hasMoreData && uiState.isLoading) {
             item {
-                LoadingPlaceholder()
+                Box(Modifier.height(100.dp))
+            }
+
+            // 如果还有更多数据且正在加载，显示加载指示器
+            if (uiState.hasMoreData && uiState.isLoading) {
+                item {
+                    LoadingPlaceholder()
+                }
             }
         }
     }
