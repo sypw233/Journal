@@ -306,7 +306,7 @@ fun LocationInfo(location: LocationData) {
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = "${location.latitude}, ${location.longitude}",
+            text = "${location.name}",
             style = MaterialTheme.typography.bodySmall
         )
     }

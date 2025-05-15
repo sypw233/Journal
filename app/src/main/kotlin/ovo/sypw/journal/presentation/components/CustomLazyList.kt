@@ -30,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
-import ovo.sypw.journal.presentation.screens.JournalEditScreen
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 
 
@@ -103,7 +102,8 @@ fun CustomLazyCardList(
 
     // 显示编辑界面
     if (showEditScreen && editingJournal != null) {
-        JournalEditScreen(
+        ovo.sypw.journal.presentation.components.JournalEditBottomSheet(
+            isVisible = showEditScreen,
             journalData = editingJournal!!,
             onSave = { updatedJournal ->
                 // 调用ViewModel的更新日记方法
@@ -111,37 +111,22 @@ fun CustomLazyCardList(
                 showEditScreen = false
                 editingJournal = null
             },
-            onCancel = {
+            onDismiss = {
                 showEditScreen = false
                 editingJournal = null
-            },
-            viewModel = viewModel
+            }
         )
-    } else {
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = 0.dp,
-                end = 0.dp,
-                top = 2.dp,
-                bottom = contentPadding.calculateBottomPadding() + 2.dp
-            ),
-            modifier = modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-            state = listState,
-            userScrollEnabled = true
-        ) {
+    }
 
-            items(
-                count = uiState.journals.size,
-                // 使用稳定的唯一ID作为key，而不是依赖于索引位置
-                key = { index ->
-                    // 确保即使在快速滑动时也能保持唯一性
-                    val item = uiState.journals[index]
-                    "journal_item_${item.id}"
-                }) { index ->
-                // 添加安全检查，确保索引有效
+    Box(
+        modifier = modifier
+    ) {
+        LazyColumn(
+            state = listState,
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            items(uiState.journals.size) { index ->
                 if (index < uiState.journals.size) {
                     val journalData = uiState.journals[index]
                     SwipeCard(
@@ -192,17 +177,17 @@ fun CustomLazyCardList(
 
 // 加载指示器组件
 @Composable
-fun LoadingPlaceholder() {
+private fun LoadingPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp), 
+            .height(60.dp),
         contentAlignment = Alignment.Center
     ) {
         LinearProgressIndicator(
-            modifier = Modifier.width(120.dp),
+            modifier = Modifier.width(100.dp),
             color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
+            trackColor = MaterialTheme.colorScheme.primaryContainer
         )
     }
 }

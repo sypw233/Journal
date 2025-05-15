@@ -17,6 +17,13 @@ import ovo.sypw.journal.data.remote.api.FileService
 import java.io.File
 import javax.inject.Inject
 import ovo.sypw.journal.common.utils.AutoSyncManager
+import ovo.sypw.journal.common.utils.DatabaseExportDebugger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
+import android.os.Environment
+import ovo.sypw.journal.data.database.JournalDatabase
 
 // 数据库同步比较结果
 data class DatabaseCompareResult(
@@ -186,15 +193,142 @@ class DatabaseManagementViewModel @Inject constructor(
 
     /**
      * 导出数据库
+     * 默认使用强制导出方法，因为这种方法更可靠
      */
     fun exportDatabase() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                databaseManager.exportDatabase()
-                refreshLocalFiles()
+                // 直接调用强制导出功能
+                withContext(Dispatchers.IO) {
+                    // 显示提示信息
+                    withContext(Dispatchers.Main) {
+                        SnackBarUtils.showSnackBar("正在导出数据库...")
+                    }
+                    
+                    // 获取数据库文件路径
+                    val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
+                    
+                    if (!dbFile.exists()) {
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("数据库文件不存在")
+                        }
+                        return@withContext
+                    }
+                    
+                    // 创建导出目录
+                    val exportDir = File(
+                        databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                        "database_exports"
+                    )
+                    if (!exportDir.exists()) {
+                        exportDir.mkdirs()
+                    }
+                    
+                    // 创建带时间戳的文件名
+                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val exportFile = File(exportDir, "journal_database_${timestamp}.db")
+                    
+                    // 先尝试关闭数据库连接
+                    try {
+                        // 使用反射获取Room数据库实例
+                        val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
+                        dbInstanceField.isAccessible = true
+                        val dbInstance = dbInstanceField.get(null) as? JournalDatabase
+                        
+                        // 如果数据库实例存在，尝试关闭它
+                        dbInstance?.close()
+                        Log.i("DatabaseExport", "已尝试关闭数据库实例")
+                    } catch (e: Exception) {
+                        Log.e("DatabaseExport", "关闭数据库实例时出错", e)
+                    }
+                    
+                    // 尝试复制数据库文件和WAL/SHM文件
+                    var success = false
+                    
+                    try {
+                        val walFile = File("${dbFile.absolutePath}-wal")
+                        val shmFile = File("${dbFile.absolutePath}-shm")
+                        
+                        // 复制主数据库文件
+                        dbFile.copyTo(exportFile, overwrite = true)
+                        
+                        // 检查是否有WAL和SHM文件，如果有也复制它们
+                        if (walFile.exists()) {
+                            walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
+                        }
+                        
+                        if (shmFile.exists()) {
+                            shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
+                        }
+                        
+                        success = true
+                        Log.i("DatabaseExport", "成功复制数据库文件，包含WAL")
+                    } catch (e: Exception) {
+                        Log.e("DatabaseExport", "复制数据库文件失败", e)
+                        
+                        // 如果直接复制失败，尝试使用原来的导出方法
+                        try {
+                            val result = databaseManager.exportDatabase()
+                            success = (result != null)
+                            if (success) {
+                                Log.i("DatabaseExport", "通过Manager导出数据库成功")
+                            }
+                        } catch (ex: Exception) {
+                            Log.e("DatabaseExport", "通过Manager导出数据库失败", ex)
+                        }
+                    }
+                    
+                    // 如果成功，删除WAL和SHM文件
+                    if (success) {
+                        try {
+                            File("${exportFile.absolutePath}-wal").delete()
+                            File("${exportFile.absolutePath}-shm").delete()
+                        } catch (e: Exception) {
+                            Log.e("DatabaseExport", "删除WAL和SHM文件失败", e)
+                        }
+                        
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("数据库已导出成功")
+                        }
+                        
+                        // 刷新本地文件列表
+                        refreshLocalFiles()
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("导出数据库失败，请尝试强制导出")
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 SnackBarUtils.showSnackBar("导出数据库失败: ${e.message}")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 诊断数据库导出环境
+     */
+    fun diagnoseDatabaseExport() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                withContext(Dispatchers.IO) {
+                    // 检查环境
+                    val envResult = DatabaseExportDebugger.checkExportEnvironment(databaseManager.getContext())
+                    
+                    // 测试文件写入
+                    val writeResult = DatabaseExportDebugger.testFileWrite(databaseManager.getContext())
+                    
+                    // 显示结果
+                    withContext(Dispatchers.Main) {
+                        SnackBarUtils.showSnackBar("环境检查: $envResult, 写入测试: $writeResult")
+                    }
+                }
+            } catch (e: Exception) {
+                SnackBarUtils.showSnackBar("诊断过程出错: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
@@ -213,9 +347,24 @@ class DatabaseManagementViewModel @Inject constructor(
                 // 先确保远程目录存在
                 ensureRemoteDirectoryExists()
 
-                val result = databaseManager.uploadDatabaseToServer(file, _remoteDatabaseDir.value)
-                if (result.isSuccess) {
-                    refreshRemoteFiles()
+                if (file != null) {
+                    // 如果提供了文件，直接上传
+                    val result = databaseManager.uploadDatabaseToServer(file, _remoteDatabaseDir.value)
+                    if (result.isSuccess) {
+                        refreshRemoteFiles()
+                    }
+                } else {
+                    // 如果没有提供文件，使用强制导出方法导出当前数据库
+                    val exportedFile = exportDatabaseToFile()
+                    
+                    if (exportedFile != null) {
+                        val result = databaseManager.uploadDatabaseToServer(exportedFile, _remoteDatabaseDir.value)
+                        if (result.isSuccess) {
+                            refreshRemoteFiles()
+                        }
+                    } else {
+                        SnackBarUtils.showSnackBar("导出数据库失败，无法上传")
+                    }
                 }
             } catch (e: Exception) {
                 SnackBarUtils.showSnackBar("上传数据库失败: ${e.message}")
@@ -346,7 +495,7 @@ class DatabaseManagementViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 // 1. 导出当前数据库
-                val localFile = databaseManager.exportDatabase()
+                val localFile = exportDatabaseToFile()
                 if (localFile == null) {
                     SnackBarUtils.showSnackBar("导出数据库失败，无法进行同步")
                     _isLoading.value = false
@@ -563,6 +712,206 @@ class DatabaseManagementViewModel @Inject constructor(
     fun syncNow() {
         viewModelScope.launch {
             autoSyncManager.scheduleSyncNow()
+        }
+    }
+
+    /**
+     * 强制导出数据库
+     * 在正常导出失败时尝试关闭数据库连接并使用替代方法
+     */
+    fun forceExportDatabase() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                withContext(Dispatchers.IO) {
+                    // 显示警告消息
+                    withContext(Dispatchers.Main) {
+                        SnackBarUtils.showSnackBar("正在尝试强制导出数据库，这可能需要几秒钟...")
+                    }
+                    
+                    // 获取数据库文件路径
+                    val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
+                    
+                    if (!dbFile.exists()) {
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("数据库文件不存在")
+                        }
+                        return@withContext
+                    }
+                    
+                    // 创建导出目录
+                    val exportDir = File(
+                        databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                        "database_exports"
+                    )
+                    if (!exportDir.exists()) {
+                        exportDir.mkdirs()
+                    }
+                    
+                    // 创建带时间戳的文件名
+                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val exportFile = File(exportDir, "journal_database_force_${timestamp}.db")
+                    
+                    // 先尝试关闭数据库连接
+                    try {
+                        // 使用反射获取Room数据库实例
+                        val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
+                        dbInstanceField.isAccessible = true
+                        val dbInstance = dbInstanceField.get(null) as? JournalDatabase
+                        
+                        // 如果数据库实例存在，尝试关闭它
+                        dbInstance?.close()
+                        Log.i("ForceExport", "已尝试关闭数据库实例")
+                    } catch (e: Exception) {
+                        Log.e("ForceExport", "关闭数据库实例时出错", e)
+                    }
+                    
+                    // 尝试使用不同的方法复制数据库
+                    var success = false
+                    
+                    // 方法1: 直接复制数据库文件，包含WAL
+                    try {
+                        val walFile = File("${dbFile.absolutePath}-wal")
+                        val shmFile = File("${dbFile.absolutePath}-shm")
+                        
+                        // 复制主数据库文件
+                        dbFile.copyTo(exportFile, overwrite = true)
+                        
+                        // 检查是否有WAL和SHM文件，如果有也复制它们
+                        if (walFile.exists()) {
+                            walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
+                        }
+                        
+                        if (shmFile.exists()) {
+                            shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
+                        }
+                        
+                        success = true
+                        Log.i("ForceExport", "成功复制数据库文件，包含WAL")
+                    } catch (e: Exception) {
+                        Log.e("ForceExport", "复制数据库文件失败", e)
+                    }
+                    
+                    // 如果成功，删除WAL和SHM文件
+                    if (success) {
+                        try {
+                            File("${exportFile.absolutePath}-wal").delete()
+                            File("${exportFile.absolutePath}-shm").delete()
+                        } catch (e: Exception) {
+                            Log.e("ForceExport", "删除WAL和SHM文件失败", e)
+                        }
+                        
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("数据库已强制导出到: ${exportFile.absolutePath}")
+                        }
+                        
+                        // 刷新本地文件列表
+                        refreshLocalFiles()
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            SnackBarUtils.showSnackBar("强制导出数据库失败")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                SnackBarUtils.showSnackBar("强制导出数据库失败: ${e.message}")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * 导出数据库到文件
+     * 使用强制导出方法，返回导出的文件
+     */
+    private suspend fun exportDatabaseToFile(): File? = withContext(Dispatchers.IO) {
+        try {
+            // 获取数据库文件路径
+            val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
+            
+            if (!dbFile.exists()) {
+                Log.e("DatabaseExport", "数据库文件不存在")
+                return@withContext null
+            }
+            
+            // 创建导出目录
+            val exportDir = File(
+                databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                "database_exports"
+            )
+            if (!exportDir.exists()) {
+                exportDir.mkdirs()
+            }
+            
+            // 创建带时间戳的文件名
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val exportFile = File(exportDir, "journal_database_upload_${timestamp}.db")
+            
+            // 先尝试关闭数据库连接
+            try {
+                // 使用反射获取Room数据库实例
+                val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
+                dbInstanceField.isAccessible = true
+                val dbInstance = dbInstanceField.get(null) as? JournalDatabase
+                
+                // 如果数据库实例存在，尝试关闭它
+                dbInstance?.close()
+            } catch (e: Exception) {
+                Log.e("DatabaseExport", "关闭数据库实例时出错", e)
+            }
+            
+            // 尝试复制数据库文件和WAL/SHM文件
+            var success = false
+            
+            try {
+                val walFile = File("${dbFile.absolutePath}-wal")
+                val shmFile = File("${dbFile.absolutePath}-shm")
+                
+                // 复制主数据库文件
+                dbFile.copyTo(exportFile, overwrite = true)
+                
+                // 检查是否有WAL和SHM文件，如果有也复制它们
+                if (walFile.exists()) {
+                    walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
+                }
+                
+                if (shmFile.exists()) {
+                    shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
+                }
+                
+                success = true
+                Log.i("DatabaseExport", "成功复制数据库文件，包含WAL")
+            } catch (e: Exception) {
+                Log.e("DatabaseExport", "复制数据库文件失败", e)
+                
+                // 如果直接复制失败，尝试使用原来的导出方法
+                try {
+                    val result = databaseManager.exportDatabase()
+                    if (result != null) {
+                        return@withContext result
+                    }
+                } catch (ex: Exception) {
+                    Log.e("DatabaseExport", "通过Manager导出数据库失败", ex)
+                }
+            }
+            
+            // 如果成功，删除WAL和SHM文件，并返回导出的文件
+            if (success) {
+                try {
+                    File("${exportFile.absolutePath}-wal").delete()
+                    File("${exportFile.absolutePath}-shm").delete()
+                } catch (e: Exception) {
+                    Log.e("DatabaseExport", "删除WAL和SHM文件失败", e)
+                }
+                
+                return@withContext exportFile
+            }
+            
+            return@withContext null
+        } catch (e: Exception) {
+            Log.e("DatabaseExport", "导出数据库到文件失败", e)
+            return@withContext null
         }
     }
 } 

@@ -21,8 +21,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -137,6 +139,34 @@ fun DatabaseManagementScreen(
                     enabled = !isLoading
                 ) {
                     Text("刷新列表")
+                }
+            }
+
+            // 添加诊断按钮
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = { viewModel.forceExportDatabase() },
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("强制导出数据库")
+                }
+                
+                Button(
+                    onClick = { viewModel.diagnoseDatabaseExport() },
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary
+                    )
+                ) {
+                    Text("诊断导出问题")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Filled.BugReport, contentDescription = "诊断")
                 }
             }
 

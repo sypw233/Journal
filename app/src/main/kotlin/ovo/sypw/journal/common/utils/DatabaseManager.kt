@@ -63,13 +63,29 @@ class DatabaseManager @Inject constructor(
         try {
             Log.d(TAG, "开始导出数据库")
             
+            // 首先使用调试工具检查环境
+            val envCheckResult = DatabaseExportDebugger.checkExportEnvironment(context, DB_NAME)
+            Log.d(TAG, "环境检查结果: $envCheckResult")
+            
+            // 如果环境检查结果不正常，进行文件写入测试
+            if (envCheckResult != "正常") {
+                val writeTestResult = DatabaseExportDebugger.testFileWrite(context)
+                Log.d(TAG, "文件写入测试结果: $writeTestResult")
+            }
+            
             // 创建导出目录（应用专属外部存储）
             val exportDir = File(
                 context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
                 "database_exports"
             )
             if (!exportDir.exists()) {
-                exportDir.mkdirs()
+                val created = exportDir.mkdirs()
+                Log.d(TAG, "创建导出目录: $created")
+                
+                if (!created) {
+                    Log.e(TAG, "无法创建导出目录: ${exportDir.absolutePath}")
+                    return@withContext null
+                }
             }
 
             // 创建带时间戳的文件名
@@ -86,6 +102,14 @@ class DatabaseManager @Inject constructor(
                 Log.e(TAG, "数据库文件不存在")
                 return@withContext null
             }
+            
+            // 记录更多关于数据库文件的信息
+            Log.d(TAG, "数据库文件大小: ${dbFile.length() / 1024} KB")
+            Log.d(TAG, "数据库文件可读: ${dbFile.canRead()}")
+            
+            // 记录导出目录信息
+            Log.d(TAG, "导出目录可写: ${exportDir.canWrite()}")
+            Log.d(TAG, "导出目录可读: ${exportDir.canRead()}")
             
             // 注意：我们不再关闭数据库连接，以避免干扰Room的运行
             // 而是采用安全的数据库文件复制方式
@@ -104,17 +128,42 @@ class DatabaseManager @Inject constructor(
                 var success = false
                 
                 try {
+                    Log.d(TAG, "开始使用文件流复制数据库 ${dbFile.absolutePath} -> ${tempDbFile.absolutePath}")
+                    
                     FileInputStream(dbFile).use { input ->
+                        if (input == null) {
+                            Log.e(TAG, "无法创建数据库文件的输入流")
+                            return@withContext null
+                        }
+                        
                         FileOutputStream(tempDbFile).use { output ->
+                            if (output == null) {
+                                Log.e(TAG, "无法创建临时文件的输出流")
+                                return@withContext null
+                            }
+                            
                             val buffer = ByteArray(1024)
                             var length: Int
-                            while (input.read(buffer).also { length = it } > 0) {
-                                output.write(buffer, 0, length)
+                            var totalBytesRead = 0L
+                            
+                            try {
+                                while (input.read(buffer).also { length = it } > 0) {
+                                    output.write(buffer, 0, length)
+                                    totalBytesRead += length
+                                }
+                                Log.d(TAG, "数据库文件复制完成，共复制 $totalBytesRead 字节")
+                                success = true
+                            } catch (e: Exception) {
+                                Log.e(TAG, "复制数据库文件时读写错误", e)
                             }
                         }
                     }
-                    success = true
-                    Log.d(TAG, "成功复制数据库文件到临时位置")
+                    
+                    if (success) {
+                        Log.d(TAG, "成功复制数据库文件到临时位置")
+                    } else {
+                        Log.e(TAG, "复制数据库文件到临时位置失败")
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "复制数据库文件到临时位置失败", e)
                 }
@@ -122,6 +171,7 @@ class DatabaseManager @Inject constructor(
                 if (!success) {
                     // 如果文件流复制失败，尝试使用标准复制方法
                     try {
+                        Log.d(TAG, "尝试使用标准方法复制数据库文件")
                         dbFile.copyTo(tempDbFile, overwrite = true)
                         success = true
                         Log.d(TAG, "使用标准方法成功复制数据库文件到临时位置")
@@ -132,10 +182,18 @@ class DatabaseManager @Inject constructor(
                 
                 if (success) {
                     // 将临时文件复制到最终位置
-                    tempDbFile.copyTo(exportFile, overwrite = true)
+                    try {
+                        Log.d(TAG, "开始将临时文件复制到最终位置 ${tempDbFile.absolutePath} -> ${exportFile.absolutePath}")
+                        tempDbFile.copyTo(exportFile, overwrite = true)
+                        Log.d(TAG, "成功将临时文件复制到最终位置")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "将临时文件复制到最终位置失败", e)
+                        return@withContext null
+                    }
                     
                     // 验证导出的数据库（只读模式打开，不影响原数据库）
                     try {
+                        Log.d(TAG, "开始验证导出的数据库")
                         val isValid = verifyExportedDatabase(exportFile)
                         
                         if (isValid) {
@@ -151,7 +209,10 @@ class DatabaseManager @Inject constructor(
                             }
                             
                             // 清理临时文件
-                            tempDbFile.delete()
+                            if (tempDbFile.exists()) {
+                                val deleted = tempDbFile.delete()
+                                Log.d(TAG, "清理临时文件: $deleted")
+                            }
                             
                             return@withContext exportFile
                         } else {
@@ -160,14 +221,57 @@ class DatabaseManager @Inject constructor(
                     } catch (e: Exception) {
                         Log.e(TAG, "验证导出的数据库时出错", e)
                     }
+                } else {
+                    Log.e(TAG, "复制数据库文件失败，无法继续导出过程")
                 }
                 
                 // 清理临时文件
                 if (tempDbFile.exists()) {
-                    tempDbFile.delete()
+                    val deleted = tempDbFile.delete()
+                    Log.d(TAG, "清理临时文件: $deleted")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "导出数据库过程中出现异常", e)
+            }
+            
+            // 如果以上方法都失败，尝试使用替代导出方法
+            Log.d(TAG, "标准导出方法失败，尝试使用替代方法")
+            val alternativeSuccess = tryAlternativeExport(dbFile, exportFile)
+            
+            if (alternativeSuccess) {
+                Log.d(TAG, "使用替代方法成功导出数据库")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "数据库已导出到: ${exportFile.absolutePath}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@withContext exportFile
+            }
+            
+            // 如果以上方法都失败，尝试直接使用SAF框架导出
+            try {
+                Log.d(TAG, "尝试使用SAF框架导出数据库")
+                val outputStream = FileOutputStream(exportFile)
+                val inputStream = FileInputStream(dbFile)
+                
+                inputStream.use { input ->
+                    outputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                // 验证导出的数据库
+                val isValid = verifyExportedDatabase(exportFile)
+                if (isValid) {
+                    Log.d(TAG, "使用SAF框架成功导出数据库")
+                    return@withContext exportFile
+                } else {
+                    Log.e(TAG, "使用SAF框架导出的数据库验证失败")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "使用SAF框架导出数据库失败", e)
             }
             
             // 如果以上方法都失败，返回null
@@ -189,17 +293,98 @@ class DatabaseManager @Inject constructor(
      */
     private fun verifyExportedDatabase(dbFile: File): Boolean {
         try {
+            Log.d(TAG, "开始验证导出数据库: ${dbFile.absolutePath}, 文件大小: ${dbFile.length() / 1024} KB")
+            
             val db = SQLiteDatabase.openDatabase(
                 dbFile.absolutePath, 
                 null, 
                 SQLiteDatabase.OPEN_READONLY
             )
             
+            // 记录数据库文件结构信息
+            val tables = mutableListOf<String>()
+            val cursor = db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'android_%' AND name NOT LIKE 'room_%'",
+                null
+            )
+            
+            Log.d(TAG, "数据库表结构:")
+            while (cursor.moveToNext()) {
+                val tableName = cursor.getString(0)
+                tables.add(tableName)
+                Log.d(TAG, "表: $tableName")
+                
+                // 获取表结构
+                try {
+                    val tableInfoCursor = db.rawQuery("PRAGMA table_info($tableName)", null)
+                    val columns = mutableListOf<String>()
+                    while (tableInfoCursor.moveToNext()) {
+                        val columnName = tableInfoCursor.getString(1)
+                        val columnType = tableInfoCursor.getString(2)
+                        columns.add("$columnName ($columnType)")
+                    }
+                    tableInfoCursor.close()
+                    Log.d(TAG, "表 $tableName 结构: ${columns.joinToString(", ")}")
+                    
+                    // 取样检查表中的数据
+                    try {
+                        val sampleCursor = db.rawQuery("SELECT COUNT(*) FROM $tableName", null)
+                        if (sampleCursor.moveToFirst()) {
+                            val count = sampleCursor.getInt(0)
+                            Log.d(TAG, "表 $tableName 中的记录数: $count")
+                            
+                            // 如果表有数据，取出几条记录做样本
+                            if (count > 0) {
+                                val dataSampleCursor = db.rawQuery("SELECT * FROM $tableName LIMIT 2", null)
+                                if (dataSampleCursor.moveToFirst()) {
+                                    val columnCount = dataSampleCursor.columnCount
+                                    Log.d(TAG, "表 $tableName 样本数据 (前2条):")
+                                    do {
+                                        val rowData = StringBuilder()
+                                        for (i in 0 until columnCount) {
+                                            rowData.append("${dataSampleCursor.getColumnName(i)}: ")
+                                            try {
+                                                val value = dataSampleCursor.getString(i)
+                                                rowData.append(if (value != null) {
+                                                    if (value.length > 50) value.substring(0, 50) + "..." else value
+                                                } else "null")
+                                            } catch (e: Exception) {
+                                                rowData.append("(无法读取)")
+                                            }
+                                            if (i < columnCount - 1) rowData.append(", ")
+                                        }
+                                        Log.d(TAG, "行数据: $rowData")
+                                    } while (dataSampleCursor.moveToNext())
+                                }
+                                dataSampleCursor.close()
+                            }
+                        }
+                        sampleCursor.close()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "读取表 $tableName 数据时出错", e)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "获取表 $tableName 结构时出错", e)
+                }
+            }
+            cursor.close()
+            
+            if (tables.isEmpty()) {
+                Log.e(TAG, "导出的数据库没有用户表")
+            }
+            
             // 计算记录总数
             val count = countRecords(db)
             db.close()
             
             Log.d(TAG, "导出的数据库共有 $count 条记录")
+            
+            // 验证文件大小是否正常
+            val expectedMinSize = 10 * 1024 // 预期最小10KB
+            if (dbFile.length() < expectedMinSize && count > 10) {
+                Log.w(TAG, "警告: 数据库文件大小(${dbFile.length() / 1024}KB)小于预期(${expectedMinSize / 1024}KB)，但包含 $count 条记录")
+            }
+            
             return count > 0
         } catch (e: Exception) {
             Log.e(TAG, "验证导出的数据库失败", e)
@@ -647,6 +832,183 @@ class DatabaseManager @Inject constructor(
         
         // 默认目录
         return "/databases"
+    }
+
+    /**
+     * 获取上下文
+     */
+    fun getContext(): Context {
+        return context
+    }
+
+    /**
+     * 尝试使用替代方法导出数据库
+     * 这个方法尝试检测WAL模式并处理可能的文件锁定问题
+     */
+    private suspend fun tryAlternativeExport(dbFile: File, exportFile: File): Boolean = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "尝试使用替代方法导出数据库")
+            
+            // 检查是否存在 WAL 和 SHM 文件
+            val walFile = File("${dbFile.absolutePath}-wal")
+            val shmFile = File("${dbFile.absolutePath}-shm")
+            
+            val hasWalFile = walFile.exists()
+            val hasShmFile = shmFile.exists()
+            
+            Log.d(TAG, "WAL文件存在: $hasWalFile, 大小: ${if (hasWalFile) walFile.length() / 1024 else 0} KB")
+            Log.d(TAG, "SHM文件存在: $hasShmFile, 大小: ${if (hasShmFile) shmFile.length() / 1024 else 0} KB")
+            
+            // 方法1: 使用系统方法直接复制数据库（不处理WAL）
+            var success = false
+            
+            try {
+                dbFile.copyTo(exportFile, overwrite = true)
+                
+                // 如果有WAL文件，也复制它们
+                if (hasWalFile) {
+                    val exportWalFile = File("${exportFile.absolutePath}-wal")
+                    walFile.copyTo(exportWalFile, overwrite = true)
+                }
+                
+                if (hasShmFile) {
+                    val exportShmFile = File("${exportFile.absolutePath}-shm")
+                    shmFile.copyTo(exportShmFile, overwrite = true)
+                }
+                
+                // 验证导出的数据库
+                success = verifyExportedDatabase(exportFile)
+                
+                // 如果验证成功，删除可能复制的WAL和SHM文件
+                if (success) {
+                    File("${exportFile.absolutePath}-wal").delete()
+                    File("${exportFile.absolutePath}-shm").delete()
+                    Log.d(TAG, "使用系统方法成功导出数据库")
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "使用系统方法导出数据库失败", e)
+            }
+            
+            // 方法2: 尝试打开数据库并强制写入变更以合并WAL
+            try {
+                Log.d(TAG, "尝试强制合并WAL文件")
+                
+                val db = SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READWRITE
+                )
+                
+                // 执行一个简单的查询强制合并WAL
+                db.rawQuery("SELECT count(*) FROM sqlite_master", null).close()
+                
+                // 执行VACUUM操作清理数据库
+                db.execSQL("VACUUM")
+                
+                // 关闭数据库
+                db.close()
+                
+                // 再次尝试复制
+                dbFile.copyTo(exportFile, overwrite = true)
+                
+                // 验证导出的数据库
+                success = verifyExportedDatabase(exportFile)
+                
+                if (success) {
+                    Log.d(TAG, "合并WAL后成功导出数据库")
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "合并WAL导出数据库失败", e)
+            }
+            
+            // 方法3: 尝试使用数据库备份API (Android 4.4+)
+            try {
+                Log.d(TAG, "尝试使用数据库备份API")
+                
+                val db = SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READWRITE
+                )
+                
+                db.enableWriteAheadLogging()
+                
+                // 备份数据库
+                db.beginTransaction()
+                try {
+                    // 使用标准的 Java IO
+                    FileOutputStream(exportFile).use { output ->
+                        FileInputStream(dbFile).use { input ->
+                            input.channel.transferTo(0, input.channel.size(), output.channel)
+                        }
+                    }
+                    
+                    db.setTransactionSuccessful()
+                } finally {
+                    db.endTransaction()
+                }
+                
+                db.close()
+                
+                // 验证导出的数据库
+                success = verifyExportedDatabase(exportFile)
+                
+                if (success) {
+                    Log.d(TAG, "使用数据库备份API成功导出数据库")
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "使用数据库备份API导出数据库失败", e)
+            }
+            
+            // 方法4: 作为最后手段，尝试使用runtime执行sqlite3命令导出
+            try {
+                Log.d(TAG, "尝试使用sqlite3命令导出数据库")
+                
+                // 检查是否有sqlite3可执行文件
+                val process = Runtime.getRuntime().exec("which sqlite3")
+                val scanner = java.util.Scanner(process.inputStream).useDelimiter("\\A")
+                val sqlitePath = if (scanner.hasNext()) scanner.next().trim() else ""
+                
+                if (sqlitePath.isNotEmpty()) {
+                    // 创建一个导出SQL的临时文件
+                    val sqlFile = File(exportFile.parent, "temp_export.sql")
+                    
+                    // 使用sqlite3导出数据库为SQL
+                    val exportCmd = "$sqlitePath ${dbFile.absolutePath} .dump > ${sqlFile.absolutePath}"
+                    val exportProcess = Runtime.getRuntime().exec(exportCmd)
+                    exportProcess.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)
+                    
+                    // 然后用sqlite3导入SQL到新数据库
+                    val importCmd = "$sqlitePath ${exportFile.absolutePath} < ${sqlFile.absolutePath}"
+                    val importProcess = Runtime.getRuntime().exec(importCmd)
+                    importProcess.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)
+                    
+                    // 删除临时SQL文件
+                    sqlFile.delete()
+                    
+                    // 验证导出的数据库
+                    success = verifyExportedDatabase(exportFile)
+                    
+                    if (success) {
+                        Log.d(TAG, "使用sqlite3命令成功导出数据库")
+                        return@withContext true
+                    }
+                } else {
+                    Log.d(TAG, "未找到sqlite3命令行工具")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "使用sqlite3命令导出数据库失败", e)
+            }
+            
+            Log.d(TAG, "所有替代方法均失败")
+            return@withContext false
+        } catch (e: Exception) {
+            Log.e(TAG, "替代导出方法出错", e)
+            return@withContext false
+        }
     }
 } 
 
