@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -70,9 +71,10 @@ private const val TAG = "MainScreen"
 @Composable
 fun MainScreen(
     viewModel: MainViewModel, 
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
-    autoSyncManager: AutoSyncManager? = null
+    autoSyncManager: AutoSyncManager? = null,
+    navController: androidx.navigation.NavController? = null
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -138,7 +140,8 @@ fun MainScreen(
                 listState = listState,
                 snackbarHostState = snackbarHostState,
                 coroutineScope = coroutineScope,
-                onShowLoginDialog = { showLoginDialog = true }
+                onShowLoginDialog = { showLoginDialog = true },
+                navController = navController
             )
         }
     }
@@ -156,7 +159,8 @@ private fun MainScreenContent(
     listState: LazyListState,
     snackbarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope,
-    onShowLoginDialog: () -> Unit
+    onShowLoginDialog: () -> Unit,
+    navController: androidx.navigation.NavController? = null
 ) {
     // 获取JournalListViewModel的状态
     val journalListViewModel = viewModel.journalListViewModel
@@ -227,6 +231,10 @@ private fun MainScreenContent(
                         journalListViewModel.resetSearchMode()
                     }
                 },
+                onOpenSettings = {
+                    // 导航到设置界面
+                    navController?.navigate("settings")
+                },
                 searchButtonAlpha = alphaAnimation.value,
                 onSearchButtonPosition = { coordinates ->
                     searchButtonPositionRef.value = coordinates
@@ -256,7 +264,7 @@ private fun MainScreenContent(
         snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         // 用于检测点击搜索区域外的部分
-        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val interactionSource = remember { MutableInteractionSource() }
         
         Box(
             modifier = Modifier

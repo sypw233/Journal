@@ -8,13 +8,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.theme.JournalTheme
 import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.data.remote.api.AuthService
 import ovo.sypw.journal.presentation.screens.MainScreen
+import ovo.sypw.journal.presentation.screens.SettingsScreen
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import ovo.sypw.journal.presentation.viewmodels.MainViewModel
 import javax.inject.Inject
@@ -65,8 +71,10 @@ class MainActivity : ComponentActivity() {
         // GetLocation已在Application中初始化
         setContent {
             JournalTheme {
-                // 传递ViewModel和AuthService到MainScreen
-                MainScreen(
+                // 使用Navigation组件
+                val navController = rememberNavController()
+                AppNavHost(
+                    navController = navController,
                     viewModel = viewModel,
                     databaseManagementViewModel = databaseManagementViewModel,
                     autoSyncManager = autoSyncManager
@@ -104,6 +112,42 @@ class MainActivity : ComponentActivity() {
      */
     private fun stopTokenCheck() {
         handler.removeCallbacks(tokenCheckRunnable)
+    }
+}
+
+/**
+ * 应用导航宿主
+ * 定义应用的导航图
+ */
+@Composable
+fun AppNavHost(
+    navController: NavHostController,
+    viewModel: MainViewModel,
+    databaseManagementViewModel: DatabaseManagementViewModel,
+    autoSyncManager: AutoSyncManager
+) {
+    NavHost(
+        navController = navController,
+        startDestination = "main"
+    ) {
+        // 主界面路由
+        composable("main") {
+            MainScreen(
+                viewModel = viewModel,
+                databaseManagementViewModel = databaseManagementViewModel,
+                autoSyncManager = autoSyncManager,
+                navController = navController
+            )
+        }
+        
+        // 设置界面路由
+        composable("settings") {
+            SettingsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 

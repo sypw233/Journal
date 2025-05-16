@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.utils.SnackBarUtils
@@ -61,7 +62,7 @@ import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
  */
 @Composable
 fun LoginDialog(
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
     onDismiss: () -> Unit
 ) {
     var isLogin by remember { mutableStateOf(true) }

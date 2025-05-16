@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -80,13 +82,14 @@ fun TopBarView(
     scope: CoroutineScope,
     scrollBehavior: TopAppBarScrollBehavior,
     markedSet: Set<Any?>,
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
     journalListViewModel: JournalListViewModel = viewModel(),
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
     autoSyncManager: AutoSyncManager? = null,
     onShowLoginDialog: () -> Unit,
     onAddJournalClick: () -> Unit,
     onSearchClick: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     searchButtonAlpha: Float = 1f,
     onSearchButtonPosition: ((androidx.compose.ui.layout.LayoutCoordinates) -> Unit)? = null
 ) {
@@ -153,7 +156,8 @@ fun TopBarView(
                         val intent = Intent(context, TestActivity::class.java)
                         forActivityResult.launch(intent)
 //                        SnackBarUtils.showSnackBar("Turn to TestActivity")
-                    }
+                    },
+                    onOpenSettings = onOpenSettings
                 )
             }
         },
@@ -165,7 +169,8 @@ fun TopBarView(
 fun CustomDropdownMenu(
     authViewModel: AuthViewModel,
     onShowLoginDialog: () -> Unit,
-    onOpenTestActivity: () -> Unit
+    onOpenTestActivity: () -> Unit,
+    onOpenSettings: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
@@ -175,11 +180,13 @@ fun CustomDropdownMenu(
 
     // 检查用户是否已登录
     val isLoggedIn = authState is AuthState.Authenticated
-    val username = if (isLoggedIn) {
-        (authState as AuthState.Authenticated).user.username
+    val user = if (isLoggedIn) {
+        (authState as AuthState.Authenticated).user
     } else {
-        "未登录"
+        null
     }
+    
+    val username = user?.username ?: "未登录"
 
     // 显示用户详情对话框
     if (showUserDetailDialog && isLoggedIn) {
@@ -190,29 +197,42 @@ fun CustomDropdownMenu(
     }
 
     Box {
-        IconButton(onClick = { expanded = !expanded }) {
-            Icon(Icons.Default.MoreVert, contentDescription = "更多选项")
+        // 更多选项按钮
+        IconButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier
+                .size(48.dp)
+                .padding(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert, 
+                contentDescription = "更多选项",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .width(280.dp)
         ) {
-            // 用户信息项 - 使用自定义布局而不是标准的DropdownMenuItem
+            // 用户信息卡片
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                shape = MaterialTheme.shapes.medium
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+//                colors = CardDefaults.cardColors(
+//                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+//                ),
+                shape = MaterialTheme.shapes.large,
+//                elevation = CardDefaults.cardElevation(
+//                    defaultElevation = 2.dp
+//                )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .clip(MaterialTheme.shapes.medium)
                         .clickable {
                             expanded = false
                             if (isLoggedIn) {
@@ -222,89 +242,144 @@ fun CustomDropdownMenu(
                                 // 未登录状态，显示登录对话框
                                 onShowLoginDialog()
                             }
-                        },
+                        }
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 用户头像
-                    if (isLoggedIn) {
-                        // 已登录状态显示头像
-                        Surface(
-                            modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = username.first().toString(),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                        }
-                    } else {
-                        // 未登录状态显示默认图标
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)),
-                            contentAlignment = Alignment.Center
-                        ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isLoggedIn) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoggedIn) {
+                            // 已登录状态显示用户名首字母
+                            Text(
+                                text = username.first().toString(),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        } else {
+                            // 未登录状态显示默认图标
                             Icon(
                                 imageVector = Icons.Outlined.Person,
                                 contentDescription = "默认头像",
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(28.dp),
                                 tint = MaterialTheme.colorScheme.onSecondary
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    // 用户名和状态信息
-                    Column {
+                    // 用户信息
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             text = username,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-
+                        
+                        if (isLoggedIn && !user?.email.isNullOrEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = user?.email ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "点击登录账号",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
+
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
             Spacer(modifier = Modifier.height(4.dp))
 
-            // 设置选项
+            // 菜单项 - 设置
             DropdownMenuItem(
-                text = { Text("设置") },
-                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                text = { 
+                    Text(
+                        "设置",
+                        style = MaterialTheme.typography.bodyMedium
+                    ) 
+                },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Outlined.Settings, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    ) 
+                },
                 onClick = {
                     expanded = false
-                    /* 打开设置页面 */
-                }
+                    onOpenSettings()
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
 
-            // 关于选项
+            // 菜单项 - 关于
             DropdownMenuItem(
-                text = { Text("关于") },
-                leadingIcon = { Icon(Icons.Outlined.Info, contentDescription = null) },
+                text = { 
+                    Text(
+                        "关于",
+                        style = MaterialTheme.typography.bodyMedium
+                    ) 
+                },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Outlined.Info, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    ) 
+                },
                 onClick = {
                     expanded = false
                     /* 打开关于页面 */
-                }
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
 
-            // 测试页面选项
+            // 菜单项 - 测试页面
             DropdownMenuItem(
-                text = { Text("测试页面") },
-                leadingIcon = { Icon(Icons.Outlined.AssistWalker, contentDescription = null) },
+                text = { 
+                    Text(
+                        "测试页面",
+                        style = MaterialTheme.typography.bodyMedium
+                    ) 
+                },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Outlined.AssistWalker, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    ) 
+                },
                 onClick = {
                     expanded = false
                     onOpenTestActivity()
-                }
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
     }
