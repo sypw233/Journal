@@ -54,7 +54,6 @@ import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.common.utils.TopSnackbarHost
 import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.data.model.JournalData
-import ovo.sypw.journal.presentation.components.BottomSheetContent
 import ovo.sypw.journal.presentation.components.CustomLazyCardList
 import ovo.sypw.journal.presentation.components.JournalBottomSheet
 import ovo.sypw.journal.presentation.components.LoginDialog

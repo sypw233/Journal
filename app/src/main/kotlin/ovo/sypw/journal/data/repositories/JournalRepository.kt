@@ -50,10 +50,6 @@ interface JournalRepository {
      */
     suspend fun deleteJournalById(id: Int)
 
-    /**
-     * 获取标记的日记条目
-     */
-    fun getMarkedJournals(): Flow<List<JournalData>>
 
     /**
      * 获取日记条目总数

@@ -11,7 +11,7 @@ import androidx.room.TypeConverters
  */
 @Database(
     entities = [JournalEntity::class],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(JournalConverters::class)

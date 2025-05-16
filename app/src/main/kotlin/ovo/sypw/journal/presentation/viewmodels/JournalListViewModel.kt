@@ -131,33 +131,7 @@ class JournalListViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 切换日记标记状态
-     */
-    fun toggleMarkJournal(id: Int) {
-        viewModelScope.launch {
-            try {
-                // 更新UI状态
-                _uiState.update { currentState ->
-                    val markedItems = if (currentState.markedItems.contains(id)) {
-                        currentState.markedItems - id
-                    } else {
-                        currentState.markedItems + id
-                    }
-                    currentState.copy(markedItems = markedItems)
-                }
 
-                // 获取当前日记并更新标记状态
-                val journal = repository.getJournalById(id) ?: return@launch
-                val isCurrentlyMarked = _uiState.value.markedItems.contains(id)
-                val updatedJournal = journal.copy(isMark = isCurrentlyMarked)
-                repository.updateJournal(updatedJournal)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error toggling mark", e)
-                SnackBarUtils.showSnackBar("标记失败: ${e.message}")
-            }
-        }
-    }
 
     /**
      * 设置滚动状态

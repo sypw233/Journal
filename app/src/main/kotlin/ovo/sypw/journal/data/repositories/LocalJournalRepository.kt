@@ -112,11 +112,7 @@ class LocalJournalRepository @Inject constructor(
         }
     }
 
-    override fun getMarkedJournals(): Flow<List<JournalData>> {
-        return journalDao.getMarkedJournals().map { entities ->
-            entities.map { it.toJournalData() }
-        }
-    }
+
 
     override suspend fun getJournalCount(): Int {
         return withContext(Dispatchers.IO) {

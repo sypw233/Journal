@@ -2,6 +2,7 @@ package ovo.sypw.journal.presentation.components
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -47,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -61,9 +63,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import dev.jeziellago.compose.markdowntext.MarkdownText
+import ovo.sypw.journal.R
 import ovo.sypw.journal.common.utils.AMapLocationUtils
 import ovo.sypw.journal.common.utils.PermissionUtils
 import ovo.sypw.journal.common.utils.RequestPermissions
@@ -88,6 +93,7 @@ fun JournalEditContent(
     onDateChanged: ((Date) -> Unit)? = null,
     onLocationChanged: ((String, LocationData?) -> Unit)? = null,
     onImagesChanged: ((MutableList<Any>) -> Unit)? = null,
+    onIsMarkdownChanged: ((Boolean) -> Unit)? = null,
     showSaveButton: Boolean = true
 ) {
     val context = LocalContext.current
@@ -97,6 +103,8 @@ fun JournalEditContent(
     var journalDate by remember { mutableStateOf(initialJournalData?.date ?: Date()) }
     var locationName by remember { mutableStateOf(initialJournalData?.location?.name ?: "") }
     var locationData by remember { mutableStateOf(initialJournalData?.location) }
+    var isMarkdown by remember { mutableStateOf(initialJournalData?.isMarkdown == true) }
+    var showMarkdownPreview by remember { mutableStateOf(false) }
     
     // 格式化日期显示
     val dateFormat = remember { SimpleDateFormat("yyyy年MM月dd日 EEEE", Locale.CHINESE) }
@@ -114,6 +122,7 @@ fun JournalEditContent(
         journalDate = initialJournalData?.date ?: Date()
         locationName = initialJournalData?.location?.name ?: ""
         locationData = initialJournalData?.location
+        isMarkdown = initialJournalData?.isMarkdown == true
         selectedImages.clear()
         initialJournalData?.images?.let { selectedImages.addAll(it) }
     }
@@ -133,6 +142,9 @@ fun JournalEditContent(
     
     LaunchedEffect(selectedImages.size) {
         onImagesChanged?.invoke(selectedImages.toMutableList())
+    }
+    LaunchedEffect(isMarkdown) {
+        onIsMarkdownChanged?.invoke(isMarkdown)
     }
     
     // 日期选择器状态
@@ -306,6 +318,25 @@ fun JournalEditContent(
             }
         )
 
+        // Markdown切换
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "使用Markdown格式",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = isMarkdown,
+                onCheckedChange = { isMarkdown = it
+                    Log.d("TAG", "JournalEditContent: $it")}
+            )
+        }
+
         // 文字内容
         OutlinedTextField(
             value = journalText,
@@ -318,6 +349,44 @@ fun JournalEditContent(
                 .padding(bottom = 16.dp),
             shape = RoundedCornerShape(12.dp)
         )
+        
+        // Markdown预览
+        AnimatedVisibility(
+            visible = isMarkdown && journalText.isNotEmpty() && showMarkdownPreview,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Markdown预览",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    MarkdownText(
+                        markdown = journalText,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        
+        // Markdown预览切换按钮
+        if (isMarkdown && journalText.isNotEmpty()) {
+            TextButton(
+                onClick = { showMarkdownPreview = !showMarkdownPreview },
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Text(if (showMarkdownPreview) "隐藏预览" else "显示预览")
+            }
+        }
 
         // 图片选择
         if (selectedImages.isEmpty()) {
@@ -427,12 +496,12 @@ fun JournalEditContent(
                     // 创建新的日记对象，保留原始ID
                     val newJournal = JournalData(
                         id = initialJournalData?.id ?: 0,
-                        isMark = initialJournalData?.isMark,
                         date = journalDate,
                         text = journalText,
                         images = selectedImages.toMutableList(),
                         location = locationData
-                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
+                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null),
+                        isMarkdown = isMarkdown
                     )
                     onSave(newJournal)
                     SnackBarUtils.showSnackBar("日记已保存")

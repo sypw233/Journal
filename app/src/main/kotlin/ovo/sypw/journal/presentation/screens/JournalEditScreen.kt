@@ -69,7 +69,7 @@ fun JournalEditScreen(
             // 构建更新后的日记数据
             val updatedJournal = JournalData(
                 id = journalData.id,
-                isMark = journalData.isMark,
+                isMarkdown = journalData.isMarkdown,
                 date = editedDate,
                 text = editedText,
                 images = editedImages,

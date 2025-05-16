@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import ovo.sypw.journal.R
 import ovo.sypw.journal.common.utils.ImageLoadUtils
 import ovo.sypw.journal.data.model.JournalData
@@ -340,23 +341,36 @@ fun ContentSection(
     date: Date?,
     expanded: Boolean,
 //    onExpandClick: () -> Unit,
-    textLayoutResult: MutableState<TextLayoutResult?>
+    textLayoutResult: MutableState<TextLayoutResult?>,
+    isMarkdown: Boolean = false
 ) {
     Column(
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
         if (text != null) {
             val textStyle = MaterialTheme.typography.bodyMedium
-            Text(
-                text = text,
-                style = textStyle,
-                maxLines = if (expanded) Int.MAX_VALUE else 6,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(16.dp),
+            
+            if (isMarkdown) {
+                // 使用Markdown显示
+                MarkdownText(
+                    markdown = text,
+                    maxLines = if (expanded) Int.MAX_VALUE else 6,
+                    modifier = Modifier.padding(16.dp),
+                    style = textStyle,
+                )
+            } else {
+                // 普通文本显示
+                Text(
+                    text = text,
+                    style = textStyle,
+                    maxLines = if (expanded) Int.MAX_VALUE else 6,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(16.dp),
 //                    .clickable(onClick = onExpandClick),
-                onTextLayout = { textLayoutResult.value = it }
-            )
+                    onTextLayout = { textLayoutResult.value = it }
+                )
+            }
         }
 
         if (location != null) {
@@ -414,7 +428,8 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
                 date = journalData.date,
                 expanded = expanded,
 //                onExpandClick = { setExpanded(!expanded) },
-                textLayoutResult = textLayoutResult
+                textLayoutResult = textLayoutResult,
+                isMarkdown = journalData.isMarkdown
             )
         }
     }

@@ -1,6 +1,6 @@
 package ovo.sypw.journal.presentation.components
 
-import androidx.compose.foundation.background
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,7 +29,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,7 +53,7 @@ fun JournalBottomSheet(
 ) {
     // 如果不可见，则不渲染内容
     if (!isVisible) return
-    
+
     // 创建底部表单状态
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
@@ -70,47 +66,47 @@ fun JournalBottomSheet(
         }
     )
     val coroutineScope = rememberCoroutineScope()
-    
+
     // 创建可变状态来存储编辑中的数据
     var editedText by remember { mutableStateOf(initialJournalData?.text ?: "") }
     var editedDate by remember { mutableStateOf(initialJournalData?.date ?: Date()) }
     var editedLocationName by remember { mutableStateOf(initialJournalData?.location?.name ?: "") }
     var editedLocationData by remember { mutableStateOf(initialJournalData?.location) }
     var editedImages by remember { mutableStateOf(initialJournalData?.images ?: mutableListOf()) }
-    
+    var editedIsMarkdown by remember {  mutableStateOf(initialJournalData?.isMarkdown == true)}
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
-    
+
     // 判断是新建还是编辑模式
     val isEditMode = initialJournalData != null
     val titleText = if (isEditMode) "编辑日记" else "新建日记"
-    
+
     // 如果保存成功，关闭底部表单
     LaunchedEffect(isSaving) {
         if (isSaving) {
             // 构建更新后的日记数据
             val updatedJournal = JournalData(
                 id = initialJournalData?.id ?: 0, // 新建时ID为0，编辑时保留原ID
-                isMark = initialJournalData?.isMark == true,
+                isMarkdown = editedIsMarkdown,
                 date = editedDate,
                 text = editedText,
                 images = editedImages,
                 location = editedLocationData
                     ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
             )
-            
+
             // 保存更新后的日记
             onSave(updatedJournal)
             SnackBarUtils.showSnackBar("日记已保存")
             isSaving = false
-            
+
             // 隐藏底部表单
             coroutineScope.launch {
                 sheetState.hide()
             }
         }
     }
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -135,9 +131,9 @@ fun JournalBottomSheet(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     // 标题
                     Text(
                         text = titleText,
@@ -149,21 +145,10 @@ fun JournalBottomSheet(
                             .padding(start = 4.dp),
                         textAlign = TextAlign.Center
                     )
-                    
+
                     // 保存按钮
                     IconButton(
                         onClick = {
-                            // 构建更新后的日记数据
-                            JournalData(
-                                id = initialJournalData?.id ?: 0,
-                                isMark = initialJournalData?.isMark == true,
-                                date = editedDate,
-                                text = editedText,
-                                images = editedImages,
-                                location = editedLocationData
-                                    ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
-                            )
-                            
                             // 触发保存
                             isSaving = true
                         },
@@ -190,13 +175,14 @@ fun JournalBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     initialJournalData = initialJournalData,
                     onSave = { updatedJournal ->
+                        Log.d("TAG", "JournalBottomSheet: $updatedJournal")
                         // 更新本地状态
                         editedText = updatedJournal.text ?: ""
                         editedDate = updatedJournal.date ?: Date()
                         editedLocationName = updatedJournal.location?.name ?: ""
                         editedLocationData = updatedJournal.location
                         editedImages = updatedJournal.images ?: mutableListOf()
-                        
+                        editedIsMarkdown = updatedJournal.isMarkdown == true
                         // 触发保存
                         isSaving = true
                     },
@@ -206,6 +192,7 @@ fun JournalBottomSheet(
                         editedLocationName = name
                         editedLocationData = data
                     },
+                    onIsMarkdownChanged = {editedIsMarkdown = it},
                     onImagesChanged = { editedImages = it },
                     showSaveButton = false // 不显示保存按钮，因为已经在顶部有保存按钮了
                 )

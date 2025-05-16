@@ -87,14 +87,7 @@ class JournalRepository(private val journalDao: JournalDao) {
         }
     }
 
-    /**
-     * 获取标记的日记条目
-     */
-    fun getMarkedJournals(): Flow<List<JournalData>> {
-        return journalDao.getMarkedJournals().map { entities ->
-            entities.map { it.toJournalData() }
-        }
-    }
+
 
     /**
      * 获取日记条目总数

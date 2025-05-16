@@ -17,30 +17,79 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
+        
+        // 限制语言资源，仅保留中文和英文
+//        androidResources {
+//            localeFilters += listOf("zh", "en")
+//        }
+        
+        // 启用R8优化
+//        proguardFiles(
+//            getDefaultProguardFile("proguard-android-optimize.txt"),
+//            "proguard-rules.pro"
+//        )
     }
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+//            isShrinkResources = true
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro"
+//            )
+        }
+        debug {
+            // Debug模式下不启用minify，避免编译警告并加快构建速度
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+//            isShrinkResources = true
         }
     }
+    
+    // 启用拆分APK，根据ABI进行优化
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = false
+        }
+    }
+    
+    // 配置bundled - 推荐的现代方式替代splits.density
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+    
+    // 配置构建特性
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
         jvmTarget = "21"
-    }
-    buildFeatures {
-        compose = true
+        // 优化Kotlin编译，移除不支持的标志
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xcontext-receivers"
+        )
     }
     buildToolsVersion = "35.0.1"
 }
+
 dependencies {
     implementation(fileTree(baseDir = "libs"))
     implementation(libs.androidx.core.ktx)

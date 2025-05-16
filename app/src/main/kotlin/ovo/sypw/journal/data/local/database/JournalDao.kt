@@ -61,11 +61,7 @@ interface JournalDao {
     @Query("DELETE FROM journals WHERE id = :id")
     suspend fun deleteJournalById(id: Int): Int
 
-    /**
-     * 获取标记的日记条目
-     */
-    @Query("SELECT * FROM journals WHERE isMark = 1 ORDER BY date DESC")
-    fun getMarkedJournals(): Flow<List<JournalEntity>>
+
 
     /**
      * 获取日记条目总数

@@ -16,14 +16,15 @@ import java.util.Date
 data class JournalEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val isMark: Boolean = false,
     val date: Date = Date(),
     val text: String? = null,
     val locationName: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     // 图片列表以JSON字符串形式存储
-    val imagesJson: String? = null
+    val imagesJson: String? = null,
+    // 是否使用Markdown格式
+    val isMarkdown: Boolean = false
 ) {
     /**
      * 转换为JournalData模型
@@ -49,11 +50,11 @@ data class JournalEntity(
 
         return JournalData(
             id = id,
-            isMark = isMark,
             date = date,
             text = text,
             location = location,
-            images = images as MutableList<Any>?
+            images = images as MutableList<Any>?,
+            isMarkdown = isMarkdown
         )
     }
 
@@ -64,7 +65,6 @@ data class JournalEntity(
         fun fromJournalData(journalData: JournalData): JournalEntity {
             return JournalEntity(
                 id = journalData.id,
-                isMark = journalData.isMark == true,
                 date = journalData.date ?: Date(),
                 text = journalData.text,
                 locationName = journalData.location?.name,
@@ -76,7 +76,8 @@ data class JournalEntity(
                         is Int -> image.toString()
                         else -> image.toString()
                     }
-                }
+                },
+                isMarkdown = journalData.isMarkdown
             )
         }
     }
