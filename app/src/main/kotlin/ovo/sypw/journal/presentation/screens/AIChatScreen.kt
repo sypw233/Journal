@@ -86,7 +86,7 @@ fun AIChatScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
     viewModel: AIChatViewModel
 ) {
-    val context = LocalContext.current
+    LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     // 从ViewModel获取状态

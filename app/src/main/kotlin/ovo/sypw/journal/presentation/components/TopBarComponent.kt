@@ -79,15 +79,10 @@ import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarView(
-    scope: CoroutineScope,
     scrollBehavior: TopAppBarScrollBehavior,
-    markedSet: Set<Any?>,
     authViewModel: AuthViewModel = hiltViewModel(),
-    journalListViewModel: JournalListViewModel = viewModel(),
-    databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
     autoSyncManager: AutoSyncManager? = null,
     onShowLoginDialog: () -> Unit,
-    onAddJournalClick: () -> Unit,
     onSearchClick: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     searchButtonAlpha: Float = 1f,
@@ -95,7 +90,6 @@ fun TopBarView(
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     var showLoginDialog by remember { mutableStateOf(false) }
-    var showUserMenu by remember { mutableStateOf(false) }
     // 显示登录对话框
     if (showLoginDialog) {
         LoginDialog(

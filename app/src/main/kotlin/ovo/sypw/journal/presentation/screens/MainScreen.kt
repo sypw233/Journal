@@ -167,7 +167,7 @@ private fun MainScreenContent(
     val journalListState by journalListViewModel.uiState.collectAsState()
     
     // 获取标记的日记集合
-    val markedItems = journalListState.markedItems
+    journalListState.markedItems
     
     // 底部表单展开标志
     val isBottomSheetExpanded = state.isBottomSheetExpanded
@@ -180,8 +180,8 @@ private fun MainScreenContent(
     val searchBarIconPositionRef = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     
     // 用于控制搜索图标的动画
-    val offsetAnimation = remember { androidx.compose.animation.core.Animatable(0f) }
-    val alphaAnimation = remember { androidx.compose.animation.core.Animatable(1f) }
+    remember { Animatable(0f) }
+    val alphaAnimation = remember { Animatable(1f) }
     
     // 当搜索栏状态变化时，触发动画
     LaunchedEffect(showSearchBar) {
@@ -213,17 +213,10 @@ private fun MainScreenContent(
         topBar = {
             // 始终显示顶部栏
             TopBarView(
-                scope = coroutineScope,
                 scrollBehavior = scrollBehavior,
-                markedSet = markedItems,
                 authViewModel = authViewModel,
-                journalListViewModel = journalListViewModel,
-                databaseManagementViewModel = databaseManagementViewModel,
                 autoSyncManager = autoSyncManager,
                 onShowLoginDialog = onShowLoginDialog,
-                onAddJournalClick = {
-                    viewModel.setBottomSheetExpanded(true)
-                },
                 onSearchClick = {
                     showSearchBar = !showSearchBar
                     // 如果关闭搜索栏，同时清除搜索结果
@@ -299,7 +292,7 @@ private fun MainScreenContent(
                     Box(
                         modifier = Modifier
                             .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
                                 // 阻止点击事件冒泡，确保点击搜索区域不会关闭搜索框

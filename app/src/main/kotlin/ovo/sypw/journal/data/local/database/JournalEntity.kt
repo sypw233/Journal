@@ -64,7 +64,7 @@ data class JournalEntity(
         fun fromJournalData(journalData: JournalData): JournalEntity {
             return JournalEntity(
                 id = journalData.id,
-                isMark = journalData.isMark ?: false,
+                isMark = journalData.isMark == true,
                 date = journalData.date ?: Date(),
                 text = journalData.text,
                 locationName = journalData.location?.name,

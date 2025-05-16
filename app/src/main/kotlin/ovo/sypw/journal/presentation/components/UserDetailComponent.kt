@@ -37,7 +37,6 @@ fun UserDetailDialog(
 ) {
     val authState by authViewModel.authState.collectAsState()
     var showChangePasswordDialog by remember { mutableStateOf(false) }
-    var showSyncDialog by remember { mutableStateOf(false) }
 
     // 在组件加载时获取用户详情
     remember {

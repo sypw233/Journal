@@ -5,8 +5,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.SyncDisabled
 import androidx.compose.material.icons.rounded.SyncProblem
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,11 +41,10 @@ fun SyncStatusButton(
     val syncState by autoSyncManager.syncState.collectAsState()
     val isSyncing by autoSyncManager.isSyncing.collectAsState()
     val lastSyncTime by autoSyncManager.lastSyncTime.collectAsState()
-    val syncError by autoSyncManager.syncError.collectAsState()
     val autoSyncEnabled by autoSyncManager.autoSyncEnabled.collectAsState()
 
     // 根据同步状态确定按钮颜色
-    val buttonColor = when (syncState) {
+    when (syncState) {
         SyncState.SYNCING -> MaterialTheme.colorScheme.primary
         SyncState.SUCCESS -> MaterialTheme.colorScheme.tertiary
         SyncState.FAILED -> MaterialTheme.colorScheme.error
@@ -60,7 +62,7 @@ fun SyncStatusButton(
     val icon = getSyncIcon(syncState)
 
     // 获取状态文本
-    val statusText = getSyncStatusText(syncState, lastSyncTime)
+    getSyncStatusText(syncState, lastSyncTime)
 
     // tooltip显示的错误信息
 //    val syncShowText = when {
@@ -100,11 +102,11 @@ fun SyncStatusButton(
  */
 private fun getSyncIcon(syncState: SyncState): ImageVector {
     return when (syncState) {
-        SyncState.SYNCING -> Icons.Rounded.Refresh
-        SyncState.SUCCESS -> Icons.Rounded.Check
-        SyncState.FAILED -> Icons.Rounded.Error
-        SyncState.PAUSED -> Icons.Rounded.SyncProblem
-        SyncState.IDLE -> Icons.Rounded.Refresh
+        SyncState.SYNCING -> Icons.Rounded.Sync
+        SyncState.SUCCESS -> Icons.Rounded.CloudSync
+        SyncState.FAILED -> Icons.Rounded.SyncProblem
+        SyncState.PAUSED -> Icons.Rounded.SyncDisabled
+        SyncState.IDLE -> Icons.Rounded.Sync
     }
 }
 

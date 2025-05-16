@@ -99,7 +99,7 @@ class FileService @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "List files error", e)
-                val errorMessage = "获取文件列表失败: ${e.message}"
+                "获取文件列表失败: ${e.message}"
                 Result.failure(e)
             }
         }

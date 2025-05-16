@@ -5,6 +5,7 @@ coilNetworkOkhttp = "3.1.0"
 composeMarkdown = "0.5.7"
 foundation = "1.8.0-rc02"
 hiltAndroidCompiler = "2.51.1"
+hiltNavigationCompose = "1.2.0"
 kotlin = "2.0.21"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -15,6 +16,7 @@ activityCompose = "1.10.1"
 composeBom = "2025.03.01"
 materialIconsCore = "1.8.0-rc02"
 materialIconsExtended = "1.8.0-rc02"
+navigationCompose = "2.9.0"
 pagingCompose = "3.3.6"
 roomRuntime = "2.6.1"
 squishy = "1.0.3"
@@ -25,10 +27,13 @@ tasksGenai = "0.10.23"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-material = { module = "androidx.compose.material:material" }
 androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "materialIconsCore" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
@@ -52,6 +57,8 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+material-icons-core = { module = "androidx.compose.material:material-icons-core" }
+material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 squishy = { module = "com.github.iamjosephmj:Squishy", version.ref = "squishy" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "tasksGenai" }

@@ -54,7 +54,7 @@ data class Entry(
                 date = journalData.date ?: Date(),
                 location = journalData.location,
                 images = journalData.images?.map { it.toString() },
-                isMark = journalData.isMark ?: false
+                isMark = journalData.isMark == true
             )
         }
     }

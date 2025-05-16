@@ -91,7 +91,7 @@ fun JournalBottomSheet(
             // 构建更新后的日记数据
             val updatedJournal = JournalData(
                 id = initialJournalData?.id ?: 0, // 新建时ID为0，编辑时保留原ID
-                isMark = initialJournalData?.isMark ?: false,
+                isMark = initialJournalData?.isMark == true,
                 date = editedDate,
                 text = editedText,
                 images = editedImages,
@@ -154,9 +154,9 @@ fun JournalBottomSheet(
                     IconButton(
                         onClick = {
                             // 构建更新后的日记数据
-                            val updatedJournal = JournalData(
+                            JournalData(
                                 id = initialJournalData?.id ?: 0,
-                                isMark = initialJournalData?.isMark ?: false,
+                                isMark = initialJournalData?.isMark == true,
                                 date = editedDate,
                                 text = editedText,
                                 images = editedImages,

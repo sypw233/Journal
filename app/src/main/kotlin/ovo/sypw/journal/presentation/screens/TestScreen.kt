@@ -27,7 +27,7 @@ fun TestScreen(
         modifier = modifier,
         contentAlignment = contentAlignment
     ) {
-        val content = LocalContext.current
+        LocalContext.current
 //        AIChatScreen(viewModel = viewModel { AIChatViewModel(content) })
 
 //        Button(

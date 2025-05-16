@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "ovo.sypw.journal"
-        minSdk = 29
+        minSdk = 28
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -54,13 +54,13 @@ dependencies {
     implementation(libs.androidx.material3)
     
     // 添加Material图标支持
-    implementation("androidx.compose.material:material")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.material)
+//    implementation(libs.material.icons.core)
+    implementation(libs.material.icons.extended)
     
     // 添加Navigation导航支持
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
     
     implementation(libs.retrofit)
     testImplementation(libs.junit)
