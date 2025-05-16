@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -43,14 +44,14 @@ import ovo.sypw.journal.data.model.LocationData
 import java.util.Date
 
 /**
- * 日记编辑底部弹出表单
- * 以BottomSheet方式展示日记编辑界面，符合Material Design 3规范
+ * 日记底部弹出表单
+ * 通用组件，用于添加或编辑日记，符合Material Design 3规范
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JournalEditBottomSheet(
+fun JournalBottomSheet(
     isVisible: Boolean,
-    journalData: JournalData,
+    initialJournalData: JournalData? = null,
     onSave: (JournalData) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -71,22 +72,26 @@ fun JournalEditBottomSheet(
     val coroutineScope = rememberCoroutineScope()
     
     // 创建可变状态来存储编辑中的数据
-    var editedText by remember { mutableStateOf(journalData.text) }
-    var editedDate by remember { mutableStateOf(journalData.date) }
-    var editedLocationName by remember { mutableStateOf(journalData.location?.name ?: "") }
-    var editedLocationData by remember { mutableStateOf(journalData.location) }
-    var editedImages by remember { mutableStateOf(journalData.images ?: mutableListOf()) }
+    var editedText by remember { mutableStateOf(initialJournalData?.text ?: "") }
+    var editedDate by remember { mutableStateOf(initialJournalData?.date ?: Date()) }
+    var editedLocationName by remember { mutableStateOf(initialJournalData?.location?.name ?: "") }
+    var editedLocationData by remember { mutableStateOf(initialJournalData?.location) }
+    var editedImages by remember { mutableStateOf(initialJournalData?.images ?: mutableListOf()) }
     
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
+    
+    // 判断是新建还是编辑模式
+    val isEditMode = initialJournalData != null
+    val titleText = if (isEditMode) "编辑日记" else "新建日记"
     
     // 如果保存成功，关闭底部表单
     LaunchedEffect(isSaving) {
         if (isSaving) {
             // 构建更新后的日记数据
             val updatedJournal = JournalData(
-                id = journalData.id,
-                isMark = journalData.isMark,
+                id = initialJournalData?.id ?: 0, // 新建时ID为0，编辑时保留原ID
+                isMark = initialJournalData?.isMark ?: false,
                 date = editedDate,
                 text = editedText,
                 images = editedImages,
@@ -109,68 +114,7 @@ fun JournalEditBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = { 
-            // 自定义顶部栏
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 关闭按钮
-                    IconButton(
-                        onClick = { 
-                            coroutineScope.launch {
-                                sheetState.hide()
-                            }
-                        },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "关闭",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(12.dp))
-                    
-                    // 标题
-                    Text(
-                        text = "编辑日记",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    // 保存按钮
-                    IconButton(
-                        onClick = { isSaving = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Check,
-                            contentDescription = "保存",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        },
+        dragHandle = null, // 移除默认拖动条，使用自定义顶部栏
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 2.dp
@@ -178,32 +122,94 @@ fun JournalEditBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp) // 增加底部间距以适应软键盘
         ) {
-            // 使用JournalEditContent组件
-            JournalEditContent(
+            // 自定义顶部栏
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                initialJournalData = journalData,
-                onSave = { updatedJournal ->
-                    // 更新本地状态
-                    editedText = updatedJournal.text
-                    editedDate = updatedJournal.date
-                    editedLocationName = updatedJournal.location?.name ?: ""
-                    editedLocationData = updatedJournal.location
-                    editedImages = updatedJournal.images ?: mutableListOf()
+                color = MaterialTheme.colorScheme.surface,
+//                shadowElevation = 2.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     
-                    // 触发保存
-                    isSaving = true
-                },
-                onTextChanged = { editedText = it },
-                onDateChanged = { editedDate = it },
-                onLocationChanged = { name, data ->
-                    editedLocationName = name
-                    editedLocationData = data
-                },
-                onImagesChanged = { editedImages = it }
-            )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // 标题
+                    Text(
+                        text = titleText,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    // 保存按钮
+                    IconButton(
+                        onClick = {
+                            // 构建更新后的日记数据
+                            val updatedJournal = JournalData(
+                                id = initialJournalData?.id ?: 0,
+                                isMark = initialJournalData?.isMark ?: false,
+                                date = editedDate,
+                                text = editedText,
+                                images = editedImages,
+                                location = editedLocationData
+                                    ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
+                            )
+                            
+                            // 触发保存
+                            isSaving = true
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = "保存",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            // 内容区域
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp) // 增加底部间距以适应软键盘
+            ) {
+                // 使用JournalEditContent组件
+                JournalEditContent(
+                    modifier = Modifier.fillMaxWidth(),
+                    initialJournalData = initialJournalData,
+                    onSave = { updatedJournal ->
+                        // 更新本地状态
+                        editedText = updatedJournal.text ?: ""
+                        editedDate = updatedJournal.date ?: Date()
+                        editedLocationName = updatedJournal.location?.name ?: ""
+                        editedLocationData = updatedJournal.location
+                        editedImages = updatedJournal.images ?: mutableListOf()
+                        
+                        // 触发保存
+                        isSaving = true
+                    },
+                    onTextChanged = { editedText = it },
+                    onDateChanged = { editedDate = it },
+                    onLocationChanged = { name, data ->
+                        editedLocationName = name
+                        editedLocationData = data
+                    },
+                    onImagesChanged = { editedImages = it },
+                    showSaveButton = false // 不显示保存按钮，因为已经在顶部有保存按钮了
+                )
+            }
         }
     }
 } 

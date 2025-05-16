@@ -17,16 +17,12 @@ import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.overscroll
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +48,7 @@ import ovo.sypw.journal.data.model.AuthState
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.presentation.components.BottomSheetContent
 import ovo.sypw.journal.presentation.components.CustomLazyCardList
+import ovo.sypw.journal.presentation.components.JournalBottomSheet
 import ovo.sypw.journal.presentation.components.LoginDialog
 import ovo.sypw.journal.presentation.components.TopBarView
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
@@ -157,102 +154,70 @@ private fun MainScreenContent(
     val journalListViewModel = viewModel.journalListViewModel
     val journalListState by journalListViewModel.uiState.collectAsState()
     
-    // 获取标记的日记集合 - 注意：使用明确类型
+    // 获取标记的日记集合
     val markedItems = journalListState.markedItems
     
-    val bottomSheetState = rememberStandardBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        skipHiddenState = false
-    )
-    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomSheetState)
-
     // 底部表单展开标志
     val isBottomSheetExpanded = state.isBottomSheetExpanded
-
-    // 底部表单是否在拖拽
-    val isDragging = bottomSheetState.currentValue != bottomSheetState.targetValue
-
-    // 检测底部表单展开状态变化
-    LaunchedEffect(isBottomSheetExpanded) {
-        if (isBottomSheetExpanded && bottomSheetState.currentValue == SheetValue.Hidden) {
-            scaffoldState.bottomSheetState.expand()
-        } else if (!isBottomSheetExpanded && bottomSheetState.currentValue != SheetValue.Hidden) {
-            scaffoldState.bottomSheetState.hide()
+    
+    // 显示添加日记对话框
+    JournalBottomSheet(
+        isVisible = isBottomSheetExpanded,
+        initialJournalData = null, // 添加模式，初始数据为空
+        onSave = { journalData ->
+            // 创建新日记
+            journalListViewModel.addJournal(journalData)
+            // 关闭底部表单
+            viewModel.setBottomSheetExpanded(false)
+        },
+        onDismiss = {
+            viewModel.setBottomSheetExpanded(false)
         }
-    }
+    )
 
-    // 检测底部表单状态变化，同步到ViewModel
-    LaunchedEffect(bottomSheetState.currentValue) {
-        if (!isDragging) {
-            if (bottomSheetState.currentValue != SheetValue.Hidden) {
-                viewModel.setBottomSheetExpanded(true)
-            } else {
-                viewModel.setBottomSheetExpanded(false)
-            }
-        }
-    }
-
-    // 底部表单高度
-    val sheetPeekHeight = 0.dp
-
-    BottomSheetScaffold(
-        scaffoldState = scaffoldState,
-        sheetContent = {
-            // 底部表单内容
-            BottomSheetContent(
-                onDismiss = {
-                    coroutineScope.launch {
-                        bottomSheetState.hide()
-                    }
-                },
-                onSave = { journalData ->
-                    // 创建新日记
-                    journalListViewModel.addJournal(journalData)
-                    // 隐藏底部表单
-                    coroutineScope.launch {
-                        bottomSheetState.hide()
-                    }
+    Scaffold(
+        topBar = {
+            TopBarView(
+                scope = coroutineScope,
+                scrollBehavior = scrollBehavior,
+                markedSet = markedItems,
+                authViewModel = authViewModel,
+                journalListViewModel = journalListViewModel,
+                databaseManagementViewModel = databaseManagementViewModel,
+                autoSyncManager = autoSyncManager,
+                onShowLoginDialog = onShowLoginDialog,
+                onAddJournalClick = {
+                    viewModel.setBottomSheetExpanded(true)
                 }
             )
         },
-        sheetPeekHeight = sheetPeekHeight,
-        snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) { paddingValues ->
-        // 不使用paddings，使用Scaffold重新布局
-        Scaffold(
-            topBar = {
-                TopBarView(
-                    scope = coroutineScope,
-                    scrollBehavior = scrollBehavior,
-                    scaffoldState = scaffoldState,
-                    markedSet = markedItems,
-                    authViewModel = authViewModel,
-                    journalListViewModel = journalListViewModel,
-                    databaseManagementViewModel = databaseManagementViewModel,
-                    autoSyncManager = autoSyncManager,
-                    onShowLoginDialog = onShowLoginDialog
-                )
-            },
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            containerColor = MaterialTheme.colorScheme.background
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                // 使用现有的CustomLazyCardList的API
-                CustomLazyCardList(
-                    modifier = Modifier.fillMaxSize(),
-                    listState = listState,
-                    viewModel = journalListViewModel,
-                    contentPadding = paddingValues
-                )
-
-            }
+        snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // 使用现有的CustomLazyCardList的API
+            CustomLazyCardList(
+                modifier = Modifier.fillMaxSize(),
+                listState = listState,
+                journalListViewModel = journalListViewModel,
+                onItemClick = { item -> 
+                    SnackBarUtils.showSnackBar("查看日记: ${item.id}")
+                },
+                onRefresh = {
+                    // 刷新列表
+                    journalListViewModel.resetList()
+                },
+                // 监听滚动状态变化
+                onScrollChange = { isScrolling ->
+                    viewModel.setScrolling(isScrolling)
+                }
+            )
         }
     }
 }

@@ -74,7 +74,10 @@ import java.util.Locale
 /**
  * 底部表单内容组件
  * 用于添加新日记
+ * 
+ * @deprecated 已弃用，请使用 {@link JournalBottomSheet} 代替
  */
+@Deprecated("已弃用，请使用JournalBottomSheet代替")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheetContent(
@@ -459,7 +462,6 @@ fun BottomSheetContent(
             DatePicker(
                 state = datePickerState,
                 showModeToggle = true,
-                title = { Text("选择日期", style = MaterialTheme.typography.titleMedium) }
             )
         }
     }

@@ -76,13 +76,13 @@ import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 fun TopBarView(
     scope: CoroutineScope,
     scrollBehavior: TopAppBarScrollBehavior,
-    scaffoldState: BottomSheetScaffoldState,
     markedSet: Set<Any?>,
     authViewModel: AuthViewModel = viewModel(),
     journalListViewModel: JournalListViewModel = viewModel(),
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
     autoSyncManager: AutoSyncManager? = null,
-    onShowLoginDialog: () -> Unit
+    onShowLoginDialog: () -> Unit,
+    onAddJournalClick: () -> Unit
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -124,9 +124,7 @@ fun TopBarView(
 
                 // 打开添加框
                 IconButton(onClick = {
-                    scope.launch {
-                        scaffoldState.bottomSheetState.expand()
-                    }
+                    onAddJournalClick()
                 }) {
                     Icon(
                         imageVector = Icons.Default.Add,

@@ -85,7 +85,8 @@ fun JournalEditContent(
     onTextChanged: ((String) -> Unit)? = null,
     onDateChanged: ((Date) -> Unit)? = null,
     onLocationChanged: ((String, LocationData?) -> Unit)? = null,
-    onImagesChanged: ((MutableList<Any>) -> Unit)? = null
+    onImagesChanged: ((MutableList<Any>) -> Unit)? = null,
+    showSaveButton: Boolean = true
 ) {
     val context = LocalContext.current
 
@@ -172,8 +173,8 @@ fun JournalEditContent(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            shadowElevation = 0.dp
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 1.dp
         ) {
             Row(
                 modifier = Modifier
@@ -194,7 +195,7 @@ fun JournalEditContent(
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -399,32 +400,34 @@ fun JournalEditContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 保存按钮
-        ElevatedButton(
-            onClick = {
-                // 创建新的日记对象，保留原始ID
-                val newJournal = JournalData(
-                    id = initialJournalData?.id ?: 0,
-                    isMark = initialJournalData?.isMark,
-                    date = journalDate,
-                    text = journalText,
-                    images = selectedImages.toMutableList(),
-                    location = locationData
-                        ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
+        // 保存按钮，仅在showSaveButton为true时显示
+        if (showSaveButton) {
+            ElevatedButton(
+                onClick = {
+                    // 创建新的日记对象，保留原始ID
+                    val newJournal = JournalData(
+                        id = initialJournalData?.id ?: 0,
+                        isMark = initialJournalData?.isMark,
+                        date = journalDate,
+                        text = journalText,
+                        images = selectedImages.toMutableList(),
+                        location = locationData
+                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null)
+                    )
+                    onSave(newJournal)
+                    SnackBarUtils.showSnackBar("日记已保存")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                elevation = ButtonDefaults.elevatedButtonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
                 )
-                onSave(newJournal)
-                SnackBarUtils.showSnackBar("日记已保存")
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            elevation = ButtonDefaults.elevatedButtonElevation(
-                defaultElevation = 4.dp,
-                pressedElevation = 8.dp
-            )
-        ) {
-            Text("保存")
+            ) {
+                Text("保存")
+            }
         }
     }
 
@@ -447,27 +450,33 @@ fun JournalEditContent(
                     Text("取消")
                 }
             },
-            colors = DatePickerDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-                headlineContentColor = MaterialTheme.colorScheme.onSurface,
-                weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                subheadContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                yearContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                currentYearContentColor = MaterialTheme.colorScheme.primary,
-                selectedYearContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedYearContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                dayContentColor = MaterialTheme.colorScheme.onSurface,
-                selectedDayContainerColor = MaterialTheme.colorScheme.primary,
-                selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
-                todayContentColor = MaterialTheme.colorScheme.primary,
-                todayDateBorderColor = MaterialTheme.colorScheme.primary
+//            colors = DatePickerDefaults.colors(
+//                containerColor = MaterialTheme.colorScheme.surface,
+//                titleContentColor = MaterialTheme.colorScheme.primary,
+//                headlineContentColor = MaterialTheme.colorScheme.onSurface,
+//                weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+//                subheadContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+//                yearContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+//                currentYearContentColor = MaterialTheme.colorScheme.primary,
+//                selectedYearContainerColor = MaterialTheme.colorScheme.primaryContainer,
+//                selectedYearContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+//                dayContentColor = MaterialTheme.colorScheme.onSurface,
+//                selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+//                selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
+//                todayContentColor = MaterialTheme.colorScheme.primary,
+//                todayDateBorderColor = MaterialTheme.colorScheme.primary
+//            ),
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
             )
         ) {
             DatePicker(
                 state = datePickerState,
                 showModeToggle = true,
-                title = { Text("选择日期", style = MaterialTheme.typography.titleMedium) }
+//                title = { Text("选择日期", style = MaterialTheme.typography.titleMedium) },
+//                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
             )
         }
     }

@@ -45,10 +45,13 @@ fun CustomLazyCardList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     listState: LazyListState = rememberLazyListState(),
-    viewModel: JournalListViewModel
+    journalListViewModel: JournalListViewModel,
+    onItemClick: (JournalData) -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onScrollChange: (Boolean) -> Unit = {}
 ) {
     // 从ViewModel获取UI状态
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by journalListViewModel.uiState.collectAsState()
     
     // 编辑日记状态
     var showEditScreen by remember { mutableStateOf(false) }
@@ -73,7 +76,7 @@ fun CustomLazyCardList(
     LaunchedEffect(shouldLoadMore) {
         Log.i(TAG, "CustomLazyCardList: LaunchedEffect")
         if (shouldLoadMore) {
-            viewModel.loadNextPage()
+            journalListViewModel.loadNextPage()
         }
     }
 
@@ -84,9 +87,10 @@ fun CustomLazyCardList(
         }
     }
 
-    // 当滚动状态改变时通知ViewModel
+    // 当滚动状态改变时通知ViewModel和外部
     LaunchedEffect(isListScrolling) {
-        viewModel.setScrolling(isListScrolling)
+        journalListViewModel.setScrolling(isListScrolling)
+        onScrollChange(isListScrolling)
     }
 
     // 监听scrollToPosition状态变化，当需要滚动到特定位置时执行滚动
@@ -96,18 +100,18 @@ fun CustomLazyCardList(
             listState.animateScrollToItem(position)
 
             // 滚动完成后重置scrollToPosition状态为null
-            viewModel.resetScrollPosition()
+            journalListViewModel.resetScrollPosition()
         }
     }
 
     // 显示编辑界面
     if (showEditScreen && editingJournal != null) {
-        ovo.sypw.journal.presentation.components.JournalEditBottomSheet(
+        JournalBottomSheet(
             isVisible = showEditScreen,
-            journalData = editingJournal!!,
+            initialJournalData = editingJournal,
             onSave = { updatedJournal ->
                 // 调用ViewModel的更新日记方法
-                viewModel.updateJournal(updatedJournal)
+                journalListViewModel.updateJournal(updatedJournal)
                 showEditScreen = false
                 editingJournal = null
             },
@@ -144,12 +148,12 @@ fun CustomLazyCardList(
                         onDismiss = {
                             // 处理滑动删除，调用ViewModel的方法
                             val id = journalData.id
-                            viewModel.deleteJournal(id)
+                            journalListViewModel.deleteJournal(id)
                             // 使用带有撤销按钮的Snackbar
                             SnackBarUtils.showActionSnackBar(
                                 message = "已删除 #${id}",
                                 actionLabel = "撤销",
-                                onActionPerformed = { viewModel.undoDelete() },
+                                onActionPerformed = { journalListViewModel.undoDelete() },
                                 onDismissed = { }
                             )
                         },
@@ -157,7 +161,8 @@ fun CustomLazyCardList(
                             // 处理右滑编辑，显示编辑界面
                             editingJournal = journalData
                             showEditScreen = true
-                        }
+                        },
+                        onClick = { onItemClick(journalData) }
                     )
                 }
             }
