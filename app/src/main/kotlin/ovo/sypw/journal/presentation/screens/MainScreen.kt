@@ -8,16 +8,23 @@ import androidx.compose.animation.core.EaseOutQuad
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.overscroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -51,6 +58,7 @@ import ovo.sypw.journal.presentation.components.CustomLazyCardList
 import ovo.sypw.journal.presentation.components.JournalBottomSheet
 import ovo.sypw.journal.presentation.components.LoginDialog
 import ovo.sypw.journal.presentation.components.TopBarView
+import ovo.sypw.journal.presentation.components.search.SearchBar
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import ovo.sypw.journal.presentation.viewmodels.MainViewModel
@@ -160,6 +168,28 @@ private fun MainScreenContent(
     // 底部表单展开标志
     val isBottomSheetExpanded = state.isBottomSheetExpanded
     
+    // 搜索模式标志
+    var showSearchBar by remember { mutableStateOf(false) }
+    
+    // 用于记录搜索按钮位置的引用
+    val searchButtonPositionRef = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    val searchBarIconPositionRef = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    
+    // 用于控制搜索图标的动画
+    val offsetAnimation = remember { androidx.compose.animation.core.Animatable(0f) }
+    val alphaAnimation = remember { androidx.compose.animation.core.Animatable(1f) }
+    
+    // 当搜索栏状态变化时，触发动画
+    LaunchedEffect(showSearchBar) {
+        if (showSearchBar) {
+            // 进入搜索模式：图标淡出
+            alphaAnimation.animateTo(0f, animationSpec = tween(300))
+        } else {
+            // 退出搜索模式：图标淡入
+            alphaAnimation.animateTo(1f, animationSpec = tween(300))
+        }
+    }
+    
     // 显示添加日记对话框
     JournalBottomSheet(
         isVisible = isBottomSheetExpanded,
@@ -177,6 +207,7 @@ private fun MainScreenContent(
 
     Scaffold(
         topBar = {
+            // 始终显示顶部栏
             TopBarView(
                 scope = coroutineScope,
                 scrollBehavior = scrollBehavior,
@@ -188,36 +219,119 @@ private fun MainScreenContent(
                 onShowLoginDialog = onShowLoginDialog,
                 onAddJournalClick = {
                     viewModel.setBottomSheetExpanded(true)
+                },
+                onSearchClick = {
+                    showSearchBar = !showSearchBar
+                    // 如果关闭搜索栏，同时清除搜索结果
+                    if (!showSearchBar) {
+                        journalListViewModel.resetSearchMode()
+                    }
+                },
+                searchButtonAlpha = alphaAnimation.value,
+                onSearchButtonPosition = { coordinates ->
+                    searchButtonPositionRef.value = coordinates
                 }
             )
+        },
+        floatingActionButton = {
+            // 搜索模式下不显示悬浮按钮
+            if (!showSearchBar && !journalListState.isSearchMode) {
+                FloatingActionButton(
+                    onClick = {
+                        viewModel.setBottomSheetExpanded(true)
+                    },
+                    modifier = Modifier.padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "添加日记"
+                    )
+                }
+            }
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { TopSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
+        // 用于检测点击搜索区域外的部分
+        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
-        ) {
-            // 使用现有的CustomLazyCardList的API
-            CustomLazyCardList(
-                modifier = Modifier.fillMaxSize(),
-                listState = listState,
-                journalListViewModel = journalListViewModel,
-                onItemClick = { item -> 
-                    SnackBarUtils.showSnackBar("查看日记: ${item.id}")
-                },
-                onRefresh = {
-                    // 刷新列表
-                    journalListViewModel.resetList()
-                },
-                // 监听滚动状态变化
-                onScrollChange = { isScrolling ->
-                    viewModel.setScrolling(isScrolling)
+                // 点击空白区域退出搜索模式
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    enabled = showSearchBar || journalListState.isSearchMode
+                ) {
+                    if (showSearchBar || journalListState.isSearchMode) {
+                        showSearchBar = false
+                        journalListViewModel.resetSearchMode()
+                    }
                 }
-            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                // 搜索栏显示在顶部栏下方
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showSearchBar || journalListState.isSearchMode,
+                    enter = androidx.compose.animation.expandVertically() + 
+                           androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.shrinkVertically() + 
+                           androidx.compose.animation.fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                // 阻止点击事件冒泡，确保点击搜索区域不会关闭搜索框
+                            }
+                    ) {
+                        SearchBar(
+                            journalListViewModel = journalListViewModel,
+                            showBackButton = false,
+                            onSearchIconPosition = { coordinates ->
+                                searchBarIconPositionRef.value = coordinates
+                            }
+                        )
+                    }
+                }
+                
+                // 日记列表
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    // 使用现有的CustomLazyCardList的API
+                    CustomLazyCardList(
+                        modifier = Modifier.fillMaxSize(),
+                        listState = listState,
+                        journalListViewModel = journalListViewModel,
+                        onItemClick = { item -> 
+                            SnackBarUtils.showSnackBar("查看日记: ${item.id}")
+                        },
+                        onRefresh = {
+                            // 刷新列表
+                            journalListViewModel.resetList()
+                        },
+                        // 监听滚动状态变化
+                        onScrollChange = { isScrolling ->
+                            viewModel.setScrolling(isScrolling)
+                        }
+                    )
+                }
+            }
         }
     }
 }

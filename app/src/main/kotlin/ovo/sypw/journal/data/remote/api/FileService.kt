@@ -14,6 +14,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.remote.api.APIUrl.API_URL
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -31,7 +32,6 @@ class FileService @Inject constructor(
     private val TAG = "FileService"
 
     // API基础URL
-    private val BASE_URL = "http://10.0.2.2:8000/api"
 
     // OkHttp客户端
     private val client = OkHttpClient.Builder().build()
@@ -52,9 +52,9 @@ class FileService @Inject constructor(
                 }
 
                 val url = if (path != null) {
-                    "$BASE_URL/files/list/?path=$path"
+                    "$API_URL/files/list/?path=$path"
                 } else {
-                    "$BASE_URL/files/list/"
+                    "$API_URL/files/list/"
                 }
 
                 val request = Request.Builder()
@@ -140,7 +140,7 @@ class FileService @Inject constructor(
                 }
 
                 val request = Request.Builder()
-                    .url("$BASE_URL/files/upload/")
+                    .url("$API_URL/files/upload/")
                     .post(requestBody.build())
                     .addHeader("Authorization", "Bearer $token")
                     .build()
@@ -192,7 +192,7 @@ class FileService @Inject constructor(
                 }
 
                 val request = Request.Builder()
-                    .url("$BASE_URL/files/download/?path=$path")
+                    .url("$API_URL/files/download/?path=$path")
                     .get()
                     .addHeader("Authorization", "Bearer $token")
                     .build()
@@ -266,7 +266,7 @@ class FileService @Inject constructor(
             Log.d(TAG, "deleteFile: $jsonObject")
             Log.d(TAG, "deleteFile: ${requestBody}")
             val request = Request.Builder()
-                .url("$BASE_URL/files/delete/")
+                .url("$API_URL/files/delete/")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $token")
                 .addHeader("Content-Type", "application/json")
@@ -323,7 +323,7 @@ class FileService @Inject constructor(
                 val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
                 val request = Request.Builder()
-                    .url("$BASE_URL/files/mkdir/")
+                    .url("$API_URL/files/mkdir/")
                     .post(requestBody)
                     .addHeader("Authorization", "Bearer $token")
                     .addHeader("Content-Type", "application/json")

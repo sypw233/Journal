@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.AssistWalker
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
@@ -47,7 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
@@ -82,7 +85,10 @@ fun TopBarView(
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
     autoSyncManager: AutoSyncManager? = null,
     onShowLoginDialog: () -> Unit,
-    onAddJournalClick: () -> Unit
+    onAddJournalClick: () -> Unit,
+    onSearchClick: () -> Unit = {},
+    searchButtonAlpha: Float = 1f,
+    onSearchButtonPosition: ((androidx.compose.ui.layout.LayoutCoordinates) -> Unit)? = null
 ) {
     val titleFontSizeAnimate = lerp(30.sp, 20.sp, scrollBehavior.state.overlappedFraction)
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -114,6 +120,23 @@ fun TopBarView(
             }
             // 添加操作按钮
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // 添加搜索按钮
+                IconButton(
+                    onClick = onSearchClick,
+                    modifier = Modifier
+                        .alpha(searchButtonAlpha)
+                        .onGloballyPositioned { coordinates ->
+                            onSearchButtonPosition?.invoke(coordinates)
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索"
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+                
                 // 添加同步按钮
                 autoSyncManager?.let {
                     SyncStatusButton(
@@ -122,18 +145,6 @@ fun TopBarView(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                // 打开添加框
-                IconButton(onClick = {
-                    onAddJournalClick()
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "添加日记"
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 // 更多选项下拉菜单
                 CustomDropdownMenu(
                     authViewModel = authViewModel,
@@ -141,7 +152,7 @@ fun TopBarView(
                     onOpenTestActivity = {
                         val intent = Intent(context, TestActivity::class.java)
                         forActivityResult.launch(intent)
-                        SnackBarUtils.showSnackBar("Turn to TestActivity")
+//                        SnackBarUtils.showSnackBar("Turn to TestActivity")
                     }
                 )
             }

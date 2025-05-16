@@ -1,4 +1,4 @@
-package ovo.sypw.journal.data.repository
+package ovo.sypw.journal.data.repositories
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +10,9 @@ import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.data.database.JournalDao
 import ovo.sypw.journal.data.database.JournalEntity
 import ovo.sypw.journal.data.model.JournalData
+import ovo.sypw.journal.data.repository.JournalRepository
 import android.util.Log
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -125,6 +127,30 @@ class LocalJournalRepository @Inject constructor(
     override suspend fun getJournalLastId(): Int {
         return withContext(Dispatchers.IO) {
             journalDao.getJournalLastId()
+        }
+    }
+    
+    override suspend fun searchJournalsByContent(query: String): List<JournalData> {
+        return withContext(Dispatchers.IO) {
+            journalDao.searchJournalsByContent(query).map { it.toJournalData() }
+        }
+    }
+    
+    override suspend fun searchJournalsByDateRange(startDate: Date, endDate: Date): List<JournalData> {
+        return withContext(Dispatchers.IO) {
+            journalDao.searchJournalsByDateRange(startDate.time, endDate.time).map { it.toJournalData() }
+        }
+    }
+    
+    override suspend fun searchJournalsByLocation(locationName: String): List<JournalData> {
+        return withContext(Dispatchers.IO) {
+            journalDao.searchJournalsByLocation(locationName).map { it.toJournalData() }
+        }
+    }
+    
+    override suspend fun searchJournalsByContentOrLocation(query: String): List<JournalData> {
+        return withContext(Dispatchers.IO) {
+            journalDao.searchJournalsByContentOrLocation(query).map { it.toJournalData() }
         }
     }
     

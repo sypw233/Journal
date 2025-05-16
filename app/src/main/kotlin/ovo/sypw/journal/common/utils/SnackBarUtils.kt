@@ -73,7 +73,7 @@ fun TopSnackbarHost(
         hostState = hostState,
     ) { snackbarData ->
         Snackbar(
-            modifier = Modifier.padding(bottom = 700.dp),
+//            modifier = Modifier.padding(bottom = 700.dp),
             snackbarData = snackbarData
         )
     }

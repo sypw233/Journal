@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -61,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import ovo.sypw.journal.common.utils.AMapLocationUtils
 import ovo.sypw.journal.common.utils.PermissionUtils
@@ -136,6 +138,9 @@ fun JournalEditContent(
     // 日期选择器状态
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = journalDate.time)
+    
+    // 地图选择器状态
+    var showMapPicker by remember { mutableStateOf(false) }
 
     // 图片选择器（多选）
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -203,6 +208,7 @@ fun JournalEditContent(
         // 位置选择
         OutlinedTextField(
             value = locationName,
+
             onValueChange = { 
                 locationName = it
                 // 位置名称变更时，重置位置数据
@@ -236,37 +242,51 @@ fun JournalEditContent(
                         )
                     }
                 } else {
-                    IconButton(
-                        onClick = {
-                            // 检查定位权限
-                            if (PermissionUtils.hasPermissions(
-                                    context,
-                                    PermissionUtils.LOCATION_PERMISSIONS
-                                )
-                            ) {
-                                // 已有权限，直接获取位置
-                                AMapLocationUtils.getCurrentLocation(
-                                    context = context,
-                                    onSuccess = { location ->
-                                        locationName = location.name ?: ""
-                                        locationData = location
-                                        SnackBarUtils.showSnackBar("已获取当前位置")
-                                    },
-                                    onError = { errorMsg ->
-                                        SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
-                                    }
-                                )
-                            } else {
-                                // 请求权限
-                                SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
-                            }
+                    Row {
+                        // 地图选择位置按钮
+                        IconButton(
+                            onClick = { showMapPicker = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Map,
+                                contentDescription = "地图选择",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.LocationOn,
-                            contentDescription = "获取位置",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        
+                        // 获取当前位置按钮
+                        IconButton(
+                            onClick = {
+                                // 检查定位权限
+                                if (PermissionUtils.hasPermissions(
+                                        context,
+                                        PermissionUtils.LOCATION_PERMISSIONS
+                                    )
+                                ) {
+                                    // 已有权限，直接获取位置
+                                    AMapLocationUtils.getCurrentLocation(
+                                        context = context,
+                                        onSuccess = { location ->
+                                            locationName = location.name ?: ""
+                                            locationData = location
+//                                            SnackBarUtils.showSnackBar("已获取当前位置")
+                                        },
+                                        onError = { errorMsg ->
+                                            SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
+                                        }
+                                    )
+                                } else {
+                                    // 请求权限
+                                    SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.LocationOn,
+                                contentDescription = "获取位置",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -278,7 +298,7 @@ fun JournalEditContent(
             onPermissionResult = { granted ->
                 if (granted) {
                     // 权限已授予，可以获取位置
-                    SnackBarUtils.showSnackBar("已获取定位权限")
+//                    SnackBarUtils.showSnackBar("已获取定位权限")
                 } else {
                     // 权限被拒绝
                     SnackBarUtils.showSnackBar("无法获取定位权限")
@@ -450,25 +470,10 @@ fun JournalEditContent(
                     Text("取消")
                 }
             },
-//            colors = DatePickerDefaults.colors(
-//                containerColor = MaterialTheme.colorScheme.surface,
-//                titleContentColor = MaterialTheme.colorScheme.primary,
-//                headlineContentColor = MaterialTheme.colorScheme.onSurface,
-//                weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-//                subheadContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-//                yearContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-//                currentYearContentColor = MaterialTheme.colorScheme.primary,
-//                selectedYearContainerColor = MaterialTheme.colorScheme.primaryContainer,
-//                selectedYearContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-//                dayContentColor = MaterialTheme.colorScheme.onSurface,
-//                selectedDayContainerColor = MaterialTheme.colorScheme.primary,
-//                selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
-//                todayContentColor = MaterialTheme.colorScheme.primary,
-//                todayDateBorderColor = MaterialTheme.colorScheme.primary
-//            ),
-            properties = androidx.compose.ui.window.DialogProperties(
+            properties = DialogProperties(
                 dismissOnBackPress = true,
                 dismissOnClickOutside = true,
+                // 设置为false，确保对话框不超出屏幕边界，修复被遮挡问题
                 usePlatformDefaultWidth = false
             )
         ) {
@@ -479,5 +484,19 @@ fun JournalEditContent(
 //                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
             )
         }
+    }
+    
+    // 地图选择器对话框
+    if (showMapPicker) {
+        MapPickerDialog(
+            isVisible = true,
+            initialLocation = locationData,
+            onLocationSelected = { selectedLocation ->
+                locationName = selectedLocation.name ?: ""
+                locationData = selectedLocation
+                showMapPicker = false
+            },
+            onDismiss = { showMapPicker = false }
+        )
     }
 } 

@@ -75,4 +75,32 @@ interface JournalDao {
 
     @Query("SELECT MAX(id) FROM journals")
     fun getJournalLastId(): Int
+
+    /**
+     * 根据内容搜索日记条目
+     * @param query 搜索关键词，使用LIKE匹配
+     */
+    @Query("SELECT * FROM journals WHERE text LIKE '%' || :query || '%' ORDER BY date DESC")
+    suspend fun searchJournalsByContent(query: String): List<JournalEntity>
+
+    /**
+     * 根据日期范围搜索日记条目
+     * @param startDate 开始日期（包含）
+     * @param endDate 结束日期（包含）
+     */
+    @Query("SELECT * FROM journals WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    suspend fun searchJournalsByDateRange(startDate: Long, endDate: Long): List<JournalEntity>
+
+    /**
+     * 根据位置名称搜索日记条目
+     * @param locationName 位置名称，使用LIKE匹配
+     */
+    @Query("SELECT * FROM journals WHERE locationName LIKE '%' || :locationName || '%' ORDER BY date DESC")
+    suspend fun searchJournalsByLocation(locationName: String): List<JournalEntity>
+
+    /**
+     * 复合搜索：同时根据内容和位置搜索
+     */
+    @Query("SELECT * FROM journals WHERE (text LIKE '%' || :query || '%' OR locationName LIKE '%' || :query || '%') ORDER BY date DESC")
+    suspend fun searchJournalsByContentOrLocation(query: String): List<JournalEntity>
 }

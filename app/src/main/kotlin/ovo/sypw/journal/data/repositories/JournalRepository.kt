@@ -2,6 +2,7 @@ package ovo.sypw.journal.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import ovo.sypw.journal.data.model.JournalData
+import java.util.*
 
 /**
  * 日记仓库接口
@@ -63,4 +64,29 @@ interface JournalRepository {
      * 获取最后一个日记的ID
      */
     suspend fun getJournalLastId(): Int
+
+    /**
+     * 根据内容搜索日记
+     * @param query 搜索关键词
+     */
+    suspend fun searchJournalsByContent(query: String): List<JournalData>
+
+    /**
+     * 根据日期范围搜索日记
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     */
+    suspend fun searchJournalsByDateRange(startDate: Date, endDate: Date): List<JournalData>
+
+    /**
+     * 根据位置搜索日记
+     * @param locationName 位置名称
+     */
+    suspend fun searchJournalsByLocation(locationName: String): List<JournalData>
+
+    /**
+     * 综合搜索日记(内容或位置)
+     * @param query 搜索关键词
+     */
+    suspend fun searchJournalsByContentOrLocation(query: String): List<JournalData>
 }

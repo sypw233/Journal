@@ -5,7 +5,6 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.os.Environment
 import android.util.Log
-import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -200,13 +199,13 @@ class DatabaseManager @Inject constructor(
                             // 导出成功
                             Log.d(TAG, "数据库导出成功")
                             
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    context,
-                                    "数据库已导出到: ${exportFile.absolutePath}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+//                            withContext(Dispatchers.Main) {
+//                                Toast.makeText(
+//                                    context,
+//                                    "数据库已导出到: ${exportFile.absolutePath}",
+//                                    Toast.LENGTH_LONG
+//                                ).show()
+//                            }
                             
                             // 清理临时文件
                             if (tempDbFile.exists()) {
@@ -240,13 +239,13 @@ class DatabaseManager @Inject constructor(
             
             if (alternativeSuccess) {
                 Log.d(TAG, "使用替代方法成功导出数据库")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        "数据库已导出到: ${exportFile.absolutePath}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+//                withContext(Dispatchers.Main) {
+//                    Toast.makeText(
+//                        context,
+//                        "数据库已导出到: ${exportFile.absolutePath}",
+//                        Toast.LENGTH_LONG
+//                    ).show()
+//                }
                 return@withContext exportFile
             }
             
@@ -275,15 +274,15 @@ class DatabaseManager @Inject constructor(
             }
             
             // 如果以上方法都失败，返回null
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "导出数据库失败", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(context, "导出数据库失败", Toast.LENGTH_SHORT).show()
+//            }
             null
         } catch (e: Exception) {
             Log.e(TAG, "导出数据库过程中出现异常", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+//            withContext(Dispatchers.Main) {
+//                Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+//            }
             null
         }
     }
@@ -549,9 +548,9 @@ class DatabaseManager @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "下载数据库失败", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+//                withContext(Dispatchers.Main) {
+//                    Toast.makeText(context, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+//                }
                 Result.failure(e)
             }
         }

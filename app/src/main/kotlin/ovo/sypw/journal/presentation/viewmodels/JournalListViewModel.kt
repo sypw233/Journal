@@ -14,6 +14,7 @@ import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.presentation.screens.JournalListState
+import java.util.Date
 import java.util.LinkedList
 import javax.inject.Inject
 
@@ -325,5 +326,176 @@ class JournalListViewModel @Inject constructor(
      */
     fun updateJournal(journalData: JournalData) {
         updateEntry(journalData)
+    }
+
+    /**
+     * 搜索日记 - 按内容
+     * @param query 搜索关键词
+     */
+    fun searchJournalsByContent(query: String) {
+        if (query.isBlank()) {
+            resetSearchMode()
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSearching = true, searchQuery = query) }
+                
+                val results = repository.searchJournalsByContent(query)
+                
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isSearchMode = true,
+                        searchResults = results,
+                        isSearching = false
+                    )
+                }
+                
+                Log.d(TAG, "Content search completed. Found ${results.size} results for query: $query")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching journals by content", e)
+                _uiState.update { 
+                    it.copy(
+                        isSearching = false,
+                        error = "搜索失败: ${e.message}"
+                    ) 
+                }
+                SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 搜索日记 - 按日期范围
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     */
+    fun searchJournalsByDateRange(startDate: Date, endDate: Date) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSearching = true) }
+                
+                val results = repository.searchJournalsByDateRange(startDate, endDate)
+                
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isSearchMode = true,
+                        searchResults = results,
+                        isSearching = false,
+                        searchQuery = "${formatDate(startDate)} - ${formatDate(endDate)}"
+                    )
+                }
+                
+                Log.d(TAG, "Date range search completed. Found ${results.size} results")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching journals by date range", e)
+                _uiState.update { 
+                    it.copy(
+                        isSearching = false,
+                        error = "搜索失败: ${e.message}"
+                    ) 
+                }
+                SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 搜索日记 - 按位置
+     * @param locationName 位置名称
+     */
+    fun searchJournalsByLocation(locationName: String) {
+        if (locationName.isBlank()) {
+            resetSearchMode()
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSearching = true, searchQuery = locationName) }
+                
+                val results = repository.searchJournalsByLocation(locationName)
+                
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isSearchMode = true,
+                        searchResults = results,
+                        isSearching = false
+                    )
+                }
+                
+                Log.d(TAG, "Location search completed. Found ${results.size} results for location: $locationName")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching journals by location", e)
+                _uiState.update { 
+                    it.copy(
+                        isSearching = false,
+                        error = "搜索失败: ${e.message}"
+                    ) 
+                }
+                SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 综合搜索日记(内容或位置)
+     * @param query 搜索关键词
+     */
+    fun searchJournalsByContentOrLocation(query: String) {
+        if (query.isBlank()) {
+            resetSearchMode()
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isSearching = true, searchQuery = query) }
+                
+                val results = repository.searchJournalsByContentOrLocation(query)
+                
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isSearchMode = true,
+                        searchResults = results,
+                        isSearching = false
+                    )
+                }
+                
+                Log.d(TAG, "Combined search completed. Found ${results.size} results for query: $query")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching journals by content or location", e)
+                _uiState.update { 
+                    it.copy(
+                        isSearching = false,
+                        error = "搜索失败: ${e.message}"
+                    ) 
+                }
+                SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 退出搜索模式
+     */
+    fun resetSearchMode() {
+        _uiState.update { 
+            it.copy(
+                isSearchMode = false,
+                searchResults = emptyList(),
+                searchQuery = "",
+                isSearching = false
+            ) 
+        }
+    }
+    
+    /**
+     * 格式化日期，用于显示
+     */
+    private fun formatDate(date: Date): String {
+        val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return format.format(date)
     }
 }

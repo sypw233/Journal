@@ -228,7 +228,7 @@ fun BottomSheetContent(
                                     onSuccess = { location ->
                                         locationName = location.name ?: ""
                                         locationData = location
-                                        SnackBarUtils.showSnackBar("已获取当前位置")
+//                                        SnackBarUtils.showSnackBar("已获取当前位置")
                                     },
                                     onError = { errorMsg ->
                                         SnackBarUtils.showSnackBar("获取位置失败: $errorMsg")
@@ -256,7 +256,7 @@ fun BottomSheetContent(
             onPermissionResult = { granted ->
                 if (granted) {
                     // 权限已授予，可以获取位置
-                    SnackBarUtils.showSnackBar("已获取定位权限")
+//                    SnackBarUtils.showSnackBar("已获取定位权限")
                 } else {
                     // 权限被拒绝
                     SnackBarUtils.showSnackBar("无法获取定位权限")

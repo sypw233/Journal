@@ -57,11 +57,14 @@ fun CustomLazyCardList(
     var showEditScreen by remember { mutableStateOf(false) }
     var editingJournal by remember { mutableStateOf<JournalData?>(null) }
 
+    // 根据是否处于搜索模式选择要显示的日记列表
+    val journalList = if (uiState.isSearchMode) uiState.searchResults else uiState.journals
+
     // 添加防抖动延迟，确保滚动完全停止后再加载数据
     val shouldLoadMore by remember {
         derivedStateOf {
-            if (uiState.isScrolling) {
-                false // 滚动时不加载
+            if (uiState.isScrolling || uiState.isSearchMode) {
+                false // 滚动时或搜索模式下不加载
             } else {
                 // 最后一个ITEM可见
                 val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
@@ -130,9 +133,12 @@ fun CustomLazyCardList(
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            items(uiState.journals.size) { index ->
-                if (index < uiState.journals.size) {
-                    val journalData = uiState.journals[index]
+            items(
+                count = journalList.size,
+                key = { index -> journalList[index].id } // 使用日记ID作为key
+            ) { index ->
+                if (index < journalList.size) {
+                    val journalData = journalList[index]
                     SwipeCard(
                         modifier = Modifier
                             .animateItem(
@@ -149,6 +155,7 @@ fun CustomLazyCardList(
                             // 处理滑动删除，调用ViewModel的方法
                             val id = journalData.id
                             journalListViewModel.deleteJournal(id)
+                            Log.d(TAG, "CustomLazyCardList:  尝试删除$id")
                             // 使用带有撤销按钮的Snackbar
                             SnackBarUtils.showActionSnackBar(
                                 message = "已删除 #${id}",
@@ -171,9 +178,34 @@ fun CustomLazyCardList(
             }
 
             // 如果还有更多数据且正在加载，显示加载指示器
-            if (uiState.hasMoreData && uiState.isLoading) {
+            if (uiState.hasMoreData && uiState.isLoading && !uiState.isSearchMode) {
                 item {
                     LoadingPlaceholder()
+                }
+            }
+            
+            // 如果正在搜索，显示搜索加载指示器
+            if (uiState.isSearching) {
+                item {
+                    LoadingPlaceholder()
+                }
+            }
+            
+            // 如果是搜索模式但没有结果，显示无结果提示
+            if (uiState.isSearchMode && !uiState.isSearching && uiState.searchResults.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "没有找到匹配的日记",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

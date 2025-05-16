@@ -20,6 +20,7 @@ import ovo.sypw.journal.data.model.ChangePasswordRequest
 import ovo.sypw.journal.data.model.LoginRequest
 import ovo.sypw.journal.data.model.RegisterRequest
 import ovo.sypw.journal.data.model.User
+import ovo.sypw.journal.data.remote.api.APIUrl.API_URL
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -32,8 +33,6 @@ import javax.inject.Singleton
 class AuthService @Inject constructor(private val context: Context) {
     private val TAG = "AuthService"
 
-    // API基础URL
-    private val BASE_URL = "http://10.0.2.2:8000/api" // 替换为实际的API地址
 
     // OkHttp客户端
     private val client = OkHttpClient.Builder()
@@ -136,7 +135,7 @@ class AuthService @Inject constructor(private val context: Context) {
 
             // 使用token调用用户信息接口来验证token有效性
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/userinfo/")
+                .url("$API_URL/userinfo/")
                 .get()
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -220,7 +219,7 @@ class AuthService @Inject constructor(private val context: Context) {
                 val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
                 val httpRequest = Request.Builder()
-                    .url("$BASE_URL/register/")
+                    .url("$API_URL/register/")
                     .post(requestBody)
                     .addHeader("Content-Type", "application/json")
                     .build()
@@ -285,7 +284,7 @@ class AuthService @Inject constructor(private val context: Context) {
             val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/token/")
+                .url("$API_URL/token/")
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
                 .build()
@@ -379,7 +378,7 @@ class AuthService @Inject constructor(private val context: Context) {
             }
 
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/userinfo/")
+                .url("$API_URL/userinfo/")
                 .get()
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -450,7 +449,7 @@ class AuthService @Inject constructor(private val context: Context) {
                 val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
                 val httpRequest = Request.Builder()
-                    .url("$BASE_URL/users/change-password/")
+                    .url("$API_URL/users/change-password/")
                     .put(requestBody)
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", "Bearer $token")
@@ -523,7 +522,7 @@ class AuthService @Inject constructor(private val context: Context) {
             // 示例：使用当前token获取新token
             // 注意：实际应用中，应该使用refresh_token而不是access_token来获取新token
             val httpRequest = Request.Builder()
-                .url("$BASE_URL/token/refresh/")
+                .url("$API_URL/token/refresh/")
                 .post(okhttp3.RequestBody.create(null, ByteArray(0)))
                 .addHeader("Authorization", "Bearer $currentToken")
                 .build()
