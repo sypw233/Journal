@@ -61,6 +61,7 @@ import ovo.sypw.journal.presentation.components.TopBarView
 import ovo.sypw.journal.presentation.components.search.SearchBar
 import ovo.sypw.journal.presentation.viewmodels.AuthViewModel
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
+import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 import ovo.sypw.journal.presentation.viewmodels.MainViewModel
 
 private const val TAG = "MainScreen"
@@ -69,8 +70,9 @@ private const val TAG = "MainScreen"
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel, 
+    viewModel: MainViewModel = hiltViewModel(), 
     authViewModel: AuthViewModel = hiltViewModel(),
+    journalListViewModel: JournalListViewModel = hiltViewModel(),
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
     autoSyncManager: AutoSyncManager? = null,
     navController: androidx.navigation.NavController? = null
@@ -132,6 +134,7 @@ fun MainScreen(
             MainScreenContent(
                 state = state,
                 viewModel = viewModel,
+                journalListViewModel = journalListViewModel,
                 authViewModel = authViewModel,
                 databaseManagementViewModel = databaseManagementViewModel,
                 autoSyncManager = autoSyncManager,
@@ -151,6 +154,7 @@ fun MainScreen(
 private fun MainScreenContent(
     state: MainScreenState.Success,
     viewModel: MainViewModel,
+    journalListViewModel: JournalListViewModel,
     authViewModel: AuthViewModel,
     databaseManagementViewModel: DatabaseManagementViewModel,
     autoSyncManager: AutoSyncManager?,
@@ -162,7 +166,6 @@ private fun MainScreenContent(
     navController: androidx.navigation.NavController? = null
 ) {
     // 获取JournalListViewModel的状态
-    val journalListViewModel = viewModel.journalListViewModel
     val journalListState by journalListViewModel.uiState.collectAsState()
     
     // 获取标记的日记集合

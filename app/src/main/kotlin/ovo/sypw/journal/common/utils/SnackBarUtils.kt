@@ -61,6 +61,11 @@ object SnackBarUtils {
             }
         }
     }
+    
+    // 获取协程作用域
+    fun getCoroutineScope(): CoroutineScope? {
+        return if (::coroutineScope.isInitialized) coroutineScope else null
+    }
 }
 
 // 自定义顶部 SnackbarHost 组件

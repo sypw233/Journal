@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 存储权限，用于Android 12及以下版本选择图片 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- 相机权限，用于拍照功能 -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <!--允许获取精确位置，精准定位必选-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!--允许获取粗略位置，粗略定位必选-->
@@ -50,6 +55,18 @@
             <!--                            <category android:name="android.intent.category.LAUNCHER" />-->
             <!--                        </intent-filter>-->
         </activity>
+        
+        <!-- FileProvider配置，用于拍照和分享图片 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+        
         <!--使用native库-->
 <!--        <uses-native-library-->
 <!--            android:name="libOpenCL.so"-->

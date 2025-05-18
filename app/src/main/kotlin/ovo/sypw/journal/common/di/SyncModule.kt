@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.DatabaseManager
 import ovo.sypw.journal.data.JournalPreferences
+import ovo.sypw.journal.data.remote.api.AuthService
 import javax.inject.Singleton
 
 /**
@@ -27,8 +28,9 @@ object SyncModule {
     fun provideAutoSyncManager(
         @ApplicationContext context: Context,
         databaseManager: DatabaseManager,
-        preferences: JournalPreferences
+        preferences: JournalPreferences,
+        authService: AuthService
     ): AutoSyncManager {
-        return AutoSyncManager(context, databaseManager, preferences)
+        return AutoSyncManager(context, databaseManager, preferences, authService)
     }
 } 

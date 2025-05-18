@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import ovo.sypw.journal.data.JournalPreferences
+import ovo.sypw.journal.data.remote.api.AuthService
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -36,7 +37,8 @@ enum class SyncState {
 class AutoSyncManager @Inject constructor(
     private val context: Context,
     private val databaseManager: DatabaseManager,
-    private val preferences: JournalPreferences
+    private val preferences: JournalPreferences,
+    private val authService: AuthService
 ) {
     companion object {
         private const val TAG = "AutoSyncManager"
@@ -148,6 +150,23 @@ class AutoSyncManager @Inject constructor(
         // 如果同步已在进行中，不要重复执行
         if (_isSyncing.value) {
             Log.d(TAG, "同步正在进行中，忽略此次同步请求")
+            return false
+        }
+        
+        // 检查是否已登录
+        if (!authService.isLoggedIn()) {
+            Log.e(TAG, "未登录，无法进行同步")
+            _syncError.value = "未登录，无法进行同步"
+            _syncState.value = SyncState.FAILED
+            
+            // 一段时间后重置失败状态为空闲状态
+            coroutineScope.launch {
+                delay(5000) // 5秒后重置状态
+                if (_syncState.value == SyncState.FAILED) {
+                    updateSyncState()
+                }
+            }
+            
             return false
         }
         

@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,6 +88,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ovo.sypw.journal.data.model.SettingsEvent
 import ovo.sypw.journal.data.model.SettingsState
 import ovo.sypw.journal.presentation.viewmodels.SettingsViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.width
+import ovo.sypw.journal.common.utils.SnackBarUtils
+
 
 /**
  * 设置界面
@@ -99,12 +105,15 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val settingsChanged by viewModel.settingsChanged.collectAsState()
     val needsRestart by viewModel.needsRestart.collectAsState()
     
     // 重启提示对话框
     var showRestartDialog by remember { mutableStateOf(false) }
     
+    // 主题颜色选择对话框
+    var showColorPickerDialog by remember { mutableStateOf(false) }
+
+    var colorEgg by remember { mutableStateOf(0) }
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
@@ -133,6 +142,18 @@ fun SettingsScreen(
         )
     }
     
+    // 主题颜色选择对话框
+    if (showColorPickerDialog) {
+        ColorPickerDialog(
+            selectedIndex = uiState.primaryColorIndex,
+            colors = viewModel.getThemeColors(),
+            onColorSelected = { index ->
+                viewModel.handleEvent(SettingsEvent.SetPrimaryColor(index))
+            },
+            onDismiss = { showColorPickerDialog = false }
+        )
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -149,25 +170,6 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        floatingActionButton = {
-            if (settingsChanged) {
-                FloatingActionButton(
-                    onClick = {
-                        viewModel.saveSettings()
-                        if (needsRestart) {
-                            showRestartDialog = true
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Save,
-                        contentDescription = "保存设置",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
         }
     ) { innerPadding ->
         Column(
@@ -182,19 +184,33 @@ fun SettingsScreen(
                 title = "外观设置",
                 icon = Icons.Default.ColorLens
             ) {
+                // 主题预览卡片
+                ThemePreviewCard(
+                    isDarkMode = if (uiState.useSystemTheme) isSystemInDarkTheme() else uiState.useDarkTheme,
+                    primaryColor = getColorForIndex(uiState.primaryColorIndex)
+                )
+                
                 // 主题模式设置
                 SettingItem(
                     title = "深色模式",
                     description = "启用应用的深色主题",
                     icon = Icons.Default.BrightnessHigh
                 ) {
-                    Switch(
-                        checked = uiState.useDarkTheme,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetDarkTheme(it)) 
-                        },
-                        enabled = !uiState.useSystemTheme
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.useDarkTheme) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.useDarkTheme,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetDarkTheme(it)) 
+                            },
+                            enabled = !uiState.useSystemTheme
+                        )
+                    }
                 }
                 
                 // 跟随系统主题
@@ -203,12 +219,20 @@ fun SettingsScreen(
                     description = "根据系统设置自动切换明暗主题",
                     icon = Icons.Default.BrightnessAuto
                 ) {
-                    Switch(
-                        checked = uiState.useSystemTheme,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetUseSystemTheme(it)) 
-                        }
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.useSystemTheme) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.useSystemTheme,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetUseSystemTheme(it)) 
+                            }
+                        )
+                    }
                 }
                 
                 // 主题颜色
@@ -218,19 +242,39 @@ fun SettingsScreen(
                     icon = Icons.Default.ColorLens,
                     onClick = {
                         // 打开颜色选择对话框
+                        showColorPickerDialog = true
                     }
                 ) {
-                    val colors = viewModel.getThemeColors()
-                    Text(
-                        text = colors[uiState.primaryColorIndex],
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 显示当前选择的颜色预览
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    getColorForIndex(uiState.primaryColorIndex),
+                                    shape = CircleShape
+                                )
+                                .padding(4.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = viewModel.getThemeColors()[uiState.primaryColorIndex],
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
             
@@ -239,20 +283,6 @@ fun SettingsScreen(
                 title = "通用设置",
                 icon = Icons.Default.Settings
             ) {
-                // 默认位置
-                SettingItem(
-                    title = "启用默认位置",
-                    description = "创建日记时自动填充默认位置",
-                    icon = Icons.Default.ImageSearch
-                ) {
-                    Switch(
-                        checked = uiState.defaultLocationEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetDefaultLocationEnabled(it)) 
-                        }
-                    )
-                }
-                
                 // 自动保存
                 SettingItem(
                     title = "自动保存",
@@ -265,6 +295,51 @@ fun SettingsScreen(
                             viewModel.handleEvent(SettingsEvent.SetAutoSave(it)) 
                         }
                     )
+                }
+                
+                // 自动保存间隔
+                SettingItem(
+                    title = "自动保存间隔",
+                    description = "每${uiState.autoSaveInterval}分钟自动保存一次",
+                    icon = Icons.Default.Refresh,
+                    enabled = uiState.autoSaveEnabled
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val options = listOf(1, 5, 10, 15, 30)
+                        val selectedOption = if (options.contains(uiState.autoSaveInterval)) {
+                            uiState.autoSaveInterval
+                        } else {
+                            5 // 默认值
+                        }
+                        Text(
+                            text = "$selectedOption 分钟",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (uiState.autoSaveEnabled)
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(
+                            onClick = {
+                                val currentIndex = options.indexOf(selectedOption)
+                                val nextIndex = (currentIndex + 1) % options.size
+                                viewModel.handleEvent(SettingsEvent.SetAutoSaveInterval(options[nextIndex]))
+                            },
+                            enabled = uiState.autoSaveEnabled
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "更改时间",
+                                tint = if (uiState.autoSaveEnabled)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
                 
                 // 删除确认
@@ -303,7 +378,7 @@ fun SettingsScreen(
                 
                 // 仅WiFi同步
                 SettingItem(
-                    title = "仅WiFi下同步",
+                    title = "仅WiFi下同步(待完成)",
                     description = "只在WiFi连接时执行同步",
                     icon = Icons.Default.Refresh,
                     enabled = uiState.autoSyncEnabled
@@ -330,7 +405,7 @@ fun SettingsScreen(
             
             // 隐私设置
             SettingsCategory(
-                title = "隐私设置",
+                title = "隐私设置(待完成)",
                 icon = Icons.Default.Lock
             ) {
                 // 应用锁定
@@ -380,7 +455,7 @@ fun SettingsScreen(
             
             // 存储设置
             SettingsCategory(
-                title = "存储设置",
+                title = "存储设置(待完成)",
                 icon = Icons.Default.Save
             ) {
                 // 图片压缩
@@ -434,7 +509,7 @@ fun SettingsScreen(
             
             // 通知设置
             SettingsCategory(
-                title = "通知设置",
+                title = "通知设置(待完成)",
                 icon = Icons.Default.Notifications
             ) {
                 // 通知开关
@@ -525,17 +600,22 @@ fun SettingsScreen(
             // 关于信息
             SettingItem(
                 title = "关于",
-                description = "应用版本 v1.0.0",
+                description = "应用版本 v0.0.0.0.0.0.0.7fK9qR2Tb4XmN6pL",
                 icon = Icons.Default.Info,
                 onClick = {
-                    // 打开关于页面
+                    if(colorEgg==0){
+                        SnackBarUtils.showSnackBar("这里什么都没有")
+                    }else if(colorEgg<=3){
+                        SnackBarUtils.showSnackBar("这里真的什么都没有")
+                    }else if(colorEgg<=6){
+                        SnackBarUtils.showSnackBar("再点也什么都不会有的")
+                    }else if(colorEgg>=10){
+                        SnackBarUtils.showSnackBar("Lp6NmX4bT2Rq9Kf7")
+                    }
+                    colorEgg+=1
+
                 }
             ) {
-//                Icon(
-//                    imageVector = Icons.Default.KeyboardArrowRight,
-//                    contentDescription = null,
-//                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-//                )
             }
             
             Spacer(modifier = Modifier.height(80.dp)) // 为FAB留出空间
@@ -726,6 +806,348 @@ fun SettingButton(
             modifier = Modifier.padding(start = 8.dp)
         ) {
             Text("执行")
+        }
+    }
+}
+
+/**
+ * 颜色选择对话框
+ */
+@Composable
+fun ColorPickerDialog(
+    selectedIndex: Int,
+    colors: List<String>,
+    onColorSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // 添加本地状态管理当前选中颜色
+    var currentSelectedIndex by remember { mutableStateOf(selectedIndex) }
+    
+    // 显示选中的颜色索引和名称，方便调试
+    val colorName = colors[currentSelectedIndex]
+    val colorText = "当前选择: $colorName (索引: $currentSelectedIndex)"
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择主题颜色", style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp)
+            ) {
+                // 当前选中颜色提示
+                Text(
+                    text = colorText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                // 颜色网格
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    for (index in 0 until minOf(5, colors.size)) {
+                        ColorButton(
+                            color = getColorForIndex(index),
+                            isSelected = index == currentSelectedIndex,
+                            onClick = { 
+                                currentSelectedIndex = index
+                                onColorSelected(index)
+                            }
+                        )
+                    }
+                }
+                
+                if (colors.size > 5) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        for (index in 5 until minOf(10, colors.size)) {
+                            ColorButton(
+                                color = getColorForIndex(index),
+                                isSelected = index == currentSelectedIndex,
+                                onClick = { 
+                                    currentSelectedIndex = index
+                                    onColorSelected(index)
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // 重置按钮 - 恢复默认颜色
+                Button(
+                    onClick = {
+                        currentSelectedIndex = 0 // 默认颜色的索引为0
+                        onColorSelected(0)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Text("恢复默认颜色")
+                }
+                
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                
+                // 颜色列表
+                colors.forEachIndexed { index, colorName ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                currentSelectedIndex = index
+                                onColorSelected(index)
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 颜色预览
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    getColorForIndex(index),
+                                    shape = CircleShape
+                                )
+                        )
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        // 颜色名称
+                        Text(
+                            text = colorName,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        
+                        Spacer(modifier = Modifier.weight(1f))
+                        
+                        // 选中标记
+                        if (index == currentSelectedIndex) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = getColorForIndex(currentSelectedIndex)
+                )
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = null // 移除取消按钮，因为我们已经实时应用颜色，确定按钮只是关闭对话框
+    )
+}
+
+/**
+ * 颜色按钮组件
+ */
+@Composable
+fun ColorButton(
+    color: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .padding(4.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        // 背景圆形
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = color,
+                    shape = CircleShape
+                )
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            shape = CircleShape
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
+            // 显示选中标记
+            if (isSelected) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 根据索引获取颜色
+ */
+@Composable
+fun getColorForIndex(index: Int): Color {
+    return when (index) {
+        0 -> MaterialTheme.colorScheme.primary // 跟随系统
+        1 -> Color(0xFF1A237E) // 深蓝
+        2 -> Color(0xFF2E7D32) // 绿色
+        3 -> Color(0xFF4A148C) // 紫色
+        4 -> Color(0xFFE65100) // 橙色
+        5 -> Color(0xFFB71C1C) // 红色
+        6 -> Color(0xFFC2185B) // 粉色
+        7 -> Color(0xFFF9A825) // 黄色
+        8 -> Color(0xFF00838F) // 青色
+        9 -> Color(0xFF212121) // 黑色
+        else -> MaterialTheme.colorScheme.primary
+    }
+}
+
+/**
+ * 主题预览卡片
+ */
+@Composable
+fun ThemePreviewCard(
+    isDarkMode: Boolean,
+    primaryColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 浅色主题预览
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .height(100.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White,
+            border = BorderStroke(
+                width = if (!isDarkMode) 2.dp else 1.dp,
+                color = if (!isDarkMode) primaryColor else Color.LightGray
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(primaryColor, CircleShape)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp)
+                        .background(Color.LightGray, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(12.dp)
+                        .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                
+                if (!isDarkMode) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = primaryColor
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 深色主题预览
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .height(100.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF121212),
+            border = BorderStroke(
+                width = if (isDarkMode) 2.dp else 1.dp,
+                color = if (isDarkMode) primaryColor else Color.DarkGray
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(primaryColor, CircleShape)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp)
+                        .background(Color.DarkGray, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(12.dp)
+                        .background(Color.DarkGray.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                
+                if (isDarkMode) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = primaryColor
+                        )
+                    }
+                }
+            }
         }
     }
 } 

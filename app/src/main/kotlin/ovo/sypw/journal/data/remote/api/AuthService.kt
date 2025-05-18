@@ -366,6 +366,14 @@ class AuthService @Inject constructor(private val context: Context) {
     }
 
     /**
+     * 检查用户是否已登录
+     * @return 如果用户已登录返回true，否则返回false
+     */
+    fun isLoggedIn(): Boolean {
+        return authState.value is AuthState.Authenticated
+    }
+
+    /**
      * 获取用户详情
      */
     suspend fun getUserProfile(): Result<User> = withContext(Dispatchers.IO) {

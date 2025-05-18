@@ -75,6 +75,10 @@ import ovo.sypw.journal.common.utils.AMapLocationUtils
 import ovo.sypw.journal.common.utils.PermissionUtils
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.LocationData
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.text.TextStyle
+
 
 /**
  * 地图选择器对话框
@@ -353,7 +357,7 @@ fun MapPickerDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
@@ -363,9 +367,13 @@ fun MapPickerDialog(
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 6.dp)
-                            .height(48.dp),
+                            .height(56.dp),
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium,
+                        textStyle = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Outlined.Search,
@@ -395,10 +403,9 @@ fun MapPickerDialog(
                         enabled = !isSearching && searchText.isNotEmpty(),
                         shape = CircleShape,
                         modifier = Modifier
-//                            .size(48.dp)
                             .width(80.dp)
-                            .padding(start = 6.dp),
-
+                            .height(56.dp)
+                            .padding(start = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Search,

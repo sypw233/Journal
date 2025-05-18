@@ -2,6 +2,9 @@ package ovo.sypw.journal.presentation.viewmodels
 
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.presentation.screens.JournalListState
@@ -28,71 +32,65 @@ private const val PAGE_SIZE = 10
  */
 @HiltViewModel
 class JournalListViewModel @Inject constructor(
-    private val repository: JournalRepository
+    private val repository: JournalRepository,
+    private val preferences: JournalPreferences
 ) : ViewModel() {
-
-    // 数据库ID计数
-    private var dataBaseIdCount = 0
-
-    // UI状态
-    private val _uiState = MutableStateFlow(JournalListState.Initial)
+    // UI 状态
+    private val _uiState = MutableStateFlow(JournalListState())
     val uiState: StateFlow<JournalListState> = _uiState.asStateFlow()
-
-    // 分页参数
-    private var currentPage = 0
-    private var isLoading = false
-
-    // 删除历史记录，用于撤销操作
+    
+    // 已删除日记的历史记录，用于撤销删除操作
     private val deletedJournals = LinkedList<JournalData>()
-
+    
+    // 分页相关
+    private var currentPage = 0
+    private var searchQuery = ""
+    
+    // 删除确认对话框状态
+    val showDeleteConfirmDialog = mutableStateOf(false)
+    var journalToDelete = mutableStateOf<Int?>(null)
+    
     init {
-        // 初始化加载第一页数据
         loadNextPage()
-
-        // 获取数据库ID计数
-        viewModelScope.launch {
-            dataBaseIdCount = repository.getJournalLastId() + 1
-        }
     }
-
+    
     /**
      * 加载下一页数据
      */
     fun loadNextPage() {
-        if (isLoading || !_uiState.value.hasMoreData) return
-
-        isLoading = true
+        if (!_uiState.value.hasMoreData || _uiState.value.isLoading) return
+        
         _uiState.update { it.copy(isLoading = true) }
-
+        
         viewModelScope.launch {
             try {
                 val offset = currentPage * PAGE_SIZE
-                val journals = repository.getJournalsPaged(offset, PAGE_SIZE)
-                Log.i(TAG, "Loading page $currentPage, now has ${journals.size}")
-
-                val hasMoreData = journals.isNotEmpty()
-                if (hasMoreData) {
-                    currentPage++
+                val journals = if (searchQuery.isEmpty()) {
+                    repository.getJournalsPaged(offset, PAGE_SIZE)
+                } else {
+                    repository.searchJournalsByContent(searchQuery)
                 }
-
+                
+                // 检查是否还有更多数据
+                val hasMore = journals.isNotEmpty() && journals.size >= PAGE_SIZE
+                
+                // 更新UI状态
                 _uiState.update { currentState ->
                     currentState.copy(
                         journals = currentState.journals + journals,
-                        hasMoreData = hasMoreData,
-                        isLoading = false,
-                        error = null,
+                        hasMoreData = hasMore,
+                        isLoading = false
                     )
+                }
+                
+                // 更新页码
+                if (journals.isNotEmpty()) {
+                    currentPage++
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading journals", e)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message ?: "Unknown error"
-                    )
-                }
-            } finally {
-                isLoading = false
+                _uiState.update { it.copy(isLoading = false) }
+                SnackBarUtils.showSnackBar("加载失败: ${e.message}")
             }
         }
     }
@@ -102,6 +100,24 @@ class JournalListViewModel @Inject constructor(
      * 从本地数据库删除日记
      */
     fun deleteJournal(id: Int) {
+        // 保存要删除的日记ID
+        journalToDelete.value = id
+        
+        // 使用DeleteConfirmationUtils中的delete方法
+        // 这里不直接调用，而是设置状态，由UI层处理
+        showDeleteConfirmDialog.value = preferences.isDeleteConfirmationEnabled()
+        
+        // 如果不需要确认，则直接删除
+        if (!preferences.isDeleteConfirmationEnabled()) {
+            performDelete(id)
+        }
+    }
+
+    /**
+     * 执行删除操作
+     * 实际执行删除日记的逻辑
+     */
+    fun performDelete(id: Int) {
         viewModelScope.launch {
             try {
                 // 先获取要删除的日记，用于撤销操作
@@ -124,6 +140,14 @@ class JournalListViewModel @Inject constructor(
                         canUndo = true
                     )
                 }
+                
+                // 使用带有撤销按钮的Snackbar
+                SnackBarUtils.showActionSnackBar(
+                    message = "已删除 #${id}",
+                    actionLabel = "撤销",
+                    onActionPerformed = { undoDelete() },
+                    onDismissed = { }
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error removing journal", e)
                 SnackBarUtils.showSnackBar("删除失败: ${e.message}")
@@ -131,7 +155,26 @@ class JournalListViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 确认删除
+     * 用于UI层确认删除后调用
+     */
+    fun confirmDelete() {
+        journalToDelete.value?.let { id ->
+            performDelete(id)
+            journalToDelete.value = null
+            showDeleteConfirmDialog.value = false
+        }
+    }
 
+    /**
+     * 取消删除
+     * 用于UI层取消删除确认
+     */
+    fun cancelDelete() {
+        journalToDelete.value = null
+        showDeleteConfirmDialog.value = false
+    }
 
     /**
      * 设置滚动状态
@@ -182,7 +225,11 @@ class JournalListViewModel @Inject constructor(
      * 获取下一个ID
      */
     private fun getNextId(): Int {
-        return dataBaseIdCount++
+        var nextId = 1
+        viewModelScope.launch {
+            nextId = repository.getJournalLastId() + 1
+        }
+        return nextId
     }
 
     /**

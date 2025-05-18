@@ -159,7 +159,7 @@ class DatabaseManagementViewModel @Inject constructor(
                                 item.copy(modified = fixedTimestamp)
                             }
                 } else {
-                    SnackBarUtils.showSnackBar("获取远程文件列表失败")
+//                    SnackBarUtils.showSnackBar("获取远程文件列表失败")
                     _remoteDbFiles.value = emptyList()
                 }
             } catch (e: Exception) {

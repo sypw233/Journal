@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -27,14 +28,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ovo.sypw.journal.common.utils.AutoSaveManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.LocationData
 import ovo.sypw.journal.presentation.components.JournalEditContent
+import ovo.sypw.journal.presentation.viewmodels.JournalEditViewModel
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 import java.util.Date
+import javax.inject.Inject
 
 /**
  * 日记编辑界面
@@ -46,7 +55,8 @@ fun JournalEditScreen(
     journalData: JournalData,
     onSave: (JournalData) -> Unit,
     onCancel: () -> Unit,
-    viewModel: JournalListViewModel? = null
+    viewModel: JournalListViewModel? = null,
+    editViewModel: JournalEditViewModel = hiltViewModel()
 ) {
     // 处理返回按钮
     BackHandler {
@@ -62,6 +72,37 @@ fun JournalEditScreen(
     
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
+    
+    // 获取生命周期所有者
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val autoSaveEnabled by editViewModel.autoSaveEnabled.collectAsStateWithLifecycle(initialValue = false)
+    
+    // 自动保存功能
+    DisposableEffect(lifecycleOwner) {
+        if (autoSaveEnabled) {
+            // 配置自动保存
+            editViewModel.startAutoSave(lifecycleOwner) {
+                // 构建更新后的日记数据
+                val updatedJournal = JournalData(
+                    id = journalData.id,
+                    isMarkdown = journalData.isMarkdown,
+                    date = editedDate,
+                    text = editedText,
+                    images = editedImages,
+                    location = editedLocationData
+                        ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
+                )
+                
+                // 保存更新后的日记
+                onSave(updatedJournal)
+            }
+        }
+        
+        // 清理
+        onDispose {
+            editViewModel.stopAutoSave()
+        }
+    }
     
     // 如果保存成功，关闭界面
     LaunchedEffect(isSaving) {
@@ -98,7 +139,7 @@ fun JournalEditScreen(
                 navigationIcon = {
                     IconButton(onClick = { onCancel() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
                         )
                     }

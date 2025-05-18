@@ -19,16 +19,13 @@ private const val TAG = "MainViewModel"
 /**
  * MainScreen的ViewModel
  * 负责管理UI状态和处理业务逻辑
- * 主要管理底部表单和滚动状态，列表数据由JournalListViewModel管理
+ * 主要管理底部表单和滚动状态
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: JournalRepository,
-    private val preferences: JournalPreferences,
+    private val preferences: JournalPreferences
 ) : ViewModel() {
-
-    // 创建JournalListViewModel实例
-    val journalListViewModel = JournalListViewModel(repository)
 
     // UI状态
     private val _uiState = MutableStateFlow<MainScreenState>(MainScreenState.Initial)
@@ -52,12 +49,12 @@ class MainViewModel @Inject constructor(
                 val sampleData = List(10) { index ->
                     JournalData(
                         id = index,
-                        text = "《恋爱猪脚饭》——工地与猪脚饭交织的浪漫邂逅！\n" + "\"当你以为人生已经烂尾时，命运的混凝土搅拌机正在偷偷运转！\"\n" + "破产老哥黄夏揣着最后的房租钱，逃进花都城中村的握手楼。本想和小茂等挂壁老哥一起吃猪脚饭躺平摆烂，却意外邂逅工地女神\"陈嘉怡\"，从而开启新的土木逆袭人生。\n" + "爽了，干土木的又爽了！即使在底层已经彻底有了的我们，也能通过奋斗拥有美好的明天！"
-                    )
+                        isMarkdown = true,
+                        text="# $index \n这是一个日记应用")
                 }
                 repository.insertJournals(sampleData)
-                // 重置JournalListViewModel以加载新数据
-                journalListViewModel.resetList()
+                // 设置首次启动标志为false
+                preferences.setFirstLaunch(false)
             }
         }
 
@@ -95,8 +92,19 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 添加新日记
+     */
     fun addJournal(newJournal: JournalData) {
-        journalListViewModel.addJournal(newJournal)
-
+        viewModelScope.launch {
+            try {
+                // 使用Repository直接添加日记
+                val id = repository.getJournalLastId() + 1
+                val journalWithId = newJournal.copy(id = id)
+                repository.insertJournal(journalWithId)
+            } catch (e: Exception) {
+                // 处理错误
+            }
+        }
     }
 }

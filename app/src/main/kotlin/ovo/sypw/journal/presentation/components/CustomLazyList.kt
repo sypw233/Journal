@@ -1,7 +1,16 @@
 package ovo.sypw.journal.presentation.components
 
+import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,9 +23,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,11 +41,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
-
 
 private const val TAG = "CustomLazyList"
 
@@ -39,6 +55,7 @@ private const val TAG = "CustomLazyList"
  * 自定义懒加载列表组件，使用ViewModel实现分页加载
  * 支持滑动删除功能
  */
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CustomLazyCardList(
@@ -106,6 +123,39 @@ fun CustomLazyCardList(
             journalListViewModel.resetScrollPosition()
         }
     }
+    
+    // 处理删除确认对话框
+    if (journalListViewModel.showDeleteConfirmDialog.value) {
+        val journalId = journalListViewModel.journalToDelete.value
+        val journalToDelete = journalList.find { it.id == journalId }
+        
+        AlertDialog(
+            onDismissRequest = { journalListViewModel.cancelDelete() },
+            title = { Text("删除确认") },
+            text = { 
+                Text(
+                    "确定要删除「${journalToDelete?.text?.take(20) ?: ""}${if ((journalToDelete?.text?.length ?: 0) > 20) "..." else ""}」吗？此操作无法撤销。",
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = { journalListViewModel.confirmDelete() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { journalListViewModel.cancelDelete() }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 
     // 显示编辑界面
     if (showEditScreen && editingJournal != null) {
@@ -156,20 +206,16 @@ fun CustomLazyCardList(
                             val id = journalData.id
                             journalListViewModel.deleteJournal(id)
                             Log.d(TAG, "CustomLazyCardList:  尝试删除$id")
-                            // 使用带有撤销按钮的Snackbar
-                            SnackBarUtils.showActionSnackBar(
-                                message = "已删除 #${id}",
-                                actionLabel = "撤销",
-                                onActionPerformed = { journalListViewModel.undoDelete() },
-                                onDismissed = { }
-                            )
                         },
                         onEdit = {
-                            // 处理右滑编辑，显示编辑界面
+                            // 处理滑动编辑，显示编辑界面
                             editingJournal = journalData
                             showEditScreen = true
                         },
-                        onClick = { onItemClick(journalData) }
+                        onClick = {
+                            // 处理点击事件
+                            onItemClick(journalData)
+                        }
                     )
                 }
             }
