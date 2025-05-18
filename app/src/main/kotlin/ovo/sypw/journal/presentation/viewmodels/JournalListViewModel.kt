@@ -39,6 +39,10 @@ class JournalListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(JournalListState())
     val uiState: StateFlow<JournalListState> = _uiState.asStateFlow()
     
+    // 日记列表 - 用于情感分析屏幕
+    private val _journals = MutableStateFlow<List<JournalData>>(emptyList())
+    val journals: StateFlow<List<JournalData>> = _journals.asStateFlow()
+    
     // 已删除日记的历史记录，用于撤销删除操作
     private val deletedJournals = LinkedList<JournalData>()
     
@@ -52,6 +56,23 @@ class JournalListViewModel @Inject constructor(
     
     init {
         loadNextPage()
+    }
+    
+    /**
+     * 加载所有日记 - 用于情感分析屏幕
+     */
+    fun loadJournals() {
+        viewModelScope.launch {
+            try {
+                val allJournalsFlow = repository.getAllJournals()
+                allJournalsFlow.collect { journals ->
+                    _journals.value = journals
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading all journals", e)
+                SnackBarUtils.showSnackBar("加载失败: ${e.message}")
+            }
+        }
     }
     
     /**

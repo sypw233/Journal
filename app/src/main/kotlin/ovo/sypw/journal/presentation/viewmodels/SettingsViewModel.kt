@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.JournalPreferences
+import ovo.sypw.journal.data.model.AIModels
+import ovo.sypw.journal.data.model.AISettings
 import ovo.sypw.journal.data.model.SettingsEvent
 import ovo.sypw.journal.data.model.SettingsState
 import java.io.File
@@ -129,6 +131,32 @@ class SettingsViewModel @Inject constructor(
             is SettingsEvent.SetReminderTime -> updateSetting(
                 { it.copy(reminderTime = event.time) },
                 { preferences.setReminderTime(event.time) }
+            )
+            
+            // AI设置
+            is SettingsEvent.SetAIModel -> updateAISettings(
+                { it.copy(modelType = event.modelType) },
+                { preferences.setAIModel(event.modelType) }
+            )
+            is SettingsEvent.SetUseHistoricalJournalsDefault -> updateAISettings(
+                { it.copy(useHistoricalJournalsDefault = event.enabled) },
+                { preferences.setUseHistoricalJournalsDefault(event.enabled) }
+            )
+            is SettingsEvent.SetHistoricalJournalsCountDefault -> updateAISettings(
+                { it.copy(historicalJournalsCountDefault = event.count) },
+                { preferences.setHistoricalJournalsCountDefault(event.count) }
+            )
+            is SettingsEvent.SetMaxContentLength -> updateAISettings(
+                { it.copy(maxContentLength = event.length) },
+                { preferences.setMaxContentLength(event.length) }
+            )
+            is SettingsEvent.SetDefaultPromptTemplate -> updateAISettings(
+                { it.copy(defaultPromptTemplate = event.template) },
+                { preferences.setDefaultPromptTemplate(event.template) }
+            )
+            is SettingsEvent.SetShowAdvancedSettingsDefault -> updateAISettings(
+                { it.copy(showAdvancedSettingsDefault = event.enabled) },
+                { preferences.setShowAdvancedSettingsDefault(event.enabled) }
             )
             
             // 高级设置
@@ -287,5 +315,25 @@ class SettingsViewModel @Inject constructor(
             "青色",
             "黑色"
         )
+    }
+    
+    /**
+     * 更新AI设置
+     */
+    private fun updateAISettings(
+        update: (AISettings) -> AISettings,
+        save: () -> Unit
+    ) {
+        _uiState.update { 
+            it.copy(aiSettings = update(it.aiSettings))
+        }
+        save() // 立即保存到preferences
+    }
+    
+    /**
+     * 获取可用的AI模型列表
+     */
+    fun getAvailableAIModels(): Map<String, String> {
+        return AIModels.AVAILABLE_MODELS
     }
 } 

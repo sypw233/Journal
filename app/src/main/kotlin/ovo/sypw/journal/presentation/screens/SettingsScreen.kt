@@ -8,7 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,79 +21,74 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.ToggleOff
-import androidx.compose.material.icons.filled.ToggleOn
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import ovo.sypw.journal.data.model.SettingsEvent
-import ovo.sypw.journal.data.model.SettingsState
-import ovo.sypw.journal.presentation.viewmodels.SettingsViewModel
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.width
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.model.AIModels
+import ovo.sypw.journal.data.model.SettingsEvent
+import ovo.sypw.journal.presentation.viewmodels.SettingsViewModel
 
 
 /**
@@ -112,8 +109,11 @@ fun SettingsScreen(
     
     // 主题颜色选择对话框
     var showColorPickerDialog by remember { mutableStateOf(false) }
+    
+    // AI模型选择对话框
+    var showModelPickerDialog by remember { mutableStateOf(false) }
 
-    var colorEgg by remember { mutableStateOf(0) }
+    var colorEgg by remember { mutableIntStateOf(0) }
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
@@ -151,6 +151,18 @@ fun SettingsScreen(
                 viewModel.handleEvent(SettingsEvent.SetPrimaryColor(index))
             },
             onDismiss = { showColorPickerDialog = false }
+        )
+    }
+    
+    // AI模型选择对话框
+    if (showModelPickerDialog) {
+        AIModelPickerDialog(
+            selectedModel = uiState.aiSettings.modelType,
+            onModelSelected = { modelType ->
+                viewModel.handleEvent(SettingsEvent.SetAIModel(modelType))
+                showModelPickerDialog = false
+            },
+            onDismiss = { showModelPickerDialog = false }
         )
     }
     
@@ -270,7 +282,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         
                         Icon(
-                            imageVector = Icons.Default.KeyboardArrowRight,
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
@@ -509,93 +521,273 @@ fun SettingsScreen(
             
             // 通知设置
             SettingsCategory(
-                title = "通知设置(待完成)",
+                title = "通知设置",
                 icon = Icons.Default.Notifications
             ) {
-                // 通知开关
                 SettingItem(
                     title = "应用通知",
-                    description = "启用应用通知功能",
+                    description = "启用应用推送通知",
                     icon = Icons.Default.Notifications
                 ) {
-                    Switch(
-                        checked = uiState.notificationsEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetNotifications(it)) 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.notificationsEnabled) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.notificationsEnabled,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetNotifications(it)) 
+                            }
+                        )
+                    }
+                }
+                
+                SettingItem(
+                    title = "日记提醒",
+                    description = "每日提醒你记录日记",
+                    icon = Icons.Default.Notifications
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.reminderEnabled) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.reminderEnabled,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetReminder(it)) 
+                            }
+                        )
+                    }
+                }
+                
+                if (uiState.reminderEnabled) {
+                    SettingItem(
+                        title = "提醒时间",
+                        description = "设置每日提醒时间",
+                        icon = Icons.Default.Notifications,
+                        onClick = {
+                            // 时间选择器逻辑
                         }
+                    ) {
+                        Text(
+                            text = uiState.reminderTime,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            
+            // AI设置
+            SettingsCategory(
+                title = "AI写作设置",
+                icon = Icons.Default.Create
+            ) {
+                // AI模型选择
+                SettingItem(
+                    title = "AI模型选择",
+                    description = "选择用于生成内容的AI模型",
+                    icon = Icons.Default.Settings,
+                    onClick = {
+                        // 打开模型选择对话框
+                        showModelPickerDialog = true
+                    }
+                ) {
+                    Text(
+                        text = AIModels.getModelDisplayName(uiState.aiSettings.modelType),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
                 
-                // 日记提醒
+                // 默认使用历史日记
                 SettingItem(
-                    title = "日记提醒",
-                    description = "每天提醒您记录日记",
-                    icon = Icons.Default.Notifications,
-                    enabled = uiState.notificationsEnabled
+                    title = "默认使用历史日记参考",
+                    description = "AI生成内容时默认参考历史日记风格",
+                    icon = Icons.Default.History
                 ) {
-                    Switch(
-                        checked = uiState.reminderEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetReminder(it)) 
-                        },
-                        enabled = uiState.notificationsEnabled
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.aiSettings.useHistoricalJournalsDefault) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.aiSettings.useHistoricalJournalsDefault,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetUseHistoricalJournalsDefault(it)) 
+                            }
+                        )
+                    }
+                }
+                
+                // 参考历史日记数量
+                if (uiState.aiSettings.useHistoricalJournalsDefault) {
+                    SettingItem(
+                        title = "默认参考日记数量",
+                        description = "AI生成内容时参考的历史日记数量",
+                        icon = Icons.Default.Numbers
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = { 
+                                    val newCount = (uiState.aiSettings.historicalJournalsCountDefault - 1).coerceAtLeast(1)
+                                    viewModel.handleEvent(SettingsEvent.SetHistoricalJournalsCountDefault(newCount))
+                                },
+                                enabled = uiState.aiSettings.historicalJournalsCountDefault > 1
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "减少数量"
+                                )
+                            }
+                            
+                            Text(
+                                text = "${uiState.aiSettings.historicalJournalsCountDefault}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            
+                            IconButton(
+                                onClick = { 
+                                    val newCount = (uiState.aiSettings.historicalJournalsCountDefault + 1).coerceAtMost(10)
+                                    viewModel.handleEvent(SettingsEvent.SetHistoricalJournalsCountDefault(newCount))
+                                },
+                                enabled = uiState.aiSettings.historicalJournalsCountDefault < 10
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "增加数量"
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // 默认显示高级设置
+                SettingItem(
+                    title = "默认显示高级设置",
+                    description = "AI写作界面默认展开高级设置选项",
+                    icon = Icons.Default.Settings
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (uiState.aiSettings.showAdvancedSettingsDefault) "开启" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Switch(
+                            checked = uiState.aiSettings.showAdvancedSettingsDefault,
+                            onCheckedChange = { 
+                                viewModel.handleEvent(SettingsEvent.SetShowAdvancedSettingsDefault(it)) 
+                            }
+                        )
+                    }
+                }
+                
+                // 内容长度上限
+                SettingItem(
+                    title = "内容长度上限",
+                    description = "AI生成内容的最大字符数",
+                    icon = Icons.Default.TextFields
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { 
+                                val newLength = (uiState.aiSettings.maxContentLength - 100).coerceAtLeast(200)
+                                viewModel.handleEvent(SettingsEvent.SetMaxContentLength(newLength))
+                            },
+                            enabled = uiState.aiSettings.maxContentLength > 200
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Remove,
+                                contentDescription = "减少长度"
+                            )
+                        }
+                        
+                        Text(
+                            text = "${uiState.aiSettings.maxContentLength}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        
+                        IconButton(
+                            onClick = { 
+                                val newLength = (uiState.aiSettings.maxContentLength + 100).coerceAtMost(1000)
+                                viewModel.handleEvent(SettingsEvent.SetMaxContentLength(newLength))
+                            },
+                            enabled = uiState.aiSettings.maxContentLength < 1000
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "增加长度"
+                            )
+                        }
+                    }
                 }
             }
             
             // 高级设置
-//            SettingsCategory(
-//                title = "高级设置",
-//                icon = Icons.Default.Tune
-//            ) {
-//                // 调试模式
-//                SettingItem(
-//                    title = "调试模式",
-//                    description = "启用应用调试功能",
-//                    icon = Icons.Default.Tune
-//                ) {
-//                    Switch(
-//                        checked = uiState.debugModeEnabled,
-//                        onCheckedChange = {
-//                            viewModel.handleEvent(SettingsEvent.SetDebugMode(it))
-//                        }
-//                    )
-//                }
-//
-////                 实验功能
-//                SettingItem(
-//                    title = "实验性功能",
-//                    description = "启用应用实验性功能",
-//                    icon = Icons.Default.Tune
-//                ) {
-//                    Switch(
-//                        checked = uiState.experimentalFeaturesEnabled,
-//                        onCheckedChange = {
-//                            viewModel.handleEvent(SettingsEvent.SetExperimentalFeatures(it))
-//                        }
-//                    )
-//                }
-//
-//                // 清除缓存
-//                SettingButton(
-//                    title = "清除缓存",
-//                    description = "清除应用缓存数据",
-//                    icon = Icons.Default.Refresh,
-//                    enabled = true
-//                ) {
-//                    viewModel.handleEvent(SettingsEvent.ClearCache)
-//                }
-//
-//                // 重置设置
-//                SettingButton(
-//                    title = "重置设置",
-//                    description = "将所有设置重置为默认值",
-//                    icon = Icons.Default.Refresh,
-//                    enabled = true
-//                ) {
-//                    viewModel.handleEvent(SettingsEvent.ResetSettings)
-//                }
-//            }
+            SettingsCategory(
+                title = "高级设置",
+                icon = Icons.Default.Settings
+            ) {
+                // 调试模式
+                SettingItem(
+                    title = "调试模式",
+                    description = "启用应用调试功能",
+                    icon = Icons.Default.Settings
+                ) {
+                    Switch(
+                        checked = uiState.debugModeEnabled,
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetDebugMode(it))
+                        }
+                    )
+                }
+
+                // 实验功能
+                SettingItem(
+                    title = "实验性功能",
+                    description = "启用应用实验性功能",
+                    icon = Icons.Default.Settings
+                ) {
+                    Switch(
+                        checked = uiState.experimentalFeaturesEnabled,
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetExperimentalFeatures(it))
+                        }
+                    )
+                }
+
+                // 清除缓存
+                SettingButton(
+                    title = "清除缓存",
+                    description = "清除应用缓存数据",
+                    icon = Icons.Default.Refresh,
+                    enabled = true
+                ) {
+                    viewModel.handleEvent(SettingsEvent.ClearCache)
+                }
+
+                // 重置设置
+                SettingButton(
+                    title = "重置设置",
+                    description = "将所有设置重置为默认值",
+                    icon = Icons.Default.Refresh,
+                    enabled = true
+                ) {
+                    viewModel.handleEvent(SettingsEvent.ResetSettings)
+                }
+            }
             
             // 关于信息
             SettingItem(
@@ -613,9 +805,13 @@ fun SettingsScreen(
                         SnackBarUtils.showSnackBar("Lp6NmX4bT2Rq9Kf7")
                     }
                     colorEgg+=1
-
                 }
             ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "查看详情",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
             }
             
             Spacer(modifier = Modifier.height(80.dp)) // 为FAB留出空间
@@ -771,7 +967,7 @@ fun SettingItem(
         
         control()
     }
-    
+
     HorizontalDivider(
         modifier = Modifier.padding(start = 56.dp, end = 16.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -821,7 +1017,7 @@ fun ColorPickerDialog(
     onDismiss: () -> Unit
 ) {
     // 添加本地状态管理当前选中颜色
-    var currentSelectedIndex by remember { mutableStateOf(selectedIndex) }
+    var currentSelectedIndex by remember { mutableIntStateOf(selectedIndex) }
     
     // 显示选中的颜色索引和名称，方便调试
     val colorName = colors[currentSelectedIndex]
@@ -899,7 +1095,7 @@ fun ColorPickerDialog(
                 ) {
                     Text("恢复默认颜色")
                 }
-                
+
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -1150,4 +1346,97 @@ fun ThemePreviewCard(
             }
         }
     }
+}
+
+/**
+ * AI模型选择对话框
+ * 按照模型分类展示不同系列的模型
+ */
+@Composable
+fun AIModelPickerDialog(
+    selectedModel: String,
+    onModelSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // 获取按分类的模型列表
+    val modelsByCategory = AIModels.getModelsByCategory()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择AI模型") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // 按照分类展示模型
+                modelsByCategory.forEach { (category, models) ->
+                    // 分类标题
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    
+                    // 分类下的模型列表
+                    models.forEach { (modelId, displayName) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onModelSelected(modelId) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = modelId == selectedModel,
+                                onClick = { onModelSelected(modelId) }
+                            )
+                            
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
+                            ) {
+                                // 提取模型名称和功能说明
+                                val nameWithDescription = displayName.split("（")
+                                val modelName = nameWithDescription[0]
+                                val modelDescription = if (nameWithDescription.size > 1) 
+                                    "（${nameWithDescription[1]}" else ""
+                                
+                                Text(
+                                    text = modelName,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                
+                                if (modelDescription.isNotEmpty()) {
+                                    Text(
+                                        text = modelDescription,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 类别分隔符
+                    if (category != modelsByCategory.keys.last()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 } 

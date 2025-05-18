@@ -104,7 +104,7 @@ dependencies {
     
     // 添加Material图标支持
     implementation(libs.androidx.material)
-//    implementation(libs.material.icons.core)
+    implementation(libs.material.icons.core)
     implementation(libs.material.icons.extended)
     
     // 添加Navigation导航支持
@@ -138,4 +138,14 @@ dependencies {
     implementation(libs.compose.markdown)
 
     implementation (libs.tasks.genai)
+
+    // ML Kit 自然语言处理库
+    //noinspection UseTomlInstead
+    implementation("com.google.mlkit:language-id:17.0.6")
+    implementation(libs.translate)
+    
+    // TensorFlow Lite
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.task.text)
+    implementation(libs.tensorflow.lite.gpu) // 可选，用于GPU加速
 }

@@ -1,13 +1,10 @@
 package ovo.sypw.journal
 
 import android.app.Application
-import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.utils.AMapLocationUtils
-import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.ImageLoadUtils
-import ovo.sypw.journal.data.remote.api.AuthService
+import ovo.sypw.journal.di.AppDependencyManager
 import javax.inject.Inject
 
 /**
@@ -17,41 +14,28 @@ import javax.inject.Inject
 @HiltAndroidApp
 class JournalApplication : Application() {
     
-    // 注入AuthService
+    // 注入依赖管理器
     @Inject
-    lateinit var authService: AuthService
+    lateinit var dependencyManager: AppDependencyManager
     
-    // 注入自动同步管理器
-    @Inject
-    lateinit var autoSyncManager: AutoSyncManager
+    // 单例实例
+    companion object {
+        private lateinit var instance: JournalApplication
+        
+        fun getInstance(): JournalApplication {
+            return instance
+        }
+    }
     
     override fun onCreate() {
         super.onCreate()
+        instance = this
         
         // 初始化工具类
         AMapLocationUtils.initLocationClient(this)
         ImageLoadUtils.init(this)
         
-        // 应用启动时验证token
-        validateTokenOnAppStart()
-    }
-    
-    /**
-     * 在应用启动时验证token有效性
-     */
-    private fun validateTokenOnAppStart() {
-        Thread {
-            try {
-                // 注意：不能直接在Application的onCreate中调用协程，因此使用线程
-                Thread.sleep(500) // 等待组件初始化完成
-                
-                // 使用runBlocking来调用suspend函数
-                kotlinx.coroutines.runBlocking {
-                    authService.validateToken()
-                }
-            } catch (e: Exception) {
-                // 忽略错误，登录状态会在AuthService中处理
-            }
-        }.start()
+        // 使用依赖管理器初始化所有依赖项
+        dependencyManager.initializeAll()
     }
 }

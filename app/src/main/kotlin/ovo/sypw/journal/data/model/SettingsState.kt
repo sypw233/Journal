@@ -40,6 +40,9 @@ data class SettingsState(
     val reminderEnabled: Boolean = false,
     val reminderTime: String = "21:00",
     
+    // AI设置
+    val aiSettings: AISettings = AISettings(),
+    
     // 高级设置
     val debugModeEnabled: Boolean = false,
     val experimentalFeaturesEnabled: Boolean = false
@@ -86,6 +89,14 @@ sealed class SettingsEvent {
     data class SetNotifications(val enabled: Boolean) : SettingsEvent()
     data class SetReminder(val enabled: Boolean) : SettingsEvent()
     data class SetReminderTime(val time: String) : SettingsEvent()
+    
+    // AI设置
+    data class SetAIModel(val modelType: String) : SettingsEvent()
+    data class SetUseHistoricalJournalsDefault(val enabled: Boolean) : SettingsEvent()
+    data class SetHistoricalJournalsCountDefault(val count: Int) : SettingsEvent()
+    data class SetMaxContentLength(val length: Int) : SettingsEvent()
+    data class SetDefaultPromptTemplate(val template: String) : SettingsEvent()
+    data class SetShowAdvancedSettingsDefault(val enabled: Boolean) : SettingsEvent()
     
     // 高级设置
     data class SetDebugMode(val enabled: Boolean) : SettingsEvent()

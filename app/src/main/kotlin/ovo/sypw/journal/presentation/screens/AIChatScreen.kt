@@ -1,6 +1,9 @@
 package ovo.sypw.journal.presentation.screens
 
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -26,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.HistoryToggleOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,10 +43,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +72,7 @@ import coil3.compose.AsyncImage
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.common.utils.ImageUriUtils
 import ovo.sypw.journal.presentation.viewmodels.AIChatViewModel
 
 /**
@@ -99,12 +109,26 @@ fun AIChatScreen(
     var showModelDropdown by remember { mutableStateOf(false) }
 
     // 图片选择器
+    val context = LocalContext.current
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            selectedImages = uris
-            SnackBarUtils.showSnackBar("已选择${uris.size}张图片")
+            val processedUris = uris.mapNotNull { uri ->
+                try {
+                    // 使用工具类处理URI权限
+                    ImageUriUtils.takePersistablePermission(context, uri)
+                    uri
+                } catch (e: Exception) {
+                    Log.e("AIChatScreen", "处理图片URI错误: ${e.message}")
+                    null
+                }
+            }
+            
+            selectedImages = processedUris
+            if (processedUris.isNotEmpty()) {
+                SnackBarUtils.showSnackBar("已选择${processedUris.size}张图片")
+            }
         }
     }
 
@@ -113,6 +137,52 @@ fun AIChatScreen(
             TopAppBar(
                 title = { },
                 actions = {
+                    // 上下文切换按钮
+                    val tooltipState = rememberTooltipState()
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.extraSmall
+                            ) {
+                                Text(
+                                    text = if (uiState.contextEnabled) "上下文已启用" else "上下文已禁用",
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        },
+                        state = tooltipState
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (uiState.contextEnabled) 
+                                    Icons.Default.History 
+                                else 
+                                    Icons.Default.HistoryToggleOff,
+                                contentDescription = "上下文状态",
+                                tint = if (uiState.contextEnabled) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Switch(
+                                checked = uiState.contextEnabled,
+                                onCheckedChange = { enabled ->
+                                    viewModel.toggleContext(enabled)
+                                    SnackBarUtils.showSnackBar(
+                                        if (enabled) "上下文已启用，AI将记住对话历史" 
+                                        else "上下文已禁用，每次对话独立"
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                    }
+                    
                     // 模型选择下拉菜单
                     Box {
                         TextButton(
@@ -210,7 +280,7 @@ fun AIChatScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 选择图片按钮
-                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                    IconButton(onClick = { imagePickerLauncher.launch(arrayOf("image/*")) }) {
                         Icon(Icons.Default.Face, contentDescription = "选择图片")
                     }
 

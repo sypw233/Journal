@@ -19,10 +19,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.AssistWalker
+import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
@@ -85,6 +90,9 @@ fun TopBarView(
     onShowLoginDialog: () -> Unit,
     onSearchClick: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenDatabaseManagement: () -> Unit = {},
+    onOpenSentimentAnalysis: () -> Unit = {},
+    onOpenAIChat: () -> Unit = {},
     searchButtonAlpha: Float = 1f,
     onSearchButtonPosition: ((androidx.compose.ui.layout.LayoutCoordinates) -> Unit)? = null
 ) {
@@ -133,7 +141,7 @@ fun TopBarView(
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 // 添加同步按钮
                 autoSyncManager?.let {
                     SyncStatusButton(
@@ -149,9 +157,11 @@ fun TopBarView(
                     onOpenTestActivity = {
                         val intent = Intent(context, TestActivity::class.java)
                         forActivityResult.launch(intent)
-//                        SnackBarUtils.showSnackBar("Turn to TestActivity")
                     },
-                    onOpenSettings = onOpenSettings
+                    onOpenSettings = onOpenSettings,
+                    onOpenDatabaseManagement = onOpenDatabaseManagement,
+                    onOpenSentimentAnalysis = onOpenSentimentAnalysis,
+                    onOpenAIChat = onOpenAIChat
                 )
             }
         },
@@ -164,7 +174,10 @@ fun CustomDropdownMenu(
     authViewModel: AuthViewModel,
     onShowLoginDialog: () -> Unit,
     onOpenTestActivity: () -> Unit,
-    onOpenSettings: () -> Unit = {}
+    onOpenSettings: () -> Unit = {},
+    onOpenDatabaseManagement: () -> Unit = {},
+    onOpenSentimentAnalysis: () -> Unit = {},
+    onOpenAIChat: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
@@ -179,7 +192,7 @@ fun CustomDropdownMenu(
     } else {
         null
     }
-    
+
     val username = user?.username ?: "未登录"
 
     // 显示用户详情对话框
@@ -199,7 +212,7 @@ fun CustomDropdownMenu(
                 .padding(4.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.MoreVert, 
+                imageVector = Icons.Default.MoreVert,
                 contentDescription = "更多选项",
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -281,7 +294,7 @@ fun CustomDropdownMenu(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        
+
                         if (isLoggedIn && !user?.email.isNullOrEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -312,18 +325,18 @@ fun CustomDropdownMenu(
 
             // 菜单项 - 设置
             DropdownMenuItem(
-                text = { 
+                text = {
                     Text(
                         "设置",
                         style = MaterialTheme.typography.bodyMedium
-                    ) 
+                    )
                 },
-                leadingIcon = { 
+                leadingIcon = {
                     Icon(
-                        Icons.Outlined.Settings, 
+                        Icons.Outlined.Settings,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
-                    ) 
+                    )
                 },
                 onClick = {
                     expanded = false
@@ -331,43 +344,108 @@ fun CustomDropdownMenu(
                 },
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
-
-            // 菜单项 - 关于
+            // 菜单项 - 数据库管理
             DropdownMenuItem(
-                text = { 
+                text = {
                     Text(
-                        "关于",
+                        "数据库管理",
                         style = MaterialTheme.typography.bodyMedium
-                    ) 
+                    )
                 },
-                leadingIcon = { 
+                leadingIcon = {
                     Icon(
-                        Icons.Outlined.Info, 
+                        Icons.Outlined.DataUsage,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
-                    ) 
+                    )
                 },
                 onClick = {
                     expanded = false
-                    /* 打开关于页面 */
+                    onOpenDatabaseManagement()
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
+            // 菜单项 - 情感分析
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "情感分析(施工中...)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onOpenSentimentAnalysis()
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
+            // 菜单项 - AI聊天
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "AI聊天",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onOpenAIChat()
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+
+            // 菜单项 - 关于
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        "关于",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    SnackBarUtils.showSnackBar("什么都没有")
                 },
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
 
             // 菜单项 - 测试页面
             DropdownMenuItem(
-                text = { 
+                text = {
                     Text(
                         "测试页面",
                         style = MaterialTheme.typography.bodyMedium
-                    ) 
+                    )
                 },
-                leadingIcon = { 
+                leadingIcon = {
                     Icon(
-                        Icons.Outlined.AssistWalker, 
+                        Icons.Outlined.AssistWalker,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
-                    ) 
+                    )
                 },
                 onClick = {
                     expanded = false

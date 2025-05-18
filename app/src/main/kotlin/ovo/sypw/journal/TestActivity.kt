@@ -22,10 +22,10 @@ class TestActivity : ComponentActivity() {
         AMapLocationUtils.initLocationClient(this)
         setContent {
             JournalTheme {
-                DatabaseManagementScreen(
-                    onNavigateBack = { finish() },
-                    viewModel = viewModel
-                )
+//                DatabaseManagementScreen(
+//                    onBackClick = { finish() },
+//                    viewModel = viewModel
+//                )
             }
         }
     }

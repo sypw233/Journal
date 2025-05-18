@@ -230,6 +230,15 @@ private fun MainScreenContent(
                     // 导航到设置界面
                     navController?.navigate("settings")
                 },
+                onOpenDatabaseManagement = {
+                    navController?.navigate("database_management")
+                },
+                onOpenSentimentAnalysis = {
+                    navController?.navigate("sentiment_analysis")
+                },
+                onOpenAIChat = {
+                    navController?.navigate("ai_chat")
+                },
                 searchButtonAlpha = alphaAnimation.value,
                 onSearchButtonPosition = { coordinates ->
                     searchButtonPositionRef.value = coordinates

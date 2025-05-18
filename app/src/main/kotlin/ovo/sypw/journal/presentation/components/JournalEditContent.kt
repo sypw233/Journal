@@ -1,5 +1,6 @@
 package ovo.sypw.journal.presentation.components
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.AspectRatio
+import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -108,11 +110,21 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import android.os.Build
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material3.IconToggleButton
+import ovo.sypw.journal.common.utils.ImageUriUtils
+import ovo.sypw.journal.common.utils.ImagePickerUtils
+import ovo.sypw.journal.di.AppDependencyManager
+import ovo.sypw.journal.JournalApplication
+import androidx.compose.ui.graphics.Color
 
 /**
  * 日记编辑内容组件
  * 用于编辑现有日记或创建新日记
  */
+@SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun JournalEditContent(
@@ -129,6 +141,11 @@ fun JournalEditContent(
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
 
+    // 获取依赖管理器
+    val dependencyManager = remember {
+        (context.applicationContext as JournalApplication).dependencyManager
+    }
+
     // 创建可变状态来存储编辑中的数据
     var journalText by remember { mutableStateOf(initialJournalData?.text ?: "") }
     var journalDate by remember { mutableStateOf(initialJournalData?.date ?: Date()) }
@@ -137,14 +154,25 @@ fun JournalEditContent(
     var isMarkdown by remember { mutableStateOf(initialJournalData?.isMarkdown == true) }
     var showMarkdownPreview by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
-    var showExpandedPreview by remember { mutableStateOf(true) }
+    var showExpandedPreview by remember { mutableStateOf(isMarkdown) }
     var previewRatioMode by remember { mutableStateOf(0) } // 0: 60/40, 1: 50/50, 2: 40/60
     var showFullScreenEditor by remember { mutableStateOf(false) }
-    
+
+    // AI写作对话框状态
+    var showAIWritingDialog by remember { mutableStateOf(false) }
+
+    // 监听Markdown状态变化，确保非Markdown模式下不显示预览
+    LaunchedEffect(isMarkdown) {
+        if (!isMarkdown) {
+            showExpandedPreview = false
+            showMarkdownPreview = false
+        }
+    }
+
     // 格式化日期显示
     val dateFormat = remember { SimpleDateFormat("yyyy年MM月dd日 EEEE", Locale.CHINESE) }
     val formattedDate = remember(journalDate) { dateFormat.format(journalDate) }
-    
+
     // 动画比例值
     val editRatio by animateFloatAsState(
         targetValue = when (previewRatioMode) {
@@ -158,7 +186,7 @@ fun JournalEditContent(
         ),
         label = "editRatio"
     )
-    
+
     val previewRatio by animateFloatAsState(
         targetValue = when (previewRatioMode) {
             0 -> 0.4f
@@ -172,13 +200,13 @@ fun JournalEditContent(
         label = "previewRatio"
     )
 
-    
-    val selectedImages = remember { 
+
+    val selectedImages = remember {
         mutableStateListOf<Any>().apply {
             initialJournalData?.images?.let { addAll(it) }
         }
     }
-    
+
     // 动画高度 - 展开时使用屏幕高度的80%
     val screenHeight = configuration.screenHeightDp
     val textFieldHeight by animateFloatAsState(
@@ -186,7 +214,7 @@ fun JournalEditContent(
         animationSpec = tween(300),
         label = "textFieldHeight"
     )
-    
+
     // 初始化日记数据
     LaunchedEffect(initialJournalData) {
         journalText = initialJournalData?.text ?: ""
@@ -197,58 +225,56 @@ fun JournalEditContent(
         selectedImages.clear()
         initialJournalData?.images?.let { selectedImages.addAll(it) }
     }
-    
+
     // 当数据变化时，通知父组件
     LaunchedEffect(journalText) {
         onTextChanged?.invoke(journalText)
     }
-    
+
     LaunchedEffect(journalDate) {
         onDateChanged?.invoke(journalDate)
     }
-    
+
     LaunchedEffect(locationName, locationData) {
         onLocationChanged?.invoke(locationName, locationData)
     }
-    
+
     LaunchedEffect(selectedImages.size) {
         onImagesChanged?.invoke(selectedImages.toMutableList())
     }
     LaunchedEffect(isMarkdown) {
         onIsMarkdownChanged?.invoke(isMarkdown)
     }
-    
+
     // 日期选择器状态
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = journalDate.time)
-    
+
     // 地图选择器状态
     var showMapPicker by remember { mutableStateOf(false) }
 
-    // 图片选择器（多选）
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            // 获取持久化URI权限，确保应用重启后仍能访问图片
-            var successCount = 0
-            uris.forEach { uri ->
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                    selectedImages.add(uri)
-                    successCount++
-                } catch (e: Exception) {
-                    SnackBarUtils.showSnackBar("无法获取某些图片的持久访问权限: ${e.message}")
+    // 使用新的ImagePickerUtils处理图片选择
+    val imagePickerLauncher = ImagePickerUtils.rememberImagePicker(
+        onImagesPicked = { uris: List<Uri> ->
+            if (uris.isNotEmpty()) {
+                // 获取持久化URI权限，确保应用重启后仍能访问图片
+                var successCount = 0
+                uris.forEach { uri ->
+                    try {
+                        // 添加到选中图片列表
+                        selectedImages.add(uri)
+                        successCount++
+                    } catch (e: Exception) {
+                        Log.e("JournalEditContent", "处理图片URI错误", e)
+                        SnackBarUtils.showSnackBar("无法获取某些图片的持久访问权限: ${e.message}")
+                    }
+                }
+                if (successCount > 0) {
+                    SnackBarUtils.showSnackBar("已添加${successCount}张图片")
                 }
             }
-            if (successCount > 0) {
-                SnackBarUtils.showSnackBar("已添加${successCount}张图片")
-            }
         }
-    }
+    )
 
     Column(
         modifier = modifier
@@ -267,7 +293,6 @@ fun JournalEditContent(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 1.dp
             ) {
                 Row(
@@ -289,7 +314,6 @@ fun JournalEditContent(
                     Text(
                         text = formattedDate,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -304,7 +328,7 @@ fun JournalEditContent(
             // 位置选择
             OutlinedTextField(
                 value = locationName,
-                onValueChange = { 
+                onValueChange = {
                     locationName = it
                     // 位置名称变更时，重置位置数据
                     if (locationData != null && locationData?.name != it) {
@@ -326,7 +350,7 @@ fun JournalEditContent(
                 },
                 trailingIcon = {
                     if (locationName.isNotEmpty()) {
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             locationName = ""
                             locationData = null
                         }) {
@@ -348,7 +372,7 @@ fun JournalEditContent(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            
+
                             // 获取当前位置按钮
                             IconButton(
                                 onClick = {
@@ -402,185 +426,199 @@ fun JournalEditContent(
             }
         )
 
-        // 只在非展开模式下显示Markdown切换
-        AnimatedVisibility(
-            visible = !isExpanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            // Markdown切换
+        // 文字内容
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 通用顶部按钮行 - 在所有模式下都使用同一个布局
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "使用Markdown格式",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = isMarkdown,
-                    onCheckedChange = { isMarkdown = it
-                        Log.d("TAG", "JournalEditContent: $it")}
-                )
-            }
-        }
+                // AI写作按钮
+                IconButton(
+                    onClick = { showAIWritingDialog = true },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Create,
+                        contentDescription = "AI写作助手",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-        // 文字内容
-        Column(modifier = Modifier.fillMaxWidth()) {
-            if (isExpanded && isMarkdown) {
-                // 展开模式下的上下预览
+                Spacer(modifier = Modifier.weight(1f))
+
+                // 预览切换按钮 - 仅在展开模式且启用Markdown时显示
+                if (isExpanded && isMarkdown) {
+                    IconButton(
+                        onClick = { showExpandedPreview = !showExpandedPreview },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        // 使用AnimatedContent为图标添加旋转过渡效果
+                        AnimatedContent(
+                            targetState = showExpandedPreview,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(300)) togetherWith
+                                        fadeOut(animationSpec = tween(150))
+                            },
+                            label = "PreviewIcon"
+                        ) { isPreviewVisible ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // 为图标添加脉动动画（当预览隐藏时）
+                                val infiniteTransition =
+                                    rememberInfiniteTransition(label = "ButtonPulse")
+                                val scale by infiniteTransition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = if (!isPreviewVisible) 1.2f else 1f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(800, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Reverse
+                                    ),
+                                    label = "PulseScale"
+                                )
+
+                                Icon(
+                                    imageVector = if (isPreviewVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = if (isPreviewVisible) "隐藏预览" else "显示预览",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                        },
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    // 比例切换按钮 - 仅在展开模式且启用Markdown且显示预览时可用
+                    if (showExpandedPreview) {
+                        // 添加轻微的旋转动画效果
+                        val infiniteTransition =
+                            rememberInfiniteTransition(label = "RatioButtonRotation")
+                        val rotation by infiniteTransition.animateFloat(
+                            initialValue = -2f,
+                            targetValue = 2f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1500, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "Rotation"
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        IconButton(
+                            onClick = {
+                                // 循环切换三种比例模式
+                                previewRatioMode = (previewRatioMode + 1) % 3
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AspectRatio,
+                                contentDescription = "调整比例",
+                                modifier = Modifier.graphicsLayer {
+                                    rotationZ = rotation
+                                },
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Markdown切换按钮 - 所有模式下都显示
+                IconToggleButton(
+                    checked = isMarkdown,
+                    onCheckedChange = { 
+                        isMarkdown = it
+                        onIsMarkdownChanged?.invoke(it)
+                        if (!it) {
+                            // 如果切换到非Markdown模式，关闭预览
+                            showExpandedPreview = false
+                            showMarkdownPreview = false
+                        }
+                    },
+                    modifier = Modifier
+                        .background(
+                            color = if (isMarkdown) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                        contentDescription = if (isMarkdown) "关闭Markdown" else "启用Markdown",
+                        tint = if (isMarkdown) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 保存按钮 - 仅在展开模式下显示
+                if (isExpanded && showSaveButton) {
+                    TextButton(
+                        onClick = {
+                            // 创建新的日记对象，保留原始ID
+                            val newJournal = JournalData(
+                                id = initialJournalData?.id ?: 0,
+                                date = journalDate,
+                                text = journalText,
+                                images = selectedImages.toMutableList(),
+                                location = locationData
+                                    ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null),
+                                isMarkdown = isMarkdown
+                            )
+                            onSave(newJournal)
+                            SnackBarUtils.showSnackBar("日记已保存")
+                            isExpanded = false
+                        }
+                    ) {
+                        Text("保存")
+                    }
+                }
+
+                // 展开/收起按钮
+                IconButton(
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (isExpanded) "收起" else "展开",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            
+            // 内容编辑区域 - 根据状态显示不同的编辑界面
+            if (isExpanded) {
+                // 展开模式
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(textFieldHeight.dp)
                         .padding(bottom = 4.dp)
                 ) {
-                    // 编辑区域标题
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "编辑内容",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        // 预览切换按钮
-                        TextButton(
-                            onClick = { showExpandedPreview = !showExpandedPreview },
-                            modifier = Modifier.padding(end = 4.dp)
-                        ) {
-                            // 使用AnimatedContent为图标添加旋转过渡效果
-                            AnimatedContent(
-                                targetState = showExpandedPreview,
-                                transitionSpec = {
-                                    fadeIn(animationSpec = tween(300)) togetherWith
-                                    fadeOut(animationSpec = tween(150))
-                                },
-                                label = "PreviewIcon"
-                            ) { isPreviewVisible ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // 为图标添加脉动动画（当预览隐藏时）
-                                    val infiniteTransition = rememberInfiniteTransition(label = "ButtonPulse")
-                                    val scale by infiniteTransition.animateFloat(
-                                        initialValue = 1f,
-                                        targetValue = if (!isPreviewVisible) 1.2f else 1f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(800, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Reverse
-                                        ),
-                                        label = "PulseScale"
-                                    )
-                                    
-                                    Icon(
-                                        imageVector = if (isPreviewVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                        contentDescription = if (isPreviewVisible) "隐藏预览" else "显示预览",
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .graphicsLayer {
-                                                scaleX = scale
-                                                scaleY = scale
-                                            },
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (isPreviewVisible) "隐藏预览" else "显示预览")
-                                }
-                            }
-                        }
-                        
-                        // 比例切换按钮（仅在显示预览时可用）
-                        if (showExpandedPreview) {
-                            // 添加轻微的旋转动画效果
-                            val infiniteTransition = rememberInfiniteTransition(label = "RatioButtonRotation")
-                            val rotation by infiniteTransition.animateFloat(
-                                initialValue = -2f,
-                                targetValue = 2f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1500, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Reverse
-                                ),
-                                label = "Rotation"
-                            )
-                            
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                IconButton(
-                                    onClick = { 
-                                        // 循环切换三种比例模式
-                                        previewRatioMode = (previewRatioMode + 1) % 3
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AspectRatio,
-                                        contentDescription = "调整比例",
-                                        modifier = Modifier.graphicsLayer {
-                                            rotationZ = rotation
-                                        },
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                            }
-                        }
-                        
-                        // 保存按钮
-                        if (showSaveButton) {
-                            TextButton(
-                                onClick = {
-                                    // 创建新的日记对象，保留原始ID
-                                    val newJournal = JournalData(
-                                        id = initialJournalData?.id ?: 0,
-                                        date = journalDate,
-                                        text = journalText,
-                                        images = selectedImages.toMutableList(),
-                                        location = locationData
-                                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null),
-                                        isMarkdown = isMarkdown
-                                    )
-                                    onSave(newJournal)
-                                    SnackBarUtils.showSnackBar("日记已保存")
-                                    isExpanded = false
-                                }
-                            ) {
-                                Text("保存")
-                            }
-                        }
-                        
-                        IconButton(
-                            onClick = { isExpanded = false },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.ExpandLess,
-                                contentDescription = "收起",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    
                     // 使用AnimatedContent为整个编辑区域添加过渡动画
                     AnimatedContent(
-                        targetState = showExpandedPreview,
+                        targetState = if(isMarkdown) showExpandedPreview else false, // 非Markdown模式下强制关闭预览
                         transitionSpec = {
-                            fadeIn(animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )) togetherWith fadeOut(animationSpec = tween(150))
+                            fadeIn(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            ) togetherWith fadeOut(animationSpec = tween(150))
                         },
                         label = "PreviewToggle",
                         modifier = Modifier.weight(1f)
                     ) { showPreview ->
-                        if (showPreview) {
+                        if (showPreview && isMarkdown) {
                             // 分屏模式：上下显示编辑区和预览区
                             Column(
                                 modifier = Modifier
@@ -602,15 +640,11 @@ fun JournalEditContent(
                                         .fillMaxWidth()
                                         .weight(editRatio),
                                     shape = RoundedCornerShape(12.dp),
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                                    )
                                 )
-                                
+
                                 // 分隔线
                                 Spacer(modifier = Modifier.height(8.dp))
-                                
+
                                 // 预览区域
                                 Surface(
                                     modifier = Modifier
@@ -618,7 +652,6 @@ fun JournalEditContent(
                                         .weight(previewRatio)
                                         .animateContentSize(),
                                     shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                                 ) {
                                     Column(
                                         modifier = Modifier
@@ -629,7 +662,6 @@ fun JournalEditContent(
                                         Text(
                                             text = "Markdown预览",
                                             style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(bottom = 8.dp)
                                         )
                                         MarkdownText(
@@ -655,88 +687,12 @@ fun JournalEditContent(
                                         )
                                     ),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                                )
                             )
                         }
                     }
-                }
-            } else if (isExpanded) {
-                // 展开模式下的纯编辑（非Markdown）
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(textFieldHeight.dp)
-                        .padding(bottom = 4.dp)
-                ) {
-                    // 标题栏
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "全屏编辑",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        // 保存按钮
-                        if (showSaveButton) {
-                            TextButton(
-                                onClick = {
-                                    // 创建新的日记对象，保留原始ID
-                                    val newJournal = JournalData(
-                                        id = initialJournalData?.id ?: 0,
-                                        date = journalDate,
-                                        text = journalText,
-                                        images = selectedImages.toMutableList(),
-                                        location = locationData
-                                            ?: (if (locationName.isNotEmpty()) LocationData(name = locationName) else null),
-                                        isMarkdown = isMarkdown
-                                    )
-                                    onSave(newJournal)
-                                    SnackBarUtils.showSnackBar("日记已保存")
-                                    isExpanded = false
-                                }
-                            ) {
-                                Text("保存")
-                            }
-                        }
-                        
-                        IconButton(
-                            onClick = { isExpanded = false },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.ExpandLess,
-                                contentDescription = "收起",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    
-                    // 编辑区域
-                    OutlinedTextField(
-                        value = journalText,
-                        onValueChange = { journalText = it },
-                        placeholder = { Text("写下今天的故事...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
                 }
             } else {
-                // 普通模式
+                // 非展开模式
                 OutlinedTextField(
                     value = journalText,
                     onValueChange = { journalText = it },
@@ -747,20 +703,10 @@ fun JournalEditContent(
                         .height(textFieldHeight.dp)
                         .padding(bottom = 4.dp),
                     shape = RoundedCornerShape(12.dp),
-                    trailingIcon = {
-                        IconButton(onClick = { isExpanded = !isExpanded }) {
-                            Icon(
-                                imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                                contentDescription = if (isExpanded) "收起" else "展开",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                 )
             }
-
         }
-        
+
         // 其余内容只在非展开模式下显示
         AnimatedVisibility(
             visible = !isExpanded,
@@ -768,7 +714,7 @@ fun JournalEditContent(
             exit = fadeOut() + shrinkVertically()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Markdown预览
+                // Markdown预览 - 只在isMarkdown为true且内容不为空时显示
                 AnimatedVisibility(
                     visible = isMarkdown && journalText.isNotEmpty() && showMarkdownPreview,
                     enter = fadeIn() + expandVertically(),
@@ -779,13 +725,11 @@ fun JournalEditContent(
                             .fillMaxWidth()
                             .padding(bottom = 16.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = "Markdown预览",
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             MarkdownText(
@@ -795,29 +739,37 @@ fun JournalEditContent(
                         }
                     }
                 }
-                
-                // Markdown预览切换按钮
+
+                // Markdown预览切换按钮 - 只在isMarkdown为true且内容不为空时显示
                 if (isMarkdown && journalText.isNotEmpty()) {
                     TextButton(
                         onClick = { showMarkdownPreview = !showMarkdownPreview },
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Text(if (showMarkdownPreview) "隐藏预览" else "显示预览")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (showMarkdownPreview) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = if (showMarkdownPreview) "隐藏预览" else "显示预览",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (showMarkdownPreview) "隐藏预览" else "显示预览")
+                        }
                     }
                 }
 
                 // 图片选择
                 if (selectedImages.isEmpty()) {
                     FilledTonalButton(
-                        onClick = { imagePickerLauncher.launch("image/*") },
+                        onClick = {
+                            // 使用新的图片选择器，不需要传递MIME类型数组
+                            imagePickerLauncher.invoke()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AddPhotoAlternate,
@@ -845,11 +797,10 @@ fun JournalEditContent(
                             Text(
                                 text = "已添加 ${selectedImages.size} 张图片",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             IconButton(
-                                onClick = { imagePickerLauncher.launch("image/*") },
+                                onClick = { imagePickerLauncher.invoke() },
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
@@ -859,7 +810,7 @@ fun JournalEditContent(
                                 )
                             }
                         }
-                        
+
                         LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -879,7 +830,7 @@ fun JournalEditContent(
                                             .size(120.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                     )
-                                    
+
                                     // 删除按钮
                                     IconButton(
                                         onClick = { selectedImages.remove(image) },
@@ -974,7 +925,7 @@ fun JournalEditContent(
             )
         }
     }
-    
+
     // 地图选择器对话框
     if (showMapPicker) {
         MapPickerDialog(
@@ -988,7 +939,7 @@ fun JournalEditContent(
             onDismiss = { showMapPicker = false }
         )
     }
-    
+
     // 全屏编辑器对话框（已不再使用，但保留代码以防需要）
     if (false) { // 将条件改为false，禁用全屏对话框
         FullScreenTextEditor(
@@ -997,6 +948,26 @@ fun JournalEditContent(
             isMarkdown = isMarkdown,
             onTextChanged = { journalText = it },
             onDismiss = { showFullScreenEditor = false }
+        )
+    }
+
+    // AI写作对话框
+    if (showAIWritingDialog) {
+        AIWritingDialog(
+            isVisible = true,
+            onDismiss = { showAIWritingDialog = false },
+            onContentGenerated = { generatedContent ->
+                // 将生成的内容添加到现有文本中
+                journalText = if (journalText.isBlank()) {
+                    generatedContent
+                } else {
+                    "$journalText\n\n$generatedContent"
+                }
+                showAIWritingDialog = false
+                SnackBarUtils.showSnackBar("AI创作内容已添加到编辑器")
+            },
+            useMarkdown = isMarkdown,
+            dependencyManager = dependencyManager
         )
     }
 } 

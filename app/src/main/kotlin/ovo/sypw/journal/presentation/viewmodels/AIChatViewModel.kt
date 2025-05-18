@@ -5,6 +5,8 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +23,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import ovo.sypw.journal.common.APIKey
 import ovo.sypw.journal.common.utils.ImageBase64Utils
+import ovo.sypw.journal.di.AppDependencyManager
 import ovo.sypw.journal.presentation.screens.ChatMessage
 import java.io.IOException
+import javax.inject.Inject
 
 /**
  * AI聊天界面的UI状态
@@ -39,18 +43,27 @@ data class AIChatUiState(
         "qwen-turbo",
         "deepseek-r1",
         "deepseek-v3",
-        "dicksuck-sb"
+        "iam-sb"
     ),
-    val thinking: String? = null
+    val thinking: String? = null,
+    val contextEnabled: Boolean = true,  // 是否启用上下文功能
+    val maxContextMessages: Int = 30     // 最大上下文消息数量
 )
 
 /**
  * AI聊天ViewModel，负责管理聊天状态和处理API请求
  */
-class AIChatViewModel(private val context: Context) : ViewModel() {
+@HiltViewModel
+class AIChatViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dependencyManager: AppDependencyManager
+) : ViewModel() {
     companion object {
         // 模型思考过程的键名
         private const val THINKING_KEY = "reasoning_content"
+        // 默认系统提示语
+        private const val DEFAULT_SYSTEM_PROMPT ="你是一个智能助理"
+
     }
 
     private val TAG = "AIChatViewModel"
@@ -95,24 +108,94 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
     }
 
     /**
-     * 发送带图片的消息
+     * 获取对话历史消息
+     * @return 历史消息的JSONArray
      */
-    private fun sendMessageWithImages(text: String, images: List<Uri>) {
-        // 构建消息内容
+    private fun getHistoryMessages(): JSONArray {
         val messagesArray = JSONArray()
-
+        
         // 添加系统消息
         val systemMessage = JSONObject()
         systemMessage.put("role", "system")
         val systemContent = JSONArray()
         val systemTextContent = JSONObject()
         systemTextContent.put("type", "text")
-        systemTextContent.put("text", "You are a helpful assistant.")
+        systemTextContent.put("text", DEFAULT_SYSTEM_PROMPT)
         systemContent.put(systemTextContent)
         systemMessage.put("content", systemContent)
         messagesArray.put(systemMessage)
+        
+        // 如果启用了上下文
+        if (_uiState.value.contextEnabled) {
+            // 获取历史消息（排除最后一条用户消息，因为它会在调用方法中单独添加）
+            val history = _uiState.value.messages.dropLast(1)
+            
+            // 限制消息数量，只取最近的N条消息
+            val maxMessages = _uiState.value.maxContextMessages
+            val contextMessages = if (history.size > maxMessages) {
+                history.takeLast(maxMessages)
+            } else {
+                history
+            }
+            
+            // 将历史消息添加到请求中
+            for (message in contextMessages) {
+                val role = if (message.isUser) "user" else "assistant"
+                val messageObj = JSONObject()
+                messageObj.put("role", role)
+                
+                // 处理消息内容
+                if (message.images.isNotEmpty() && message.isUser) {
+                    // 图片消息需要特殊处理
+                    val content = JSONArray()
+                    
+                    // 添加图片
+                    for (imageUri in message.images) {
+                        val imageBase64 = ImageBase64Utils.uriToBase64(context, imageUri)
+                        if (imageBase64 != null) {
+                            val imageContent = JSONObject()
+                            imageContent.put("type", "image_url")
+                            val imageUrlObj = JSONObject()
+                            imageUrlObj.put("url", imageBase64)
+                            imageContent.put("image_url", imageUrlObj)
+                            content.put(imageContent)
+                        }
+                    }
+                    
+                    // 添加文本
+                    if (message.content.isNotBlank()) {
+                        val textContent = JSONObject()
+                        textContent.put("type", "text")
+                        textContent.put("text", message.content)
+                        content.put(textContent)
+                    }
+                    
+                    messageObj.put("content", content)
+                } else {
+                    // 纯文本消息
+                    val content = JSONArray()
+                    val textContent = JSONObject()
+                    textContent.put("type", "text")
+                    textContent.put("text", message.content)
+                    content.put(textContent)
+                    messageObj.put("content", content)
+                }
+                
+                messagesArray.put(messageObj)
+            }
+        }
+        
+        return messagesArray
+    }
 
-        // 添加用户消息
+    /**
+     * 发送带图片的消息
+     */
+    private fun sendMessageWithImages(text: String, images: List<Uri>) {
+        // 获取历史消息，包括系统提示
+        val messagesArray = getHistoryMessages()
+
+        // 添加当前用户消息
         val userMessage = JSONObject()
         userMessage.put("role", "user")
         val userContent = JSONArray()
@@ -172,21 +255,10 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
      * 发送纯文本消息
      */
     private fun sendTextMessage(text: String) {
-        // 构建消息内容
-        val messagesArray = JSONArray()
+        // 获取历史消息，包括系统提示
+        val messagesArray = getHistoryMessages()
 
-        // 添加系统消息
-        val systemMessage = JSONObject()
-        systemMessage.put("role", "system")
-        val systemContent = JSONArray()
-        val systemTextContent = JSONObject()
-        systemTextContent.put("type", "text")
-        systemTextContent.put("text", "You are a helpful assistant.")
-        systemContent.put(systemTextContent)
-        systemMessage.put("content", systemContent)
-        messagesArray.put(systemMessage)
-
-        // 添加用户消息
+        // 添加当前用户消息
         val userMessage = JSONObject()
         userMessage.put("role", "user")
         val userContent = JSONArray()
@@ -223,7 +295,7 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
      * 发送API请求
      */
     private fun sendRequest(requestBodyJson: String) {
-        Log.d(TAG, "sendRequest: $requestBodyJson")
+//        Log.d(TAG, "sendRequest: $requestBodyJson")
         val mediaType = "application/json; charset=utf-8".toMediaType()
         val requestBody = requestBodyJson.toRequestBody(mediaType)
 
@@ -275,7 +347,7 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
                         while (!source.exhausted()) {
                             val line = source.readUtf8Line() ?: continue
                             if (line.isEmpty()) continue
-                            Log.d(TAG, "onResponse: $line")
+//                            Log.d(TAG, "onResponse: $line")
                             if (line.startsWith("data: ")) {
                                 val jsonData = line.substring(6)
                                 if (jsonData == "[DONE]") {
@@ -382,6 +454,26 @@ class AIChatViewModel(private val context: Context) : ViewModel() {
     fun updateSelectedModel(model: String) {
         if (_uiState.value.availableModels.contains(model)) {
             _uiState.update { it.copy(selectedModel = model) }
+        }
+    }
+    
+    /**
+     * 切换上下文功能
+     * @param enabled 是否启用上下文
+     */
+    fun toggleContext(enabled: Boolean) {
+        _uiState.update { currentState ->
+            currentState.copy(contextEnabled = enabled)
+        }
+    }
+    
+    /**
+     * 设置最大上下文消息数量
+     * @param count 最大消息数量
+     */
+    fun setMaxContextMessages(count: Int) {
+        if (count > 0) {
+            _uiState.update { it.copy(maxContextMessages = count) }
         }
     }
 }
