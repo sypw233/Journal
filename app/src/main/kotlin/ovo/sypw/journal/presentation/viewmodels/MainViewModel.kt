@@ -1,5 +1,6 @@
 package ovo.sypw.journal.presentation.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,7 +13,12 @@ import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.presentation.screens.MainScreenState
+import ovo.sypw.journal.common.utils.SnackBarUtils
 import javax.inject.Inject
+import ovo.sypw.journal.common.utils.ImageStorageUtils
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val TAG = "MainViewModel"
 
@@ -93,7 +99,7 @@ class MainViewModel @Inject constructor(
     }
 
     /**
-     * 添加新日记
+     * 添加日记
      */
     fun addJournal(newJournal: JournalData) {
         viewModelScope.launch {
@@ -104,6 +110,8 @@ class MainViewModel @Inject constructor(
                 repository.insertJournal(journalWithId)
             } catch (e: Exception) {
                 // 处理错误
+                Log.e(TAG, "添加日记失败", e)
+                SnackBarUtils.showSnackBar("添加日记失败: ${e.message}")
             }
         }
     }

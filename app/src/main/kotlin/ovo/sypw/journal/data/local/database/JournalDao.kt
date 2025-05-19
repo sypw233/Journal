@@ -61,16 +61,17 @@ interface JournalDao {
     @Query("DELETE FROM journals WHERE id = :id")
     suspend fun deleteJournalById(id: Int): Int
 
-
-
     /**
      * 获取日记条目总数
      */
     @Query("SELECT COUNT(*) FROM journals")
     suspend fun getJournalCount(): Int
 
+    /**
+     * 获取最后一个日记的ID
+     */
     @Query("SELECT MAX(id) FROM journals")
-    fun getJournalLastId(): Int
+    suspend fun getJournalLastId(): Int
 
     /**
      * 根据内容搜索日记条目

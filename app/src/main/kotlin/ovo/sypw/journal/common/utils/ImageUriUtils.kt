@@ -28,6 +28,15 @@ object ImageUriUtils {
                 return false
             }
             
+            // 检查是否是Android 12+的Photo Picker URI
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && 
+                uri.toString().contains("com.android.providers.media.photopicker")) {
+                Log.d(TAG, "检测到Android 12+ Photo Picker URI，无法获取持久权限，但可以临时访问: $uri")
+                // 对于Photo Picker URI，无法获取持久权限，但可以在活动期间访问
+                // 返回false让调用方知道需要复制图片到私有存储
+                return false
+            }
+            
             // 检查是否已经有权限
             val hasExistingPermission = context.contentResolver.persistedUriPermissions
                 .any { it.uri == uri && (it.isReadPermission || it.isWritePermission) }

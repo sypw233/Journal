@@ -116,9 +116,11 @@ import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material3.IconToggleButton
 import ovo.sypw.journal.common.utils.ImageUriUtils
 import ovo.sypw.journal.common.utils.ImagePickerUtils
+import ovo.sypw.journal.common.utils.ImageStorageUtils
 import ovo.sypw.journal.di.AppDependencyManager
 import ovo.sypw.journal.JournalApplication
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 
 /**
  * 日记编辑内容组件
@@ -261,12 +263,20 @@ fun JournalEditContent(
                 var successCount = 0
                 uris.forEach { uri ->
                     try {
-                        // 添加到选中图片列表
-                        selectedImages.add(uri)
-                        successCount++
+                        // 使用ImageStorageUtils处理图片，确保持久访问
+                        val accessibleUri = ImageStorageUtils.ensureImageAccessible(context, uri)
+                        if (accessibleUri != null) {
+                            // 添加到选中图片列表
+                            selectedImages.add(accessibleUri)
+                            successCount++
+                            Log.d("JournalEditContent", "成功处理图片URI: $accessibleUri")
+                        } else {
+                            Log.e("JournalEditContent", "处理图片URI失败: $uri")
+                            SnackBarUtils.showSnackBar("无法处理某些图片")
+                        }
                     } catch (e: Exception) {
                         Log.e("JournalEditContent", "处理图片URI错误", e)
-                        SnackBarUtils.showSnackBar("无法获取某些图片的持久访问权限: ${e.message}")
+                        SnackBarUtils.showSnackBar("无法处理某些图片: ${e.message}")
                     }
                 }
                 if (successCount > 0) {
@@ -770,6 +780,10 @@ fun JournalEditContent(
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.filledTonalButtonElevation(
+                            defaultElevation = 2.dp,
+                            pressedElevation = 4.dp
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AddPhotoAlternate,
@@ -820,33 +834,46 @@ fun JournalEditContent(
                                 Box(
                                     modifier = Modifier
                                         .padding(end = 12.dp)
-                                        .size(120.dp)
+                                        // 使用aspectRatio来确保4:3的图片比例
+                                        .width(120.dp)
+                                        .height(90.dp)
                                 ) {
                                     // 图片预览
-                                    AsyncImage(
-                                        model = image,
-                                        contentDescription = "已选图片",
-                                        modifier = Modifier
-                                            .size(120.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                    )
-
-                                    // 删除按钮
-                                    IconButton(
-                                        onClick = { selectedImages.remove(image) },
+                                    Surface(
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        shadowElevation = 2.dp
+                                    ) {
+                                        AsyncImage(
+                                            model = image,
+                                            contentDescription = "已选图片",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                    
+                                    // 删除按钮 - 改进版
+                                    Box(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .size(32.dp)
                                             .padding(4.dp)
+                                            .size(24.dp)
                                             .background(
-                                                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                                CircleShape
+                                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                                                shape = CircleShape
                                             )
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { 
+                                                selectedImages.remove(image) 
+                                            },
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Close,
                                             contentDescription = "删除图片",
-                                            tint = MaterialTheme.colorScheme.error,
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }

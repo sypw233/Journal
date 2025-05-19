@@ -35,10 +35,12 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
@@ -237,43 +239,22 @@ fun AIWritingDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 使用按钮而不是IconToggleButton，以确保文本和图标都能正确显示
-                        Button(
-                            onClick = {
-                                if (!uiState.images.isEmpty()) {
-                                    viewModel.toggleUseImages()
-                                } else {
-                                    Toast.makeText(context, "请先添加图片", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-//                            modifier = Modifier.padding(vertical = 8.dp),
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = if (uiState.useImages)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !uiState.isLoading
+                        FilledIconToggleButton(
+                            checked = uiState.useImages,
+                            onCheckedChange = { viewModel.toggleUseImages() },
+                            modifier = Modifier.width(120.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-//                                modifier = Modifier.padding(horizontal = 4.dp)
+                                modifier = Modifier.padding(horizontal = 4.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Image,
                                     contentDescription = if (uiState.useImages) "关闭图片理解" else "启用图片理解",
-                                    tint = if (uiState.useImages)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "图片理解",
-                                    color = if (uiState.useImages)
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

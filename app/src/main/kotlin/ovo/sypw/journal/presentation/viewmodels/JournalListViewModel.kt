@@ -229,12 +229,21 @@ class JournalListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // 使用数据库ID计数器生成新ID
-                val newJournal = journal.copy(id = getNextId())
+                val nextId = getNextId()
+                val newJournal = journal.copy(id = nextId)
                 repository.insertJournal(newJournal)
                 SnackBarUtils.showSnackBar("添加成功: ${newJournal.id}")
 
                 // 重置列表数据以刷新列表
-                resetList()
+                currentPage = 0
+                _uiState.update { 
+                    it.copy(
+                        journals = emptyList(), 
+                        hasMoreData = true,
+                        scrollToPosition = 0  // 设置滚动位置为0，确保滚动到列表顶部
+                    ) 
+                }
+                loadNextPage()
             } catch (e: Exception) {
                 Log.e(TAG, "Error adding journal", e)
                 SnackBarUtils.showSnackBar("添加失败: ${e.message}")
@@ -245,12 +254,8 @@ class JournalListViewModel @Inject constructor(
     /**
      * 获取下一个ID
      */
-    private fun getNextId(): Int {
-        var nextId = 1
-        viewModelScope.launch {
-            nextId = repository.getJournalLastId() + 1
-        }
-        return nextId
+    private suspend fun getNextId(): Int {
+        return repository.getJournalLastId() + 1
     }
 
     /**

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocationOn
@@ -60,34 +62,41 @@ import java.util.Locale
  */
 private val IMAGE_HEIGHT = 180.dp
 private val ROUNDED_SHAPE = RoundedCornerShape(12.dp)
-
+private val IMAGE_SPACING = 4.dp
 
 @Composable
 fun SingleImage(image: Any, onImageClick: (Int) -> Unit) {
-
-    AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(image)
-            .size(Int.MAX_VALUE, 180)
-            .build(),
-        contentDescription = "Journal Image",
-        contentScale = ContentScale.Crop,
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { onImageClick(0) },
-        clipToBounds = true
-    )
+            .clip(ROUNDED_SHAPE)
+            .clickable { onImageClick(0) }
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(image)
+                .size(Int.MAX_VALUE, 180)
+                .build(),
+            contentDescription = "Journal Image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            imageLoader = ImageLoadUtils.getImageLoader(),
+            clipToBounds = true
+        )
+    }
 }
 
 @Composable
 fun TwoImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxSize()) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+    ) {
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .padding(end = 2.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(ROUNDED_SHAPE)
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
@@ -107,8 +116,7 @@ fun TwoImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .padding(start = 2.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(ROUNDED_SHAPE)
                 .clickable { onImageClick(1) }
         ) {
             AsyncImage(
@@ -128,13 +136,16 @@ fun TwoImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
 
 @Composable
 fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxSize()) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+    ) {
+        // 左侧一张大图
         Box(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(1f)
                 .fillMaxHeight()
-                .padding(end = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(ROUNDED_SHAPE)
                 .clickable { onImageClick(0) }
         ) {
             AsyncImage(
@@ -149,36 +160,39 @@ fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                 clipToBounds = true
             )
         }
-
+        
+        // 右侧上下两张小图
         Column(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(1f)
                 .fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
         ) {
+            // 右上图片
             Box(
                 modifier = Modifier
-                    .weight(0.5f)
+                    .weight(1f)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(ROUNDED_SHAPE)
                     .clickable { onImageClick(1) }
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(images[1])
-                        .size(Int.MAX_VALUE, 180)
+                        .size(Int.MAX_VALUE, 90)
                         .build(),
-                    imageLoader = ImageLoadUtils.getImageLoader(),
                     contentDescription = "Journal Image 2",
                     contentScale = ContentScale.Crop,
+                    imageLoader = ImageLoadUtils.getImageLoader(),
                     modifier = Modifier.fillMaxSize(),
                     clipToBounds = true
                 )
             }
-
+            
+            // 右下图片
             Box(
                 modifier = Modifier
-                    .weight(0.5f)
+                    .weight(1f)
                     .fillMaxWidth()
                     .clip(ROUNDED_SHAPE)
                     .clickable { onImageClick(2) }
@@ -186,11 +200,11 @@ fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(images[2])
-                        .size(Int.MAX_VALUE, 180)
+                        .size(Int.MAX_VALUE, 90)
                         .build(),
-                    imageLoader = ImageLoadUtils.getImageLoader(),
                     contentDescription = "Journal Image 3",
                     contentScale = ContentScale.Crop,
+                    imageLoader = ImageLoadUtils.getImageLoader(),
                     modifier = Modifier.fillMaxSize(),
                     clipToBounds = true
                 )
@@ -201,12 +215,15 @@ fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
 
 @Composable
 fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxSize()) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+    ) {
+        // 左侧一张大图
         Box(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(1f)
                 .fillMaxHeight()
-                .padding(end = 4.dp)
                 .clip(ROUNDED_SHAPE)
                 .clickable { onImageClick(0) }
         ) {
@@ -215,53 +232,219 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                     .data(images[0])
                     .size(Int.MAX_VALUE, 180)
                     .build(),
-                imageLoader = ImageLoadUtils.getImageLoader(),
                 contentDescription = "Journal Image 1",
                 contentScale = ContentScale.Crop,
+                imageLoader = ImageLoadUtils.getImageLoader(),
                 modifier = Modifier.fillMaxSize(),
                 clipToBounds = true
             )
         }
 
+        // 右侧区域
         Column(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(1f)
                 .fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
         ) {
-            val maxRightImages = minOf(3, images.size - 1)
-            for (i in 1..maxRightImages) {
+            if (images.size == 4) {
+                // 四张图片布局：右侧上方一张，下方两张
+                
+                // 右上方一张
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .clip(ROUNDED_SHAPE)
-                        .clickable { onImageClick(i) }
+                        .clickable { onImageClick(1) }
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(images[i])
-                            .size(Int.MAX_VALUE, 180)
+                            .data(images[1])
+                            .size(Int.MAX_VALUE, 90)
                             .build(),
-                        imageLoader = ImageLoadUtils.getImageLoader(),
-                        contentDescription = "Journal Image ${i + 1}",
+                        contentDescription = "Journal Image 2",
                         contentScale = ContentScale.Crop,
+                        imageLoader = ImageLoadUtils.getImageLoader(),
                         modifier = Modifier.fillMaxSize(),
                         clipToBounds = true
                     )
-
-                    if (i == maxRightImages && images.size > maxRightImages + 1) {
+                }
+                
+                // 右下方两张
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+                ) {
+                    // 右下左图片
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(ROUNDED_SHAPE)
+                            .clickable { onImageClick(2) }
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(images[2])
+                                .size(Int.MAX_VALUE, 90)
+                                .build(),
+                            contentDescription = "Journal Image 3",
+                            contentScale = ContentScale.Crop,
+                            imageLoader = ImageLoadUtils.getImageLoader(),
+                            modifier = Modifier.fillMaxSize(),
+                            clipToBounds = true
+                        )
+                    }
+                    
+                    // 右下右图片
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(ROUNDED_SHAPE)
+                            .clickable { onImageClick(3) }
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(images[3])
+                                .size(Int.MAX_VALUE, 90)
+                                .build(),
+                            contentDescription = "Journal Image 4",
+                            contentScale = ContentScale.Crop,
+                            imageLoader = ImageLoadUtils.getImageLoader(),
+                            modifier = Modifier.fillMaxSize(),
+                            clipToBounds = true
+                        )
+                    }
+                }
+            } else {
+                // 5张及以上图片布局：右侧2x2网格
+                val maxRightImages = minOf(4, images.size - 1)
+                val halfHeight = 1f / 2f
+                
+                // 上半部分：两张图片
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(halfHeight),
+                    horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+                ) {
+                    // 右上左
+                    if (images.size > 1) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0x80000000)),
-                            contentAlignment = Alignment.Center
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(ROUNDED_SHAPE)
+                                .clickable { onImageClick(1) }
                         ) {
-                            Text(
-                                text = "+${images.size - maxRightImages - 1}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(images[1])
+                                    .size(Int.MAX_VALUE, 90)
+                                    .build(),
+                                contentDescription = "Journal Image 2",
+                                contentScale = ContentScale.Crop,
+                                imageLoader = ImageLoadUtils.getImageLoader(),
+                                modifier = Modifier.fillMaxSize(),
+                                clipToBounds = true
                             )
+                        }
+                    }
+                    
+                    // 右上右
+                    if (images.size > 2) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(ROUNDED_SHAPE)
+                                .clickable { onImageClick(2) }
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(images[2])
+                                    .size(Int.MAX_VALUE, 90)
+                                    .build(),
+                                contentDescription = "Journal Image 3",
+                                contentScale = ContentScale.Crop,
+                                imageLoader = ImageLoadUtils.getImageLoader(),
+                                modifier = Modifier.fillMaxSize(),
+                                clipToBounds = true
+                            )
+                        }
+                    }
+                }
+                
+                // 下半部分：两张图片
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(halfHeight),
+                    horizontalArrangement = Arrangement.spacedBy(IMAGE_SPACING)
+                ) {
+                    // 右下左
+                    if (images.size > 3) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(ROUNDED_SHAPE)
+                                .clickable { onImageClick(3) }
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(images[3])
+                                    .size(Int.MAX_VALUE, 90)
+                                    .build(),
+                                contentDescription = "Journal Image 4",
+                                contentScale = ContentScale.Crop,
+                                imageLoader = ImageLoadUtils.getImageLoader(),
+                                modifier = Modifier.fillMaxSize(),
+                                clipToBounds = true
+                            )
+                        }
+                    }
+                    
+                    // 右下右（如果有第5张图片）
+                    if (images.size > 4) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(ROUNDED_SHAPE)
+                                .clickable { onImageClick(4) }
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(images[4])
+                                    .size(Int.MAX_VALUE, 90)
+                                    .build(),
+                                contentDescription = "Journal Image 5",
+                                contentScale = ContentScale.Crop,
+                                imageLoader = ImageLoadUtils.getImageLoader(),
+                                modifier = Modifier.fillMaxSize(),
+                                clipToBounds = true
+                            )
+                            
+                            // 如果有超过5张图片，显示+N标记
+                            if (images.size > 5) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color(0x80000000)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+${images.size - 5}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -287,7 +470,6 @@ fun ImageSection(
                 2 -> TwoImages(images, onImageClick)
                 3 -> ThreeImages(images, onImageClick)
                 else -> MultipleImages(images, onImageClick)
-
             }
         }
     }

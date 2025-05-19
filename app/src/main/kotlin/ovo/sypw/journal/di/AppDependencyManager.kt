@@ -26,7 +26,7 @@ class AppDependencyManager @Inject constructor(
     // 可以在这里添加一些依赖项的共享功能
     
     /**
-     * 获取应用程序上下文
+     * 获取应用上下文
      */
     fun getContext(): Context {
         return context
