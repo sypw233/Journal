@@ -33,7 +33,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-//            isShrinkResources = true
+            isShrinkResources = true
 //            proguardFiles(
 //                getDefaultProguardFile("proguard-android-optimize.txt"),
 //                "proguard-rules.pro"
@@ -51,7 +51,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            include("arm64-v8a", "x86")
             isUniversalApk = false
         }
     }

@@ -32,8 +32,10 @@ object AIModels {
         "qwen-max" to "QWEN-Max",
         "qwen-max-1201" to "QWEN-Max-12B",
         "qwen-max-longcontext" to "QWEN-Max-LongContext",
-        "qvq-max" to "QWEN-VQ-Max",
+        "qvq-plus" to "QVQ-Plus",
+        "qvq-max" to "QVQ-Max",
         "qwen-vl-plus" to "QWEN-VL-Plus",
+        "qwen-omni-turbo" to "QWEN-Omni-Turbo",
         
         // DeepSeek系列
         "deepseek-r1" to "DeepSeek-R1",
@@ -42,6 +44,12 @@ object AIModels {
         // Llama3系列
         "llama3-8b-instruct" to "Llama3-8B",
         "llama3-70b-instruct" to "Llama3-70B"
+    )
+    val AVAILABLE_IMAGE_MODELS = mapOf(
+        "qvq-plus" to "QVQ-Plus",
+        "qvq-max" to "QVQ-Max",
+        "qwen-vl-plus" to "QWEN-VL-Plus",
+        "qwen-omni-turbo" to "QWEN-Omni-Turbo",
     )
     
     // 获取模型显示名称

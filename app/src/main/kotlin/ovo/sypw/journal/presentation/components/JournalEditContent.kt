@@ -967,7 +967,8 @@ fun JournalEditContent(
                 SnackBarUtils.showSnackBar("AI创作内容已添加到编辑器")
             },
             useMarkdown = isMarkdown,
-            dependencyManager = dependencyManager
+            dependencyManager = dependencyManager,
+            initialImages = selectedImages.toList() // 传递当前已选择的图片
         )
     }
 } 

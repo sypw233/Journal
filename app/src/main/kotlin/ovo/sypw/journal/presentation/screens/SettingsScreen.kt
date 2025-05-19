@@ -109,7 +109,7 @@ fun SettingsScreen(
     
     // 主题颜色选择对话框
     var showColorPickerDialog by remember { mutableStateOf(false) }
-    
+
     // AI模型选择对话框
     var showModelPickerDialog by remember { mutableStateOf(false) }
 
@@ -536,12 +536,12 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Switch(
-                            checked = uiState.notificationsEnabled,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetNotifications(it)) 
-                            }
-                        )
+                    Switch(
+                        checked = uiState.notificationsEnabled,
+                        onCheckedChange = { 
+                            viewModel.handleEvent(SettingsEvent.SetNotifications(it)) 
+                        }
+                    )
                     }
                 }
                 
@@ -557,10 +557,10 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Switch(
-                            checked = uiState.reminderEnabled,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetReminder(it)) 
+                    Switch(
+                        checked = uiState.reminderEnabled,
+                        onCheckedChange = { 
+                            viewModel.handleEvent(SettingsEvent.SetReminder(it)) 
                             }
                         )
                     }
@@ -967,7 +967,7 @@ fun SettingItem(
         
         control()
     }
-
+    
     HorizontalDivider(
         modifier = Modifier.padding(start = 56.dp, end = 16.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -1095,7 +1095,7 @@ fun ColorPickerDialog(
                 ) {
                     Text("恢复默认颜色")
                 }
-
+                
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
