@@ -472,13 +472,6 @@ fun RemoteFileItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "路径: $path",
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Text(
                 text = "大小: ${formatFileSize(size)}",
                 style = MaterialTheme.typography.bodyMedium
             )

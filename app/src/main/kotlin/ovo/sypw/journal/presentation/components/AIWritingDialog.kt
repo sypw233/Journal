@@ -5,6 +5,12 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -83,6 +90,7 @@ import ovo.sypw.journal.data.model.AIModels
 import ovo.sypw.journal.di.AppDependencyManager
 import ovo.sypw.journal.presentation.viewmodels.AIWritingViewModel
 import androidx.core.net.toUri
+import android.content.Context
 
 /**
  * AI写作对话框
@@ -100,7 +108,7 @@ fun AIWritingDialog(
 ) {
     if (!isVisible) return
 
-    // 使用自定义ViewModel
+    // 创建ViewModel
     val viewModel: AIWritingViewModel = viewModel(factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return AIWritingViewModel(dependencyManager) as T
@@ -110,84 +118,44 @@ fun AIWritingDialog(
     // 获取UI状态
     val uiState by viewModel.uiState.collectAsState()
 
-    // 输入提示词
+    // 本地UI状态
     var prompt by remember { mutableStateOf("") }
-
-    // 是否显示生成的内容
     var showGeneratedContent by remember { mutableStateOf(false) }
-
-    // 是否显示高级设置 - 使用用户设置的默认值
     var showAdvancedSettings by remember { mutableStateOf(false) }
+    var showModelSelectionDialog by remember { mutableStateOf(false) }
 
     // 图片选择器
     val context = LocalContext.current
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
-        if (uris.isNotEmpty()) {
-            val processedUris = uris.mapNotNull { uri ->
-                try {
-                    // 使用工具类处理URI权限
-                    ImageUriUtils.takePersistablePermission(context, uri)
-                    uri
-                } catch (e: Exception) {
-                    Log.e("AIWritingDialog", "处理图片URI错误: ${e.message}")
-                    null
-                }
-            }
-
-            if (processedUris.isNotEmpty()) {
-                viewModel.addImages(processedUris)
-                SnackBarUtils.showSnackBar("已选择${processedUris.size}张图片")
-            }
-        }
+        handleImageSelection(uris, context, viewModel)
     }
 
-    // 加载初始图片（如果有）
-    LaunchedEffect(initialImages) {
-        if (initialImages.isNotEmpty()) {
-            // 将initialImages转换为Uri列表
-            val uriList = initialImages.mapNotNull { image ->
-                when (image) {
-                    is Uri -> image
-                    is String -> image.toString().toUri()
-                    else -> null
-                }
-            }
-
-            if (uriList.isNotEmpty()) {
-                viewModel.addImages(uriList)
-            }
-        }
-    }
-
-    // 读取默认设置
+    // 初始化
     LaunchedEffect(Unit) {
         try {
-            showAdvancedSettings =
-                dependencyManager.preferences.getAISettings().showAdvancedSettingsDefault
+            showAdvancedSettings = dependencyManager.preferences.getAISettings().showAdvancedSettingsDefault
         } catch (e: Exception) {
-            Log.e("AIWritingDialog", "Failed to get default settings", e)
+            Log.e("AIWritingDialog", "获取默认设置失败", e)
         }
     }
 
-    // 模型选择对话框
-    var showModelSelectionDialog by remember { mutableStateOf(false) }
+    // 处理初始图片
+    LaunchedEffect(initialImages) {
+        processInitialImages(initialImages, viewModel)
+    }
 
-    // 当对话框关闭时清理资源
+    // 清理资源
     DisposableEffect(Unit) {
-        onDispose {
-            viewModel.clearState()
-        }
+        onDispose { viewModel.clearState() }
     }
 
+    // 对话框内容
     Dialog(
         onDismissRequest = {
-            if (!uiState.isLoading) {
-                onDismiss()
-            } else {
-                SnackBarUtils.showSnackBar("正在生成内容，请稍候...")
-            }
+            if (!uiState.isLoading) onDismiss()
+            else SnackBarUtils.showSnackBar("正在生成内容，请先点击「取消生成」或等待完成...")
         },
         properties = DialogProperties(
             dismissOnBackPress = !uiState.isLoading,
@@ -197,7 +165,7 @@ fun AIWritingDialog(
     ) {
         Card(
             modifier = Modifier
-                .widthIn(max = 400.dp)
+                .widthIn(max = 420.dp)
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -206,72 +174,38 @@ fun AIWritingDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 标题栏
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "AI写作助手",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-
-                    IconButton(
-                        onClick = {
-                            if (!uiState.isLoading) onDismiss()
-                            else SnackBarUtils.showSnackBar("正在生成内容，请稍候...")
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "关闭"
-                        )
+                DialogHeader(
+                    onCloseClick = {
+                        if (!uiState.isLoading) onDismiss()
+                        else SnackBarUtils.showSnackBar("正在生成内容，请先点击「取消生成」或等待完成...")
                     }
-                }
+                )
+                
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 图片选择和预览区域
+                // 输入区域 - 仅在未显示生成内容时显示
                 if (!showGeneratedContent) {
-                    // 图片选择按钮
+                    // 图片开关按钮
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 使用按钮而不是IconToggleButton，以确保文本和图标都能正确显示
-                        FilledIconToggleButton(
-                            checked = uiState.useImages,
-                            onCheckedChange = { viewModel.toggleUseImages() },
-                            modifier = Modifier.width(120.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Image,
-                                    contentDescription = if (uiState.useImages) "关闭图片理解" else "启用图片理解",
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "图片理解",
-                                )
-                            }
-                        }
+                        ImageToggleButton(
+                            useImages = uiState.useImages,
+                            onToggleUseImages = { viewModel.toggleUseImages() }
+                        )
                     }
 
-                    // 提示词输入框（仅在未显示生成内容时显示）
-                    // 当使用图片时，提示词是可选的
+                    // 提示词输入框
                     OutlinedTextField(
                         value = prompt,
                         onValueChange = { prompt = it },
                         label = { Text(if (uiState.useImages) "提示词（可选）" else "提示词") },
                         placeholder = {
                             Text(
-                                if (uiState.useImages)
-                                    "可选：补充说明或特定要求..."
-                                else
-                                    "例如：今天去公园散步，看到美丽的花朵..."
+                                if (uiState.useImages) "可选：补充说明或特定要求..." 
+                                else "例如：今天去公园散步，看到美丽的花朵..."
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -281,130 +215,28 @@ fun AIWritingDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 高级设置折叠面板
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        TextButton(
-                            onClick = { showAdvancedSettings = !showAdvancedSettings }
-                        ) {
-                            Text(if (showAdvancedSettings) "隐藏高级设置" else "显示高级设置")
-                        }
+                    // 高级设置面板控制
+                    AdvancedSettingsHeader(
+                        showAdvancedSettings = showAdvancedSettings,
+                        selectedModel = uiState.selectedModel,
+                        isLoading = uiState.isLoading,
+                        onToggleAdvancedSettings = { showAdvancedSettings = !showAdvancedSettings },
+                        onSelectModelClick = { showModelSelectionDialog = true }
+                    )
 
-                        // 显示当前选择的模型
-                        TextButton(
-                            onClick = { showModelSelectionDialog = true },
-                            enabled = !uiState.isLoading
-                        ) {
-                            Text(
-                                text = "模型: ${AIModels.getModelDisplayName(uiState.selectedModel)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
+                    // 高级设置面板
                     if (showAdvancedSettings) {
-                        // 历史日记参考设置
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
-                                Text(
-                                    text = "历史日记参考设置",
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // 使用历史日记开关
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "使用历史日记作为参考",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-
-                                    Switch(
-                                        checked = uiState.useHistoricalJournals,
-                                        onCheckedChange = { viewModel.toggleUseHistoricalJournals() },
-                                        enabled = !uiState.isLoading
-                                    )
-                                }
-
-                                // 只有当启用历史日记时才显示数量选择器
-                                if (uiState.useHistoricalJournals) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    // 历史日记数量选择器
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "参考日记数量:",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            IconButton(
-                                                onClick = {
-                                                    if (uiState.historicalJournalsCount > 1) {
-                                                        viewModel.setHistoricalJournalsCount(uiState.historicalJournalsCount - 1)
-                                                    }
-                                                },
-                                                enabled = !uiState.isLoading && uiState.historicalJournalsCount > 1,
-                                                modifier = Modifier.size(32.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Remove,
-                                                    contentDescription = "减少数量"
-                                                )
-                                            }
-
-                                            Text(
-                                                text = "${uiState.historicalJournalsCount}",
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
-                                            )
-
-                                            IconButton(
-                                                onClick = {
-                                                    if (uiState.historicalJournalsCount < 10) {
-                                                        viewModel.setHistoricalJournalsCount(uiState.historicalJournalsCount + 1)
-                                                    }
-                                                },
-                                                enabled = !uiState.isLoading && uiState.historicalJournalsCount < 10,
-                                                modifier = Modifier.size(32.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = "增加数量"
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        HistoricalJournalSettings(
+                            useHistoricalJournals = uiState.useHistoricalJournals,
+                            historicalJournalsCount = uiState.historicalJournalsCount,
+                            isLoading = uiState.isLoading,
+                            onToggleUseHistoricalJournals = { viewModel.toggleUseHistoricalJournals() },
+                            onHistoricalJournalsCountChange = { viewModel.setHistoricalJournalsCount(it) }
+                        )
                     }
                 }
 
-                // 错误提示
+                // 错误信息显示
                 if (uiState.error != null) {
                     Text(
                         text = uiState.error ?: "",
@@ -414,181 +246,53 @@ fun AIWritingDialog(
                     )
                 }
 
-                // 生成的内容显示（当有内容或正在生成时显示）
-                if (uiState.generatedContent.isNotBlank() || (uiState.isLoading && showGeneratedContent)) {
-                    // 思考过程显示
-                    val thinking = uiState.thinking
-                    if (thinking != null && thinking.isNotBlank()) {
-                        var isThinkingExpanded by remember { mutableStateOf(true) }
+                // 思考过程显示
+                ThinkingProcessPanel(
+                    thinking = uiState.thinking,
+                    isLoading = uiState.isLoading
+                )
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                        ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                // 思考过程标题和展开/收起按钮
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "思考过程",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp,
-                                    )
+                // 生成内容显示
+                ContentDisplayPanel(
+                    content = uiState.generatedContent,
+                    useMarkdown = useMarkdown
+                )
 
-                                    // 展开/收起按钮
-                                    IconButton(
-                                        onClick = { isThinkingExpanded = !isThinkingExpanded },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isThinkingExpanded) Icons.Default.Close else Icons.Default.Add,
-                                            contentDescription = if (isThinkingExpanded) "收起" else "展开",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-
-                                // 思考过程内容，根据展开状态显示或隐藏
-                                if (isThinkingExpanded) {
-                                    Text(
-                                        text = "\n" + thinking,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp,
-                                            vertical = 4.dp
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 400.dp)
-                            .height(200.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            if (useMarkdown) {
-                                MarkdownText(
-                                    markdown = uiState.generatedContent,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            } else {
-                                Text(
-                                    text = uiState.generatedContent,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // 生成按钮和加载指示器
+                // 底部状态栏和按钮区域
                 if (uiState.isLoading) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "正在生成内容...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-
-                        if (uiState.useHistoricalJournals) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "(参考${uiState.historicalJournalsCount}篇历史日记)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    // 加载状态和取消按钮
+                    LoadingStatusBar(
+                        isLoading = uiState.isLoading,
+                        canCancel = uiState.canCancel,
+                        useHistoricalJournals = uiState.useHistoricalJournals,
+                        historicalJournalsCount = uiState.historicalJournalsCount,
+                        onCancelClick = { viewModel.cancelGeneration() }
+                    )
                 } else if (uiState.generatedContent.isBlank() || !showGeneratedContent) {
-                    // 底部按钮 - 生成阶段
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = { onDismiss() }
-                        ) {
-                            Text("取消")
+                    // 生成阶段按钮
+                    GenerationActionBar(
+                        prompt = prompt,
+                        useImages = uiState.useImages,
+                        hasImages = uiState.images.isNotEmpty(),
+                        onDismiss = onDismiss,
+                        onGenerate = {
+                            showGeneratedContent = true
+                            showAdvancedSettings = false
+                            viewModel.generateContent(prompt, useMarkdown)
                         }
-
-                        Spacer(modifier = Modifier.size(8.dp))
-
-                        Button(
-                            onClick = {
-                                if (prompt.isBlank() && !uiState.useImages) {
-                                    SnackBarUtils.showSnackBar("请输入提示词")
-                                } else if (uiState.useImages && uiState.images.isEmpty()) {
-                                    SnackBarUtils.showSnackBar("请选择至少一张图片")
-                                } else {
-                                    // 显示生成内容区域
-                                    showGeneratedContent = true
-                                    showAdvancedSettings = false // 隐藏高级设置
-                                    // 触发内容生成
-                                    viewModel.generateContent(prompt, useMarkdown)
-                                }
-                            }
-                        ) {
-                            Text("生成内容")
-                        }
-                    }
+                    )
                 } else {
-                    // 底部按钮 - 应用阶段（当有生成内容时）
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = {
-                                // 清空生成内容并返回提示词输入阶段
-                                viewModel.clearGeneratedContent()
-                                showGeneratedContent = false
-                            }
-                        ) {
-                            Text("重新生成")
+                    // 结果阶段按钮
+                    ResultActionBar(
+                        onRegenerate = {
+                            viewModel.clearGeneratedContent()
+                            showGeneratedContent = false
+                        },
+                        onApply = {
+                            onContentGenerated(uiState.generatedContent)
+                            onDismiss()
                         }
-
-                        Spacer(modifier = Modifier.size(8.dp))
-
-                        Button(
-                            onClick = {
-                                // 将内容传递给回调
-                                onContentGenerated(uiState.generatedContent)
-                                // 关闭对话框
-                                onDismiss()
-                            }
-                        ) {
-                            Text("应用内容")
-                        }
-                    }
+                    )
                 }
             }
         }
@@ -599,12 +303,8 @@ fun AIWritingDialog(
         AIModelPickerDialog(
             selectedModel = uiState.selectedModel,
             onModelSelected = { selectedModel ->
-                // 如果用户选择了不支持图片的模型，但已启用图片功能，提示用户
-                if (uiState.useImages && !viewModel.isModelSupportImage(selectedModel)) {
-                    SnackBarUtils.showSnackBar("所选模型不支持图片功能，已自动禁用图片")
-                    viewModel.toggleUseImages() // 禁用图片功能
-                }
-                viewModel.setAIModel(selectedModel)
+                // 处理模型选择
+                handleModelSelection(selectedModel, uiState.useImages, viewModel)
                 showModelSelectionDialog = false
             },
             onDismiss = { showModelSelectionDialog = false },
@@ -612,6 +312,132 @@ fun AIWritingDialog(
             isModelSupportImage = { modelId -> viewModel.isModelSupportImage(modelId) }
         )
     }
+}
+
+/**
+ * 对话框标题栏
+ */
+@Composable
+private fun DialogHeader(
+    onCloseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "AI写作助手",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        IconButton(onClick = onCloseClick) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "关闭"
+            )
+        }
+    }
+}
+
+/**
+ * 高级设置面板的标题栏
+ */
+@Composable
+private fun AdvancedSettingsHeader(
+    showAdvancedSettings: Boolean,
+    selectedModel: String,
+    isLoading: Boolean,
+    onToggleAdvancedSettings: () -> Unit,
+    onSelectModelClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        TextButton(onClick = onToggleAdvancedSettings) {
+            Text(if (showAdvancedSettings) "隐藏高级设置" else "显示高级设置")
+        }
+
+        // 显示当前选择的模型
+        TextButton(
+            onClick = onSelectModelClick,
+            enabled = !isLoading
+        ) {
+            Text(
+                text = "模型: ${AIModels.getModelDisplayName(selectedModel)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+/**
+ * 处理图片选择结果
+ */
+private fun handleImageSelection(
+    uris: List<Uri>,
+    context: Context,
+    viewModel: AIWritingViewModel
+) {
+    if (uris.isNotEmpty()) {
+        val processedUris = uris.mapNotNull { uri ->
+            try {
+                ImageUriUtils.takePersistablePermission(context, uri)
+                uri
+            } catch (e: Exception) {
+                Log.e("AIWritingDialog", "处理图片URI错误: ${e.message}")
+                null
+            }
+        }
+
+        if (processedUris.isNotEmpty()) {
+            viewModel.addImages(processedUris)
+            SnackBarUtils.showSnackBar("已选择${processedUris.size}张图片")
+        }
+    }
+}
+
+/**
+ * 处理初始图片
+ */
+private fun processInitialImages(
+    initialImages: List<Any>,
+    viewModel: AIWritingViewModel
+) {
+    if (initialImages.isNotEmpty()) {
+        val uriList = initialImages.mapNotNull { image ->
+            when (image) {
+                is Uri -> image
+                is String -> image.toString().toUri()
+                else -> null
+            }
+        }
+
+        if (uriList.isNotEmpty()) {
+            viewModel.addImages(uriList)
+        }
+    }
+}
+
+/**
+ * 处理模型选择
+ */
+private fun handleModelSelection(
+    selectedModel: String,
+    useImages: Boolean,
+    viewModel: AIWritingViewModel
+) {
+    // 如果用户选择了不支持图片的模型，但已启用图片功能，提示用户
+    if (useImages && !viewModel.isModelSupportImage(selectedModel)) {
+        SnackBarUtils.showSnackBar("所选模型不支持图片功能，已自动禁用图片")
+        viewModel.toggleUseImages() // 禁用图片功能
+    }
+    viewModel.setAIModel(selectedModel)
 }
 
 /**
@@ -770,4 +596,397 @@ fun AIModelPickerDialog(
 // 添加 Modifier.alpha 扩展函数
 private fun Modifier.alpha(alpha: Float) = this.then(
     Modifier.graphicsLayer(alpha = alpha)
-) 
+)
+
+/**
+ * 思考过程面板组件
+ * 显示AI模型的思考过程，支持展开/收起
+ */
+@Composable
+private fun ThinkingProcessPanel(
+    thinking: String?,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // 如果没有思考内容，不显示
+    if (thinking.isNullOrBlank()) return
+
+    // 根据加载状态决定是否展开思考窗口，默认收起
+    var isThinkingExpanded by remember { mutableStateOf(false) }
+    
+    // 当加载状态发生变化时重新评估展开状态
+    LaunchedEffect(isLoading) {
+        // 只在加载状态改变时更新展开状态
+        isThinkingExpanded = isLoading
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 思考过程标题和展开/收起按钮
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .clickable { isThinkingExpanded = !isThinkingExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "思考过程",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+
+                // 展开/收起按钮
+                Icon(
+                    imageVector = if (isThinkingExpanded) Icons.Default.Close else Icons.Default.Add,
+                    contentDescription = if (isThinkingExpanded) "收起" else "展开",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            // 思考过程内容，根据展开状态显示或隐藏
+            AnimatedVisibility(
+                visible = isThinkingExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Text(
+                    text = thinking,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 生成内容显示面板
+ * 用于显示AI生成的内容，支持Markdown和普通文本
+ */
+@Composable
+private fun ContentDisplayPanel(
+    content: String,
+    useMarkdown: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (content.isBlank()) return
+    
+    Column(modifier = modifier) {
+        Text(
+            text = "生成内容",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+        )
+
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shadowElevation = 1.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (useMarkdown) {
+                    MarkdownText(
+                        markdown = content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = content,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 加载状态栏
+ * 显示加载指示器和取消按钮
+ */
+@Composable
+private fun LoadingStatusBar(
+    isLoading: Boolean,
+    canCancel: Boolean,
+    useHistoricalJournals: Boolean = false,
+    historicalJournalsCount: Int = 0,
+    onCancelClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!isLoading) return
+    
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 左侧显示进度和状态
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "正在生成内容...",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            // 右侧显示中止按钮
+            if (canCancel) {
+                Button(
+                    onClick = onCancelClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Text("取消生成")
+                }
+            }
+        }
+
+        if (useHistoricalJournals) {
+            Text(
+                text = "(参考${historicalJournalsCount}篇历史日记)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 生成阶段的按钮操作栏
+ */
+@Composable
+private fun GenerationActionBar(
+    prompt: String,
+    useImages: Boolean,
+    hasImages: Boolean,
+    onDismiss: () -> Unit,
+    onGenerate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
+    ) {
+        TextButton(
+            onClick = onDismiss
+        ) {
+            Text("取消")
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Button(
+            onClick = {
+                if (prompt.isBlank() && !useImages) {
+                    SnackBarUtils.showSnackBar("请输入提示词")
+                } else if (useImages && !hasImages) {
+                    SnackBarUtils.showSnackBar("请选择至少一张图片")
+                } else {
+                    onGenerate()
+                }
+            }
+        ) {
+            Text("生成内容")
+        }
+    }
+}
+
+/**
+ * 结果阶段的按钮操作栏
+ */
+@Composable
+private fun ResultActionBar(
+    onRegenerate: () -> Unit,
+    onApply: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+    ) {
+        TextButton(
+            onClick = onRegenerate
+        ) {
+            Text("重新生成")
+        }
+
+        Button(
+            onClick = onApply
+        ) {
+            Text("应用内容")
+        }
+    }
+}
+
+/**
+ * 历史日记参考设置面板
+ */
+@Composable
+private fun HistoricalJournalSettings(
+    useHistoricalJournals: Boolean,
+    historicalJournalsCount: Int,
+    isLoading: Boolean,
+    onToggleUseHistoricalJournals: () -> Unit,
+    onHistoricalJournalsCountChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "历史日记参考设置",
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 使用历史日记开关
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "使用历史日记作为参考",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Switch(
+                    checked = useHistoricalJournals,
+                    onCheckedChange = { onToggleUseHistoricalJournals() },
+                    enabled = !isLoading
+                )
+            }
+
+            // 只有当启用历史日记时才显示数量选择器
+            if (useHistoricalJournals) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 历史日记数量选择器
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "参考日记数量:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { 
+                                if (historicalJournalsCount > 1) {
+                                    onHistoricalJournalsCountChange(historicalJournalsCount - 1)
+                                }
+                            },
+                            enabled = !isLoading && historicalJournalsCount > 1,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Remove,
+                                contentDescription = "减少数量"
+                            )
+                        }
+
+                        Text(
+                            text = "$historicalJournalsCount",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        IconButton(
+                            onClick = { 
+                                if (historicalJournalsCount < 10) {
+                                    onHistoricalJournalsCountChange(historicalJournalsCount + 1)
+                                }
+                            },
+                            enabled = !isLoading && historicalJournalsCount < 10,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "增加数量"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 图片功能开关按钮
+ */
+@Composable
+private fun ImageToggleButton(
+    useImages: Boolean,
+    onToggleUseImages: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilledIconToggleButton(
+        checked = useImages,
+        onCheckedChange = { onToggleUseImages() },
+        modifier = modifier.width(120.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = if (useImages) "关闭图片理解" else "启用图片理解",
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "图片理解",
+            )
+        }
+    }
+} 
