@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -33,7 +34,7 @@ class SentimentApiService @Inject constructor(
     // API相关配置
     companion object {
         private const val API_URL = "https://qianfan.baidubce.com/v2/chat/completions"
-        private const val MODEL_NAME = "cje83c4u_journal"
+        private const val MODEL_NAME = "aemmxm1o_journal"
     }
 
     /**
@@ -149,9 +150,13 @@ $text"""
     /**
      * 批量分析多篇文本的情感
      * @param texts 要分析的文本列表
+     * @param maxRetries 最大重试次数
      * @return 情感分析结果列表
      */
-    suspend fun analyzeBatchSentiment(texts: List<String>): List<SentimentResult> = withContext(Dispatchers.IO) {
+    suspend fun analyzeBatchSentiment(
+        texts: List<String>,
+        maxRetries: Int = 3
+    ): List<SentimentResult> = withContext(Dispatchers.IO) {
         val apiKey = getApiKey()
         if (apiKey.isNullOrBlank()) {
             throw IllegalStateException("API密钥未设置，请在设置中配置API密钥")
@@ -193,7 +198,7 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
             })
             put("enable_thinking", false)
         }.toString()
-
+        Log.d(TAG, "analyzeBatchSentiment: $requestBody")
         val request = Request.Builder()
             .url(API_URL)
             .addHeader("Content-Type", "application/json")
@@ -201,63 +206,81 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
             .post(requestBody.toRequestBody("application/json".toMediaType()))
             .build()
 
-        try {
-            // 执行请求
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: throw Exception("响应为空")
-            Log.d(TAG, "Batch Response: $responseBody")
-
-            if (!response.isSuccessful) {
-                throw Exception("API请求失败: ${response.code} - $responseBody")
-            }
-
-            // 解析响应JSON
-            val jsonResponse = JSONObject(responseBody)
-            
-            // 获取模型返回的内容
-            val content = jsonResponse.getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-            
-            Log.d(TAG, "Batch Raw content: $content")
-            
-            // 处理可能包含Markdown格式的内容
-            var jsonContent = content
-            if (content.contains("```json")) {
-                jsonContent = content.substringAfter("```json")
-                    .substringBefore("```")
-                    .trim()
-                Log.d(TAG, "Extracted JSON Array: $jsonContent")
-            } else if (content.contains("```")) {
-                // 处理可能不带语言标识的代码块
-                jsonContent = content.substringAfter("```")
-                    .substringBefore("```")
-                    .trim()
-                Log.d(TAG, "Extracted code block: $jsonContent")
-            }
-            
-            // 解析JSON数组内容
+        var retryCount = 0
+        var lastException: Exception? = null
+        
+        // 重试机制
+        while (retryCount < maxRetries) {
             try {
-                val resultsArray = JSONArray(jsonContent)
-                val results = mutableListOf<SentimentResult>()
+                // 执行请求
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string() ?: throw Exception("响应为空")
+                Log.d(TAG, "Batch Response: $responseBody")
+
+                if (!response.isSuccessful) {
+                    throw Exception("API请求失败: ${response.code} - $responseBody")
+                }
+
+                // 解析响应JSON
+                val jsonResponse = JSONObject(responseBody)
                 
-                for (i in 0 until resultsArray.length()) {
-                    val item = resultsArray.getJSONObject(i)
-                    val label = item.getString("label")
-                    val score = item.getInt("score")
-                    results.add(SentimentResult(label, score))
+                // 获取模型返回的内容
+                val content = jsonResponse.getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+                
+                Log.d(TAG, "Batch Raw content: $content")
+                
+                // 处理可能包含Markdown格式的内容
+                var jsonContent = content
+                if (content.contains("```json")) {
+                    jsonContent = content.substringAfter("```json")
+                        .substringBefore("```")
+                        .trim()
+                    Log.d(TAG, "Extracted JSON Array: $jsonContent")
+                } else if (content.contains("```")) {
+                    // 处理可能不带语言标识的代码块
+                    jsonContent = content.substringAfter("```")
+                        .substringBefore("```")
+                        .trim()
+                    Log.d(TAG, "Extracted code block: $jsonContent")
                 }
                 
-                return@withContext results
+                // 解析JSON数组内容
+                try {
+                    val resultsArray = JSONArray(jsonContent)
+                    val results = mutableListOf<SentimentResult>()
+                    
+                    for (i in 0 until resultsArray.length()) {
+                        val item = resultsArray.getJSONObject(i)
+                        val label = item.getString("label")
+                        val score = item.getInt("score")
+                        results.add(SentimentResult(label, score))
+                    }
+                    
+                    return@withContext results
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse JSON array: $jsonContent", e)
+                    throw Exception("批量情感分析结果解析失败: ${e.message}")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse JSON array: $jsonContent", e)
-                throw Exception("批量情感分析结果解析失败: ${e.message}")
+                lastException = e
+                Log.w(TAG, "批量分析尝试 ${retryCount + 1}/$maxRetries 失败: ${e.message}")
+                retryCount++
+                
+                if (retryCount < maxRetries) {
+                    // 指数退避策略，每次重试等待时间增加
+                    val delayTime = 2000L * (1 shl retryCount)
+                    Log.d(TAG, "等待 ${delayTime}ms 后重试...")
+                    delay(delayTime)
+                }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Batch analysis failed", e)
-            throw Exception("批量情感分析失败: ${e.message}")
         }
+        
+        // 所有重试都失败
+        Log.e(TAG, "Batch analysis failed after $maxRetries retries", lastException)
+        throw Exception("批量情感分析失败: ${lastException?.message}")
     }
 
     /**

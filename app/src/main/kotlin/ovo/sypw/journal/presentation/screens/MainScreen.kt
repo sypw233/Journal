@@ -234,7 +234,7 @@ private fun MainScreenContent(
                     navController?.navigate("database_management")
                 },
                 onOpenSentimentAnalysis = {
-                    navController?.navigate("sentiment_analysis")
+                    navController?.navigate("sentiment_report")
                 },
                 onOpenAIChat = {
                     navController?.navigate("ai_chat")
@@ -330,8 +330,8 @@ private fun MainScreenContent(
                         modifier = Modifier.fillMaxSize(),
                         listState = listState,
                         journalListViewModel = journalListViewModel,
+                        sentimentViewModel = hiltViewModel(),
                         onItemClick = { item -> 
-                            SnackBarUtils.showSnackBar("查看日记: ${item.id}")
                         },
                         onRefresh = {
                             // 刷新列表
@@ -340,6 +340,10 @@ private fun MainScreenContent(
                         // 监听滚动状态变化
                         onScrollChange = { isScrolling ->
                             viewModel.setScrolling(isScrolling)
+                        },
+                        onViewSentimentReport = {
+                            // 导航到情感报告界面
+                            navController?.navigate("sentiment_report")
                         }
                     )
                 }

@@ -10,8 +10,8 @@ import androidx.room.TypeConverters
  * 日记数据库类
  */
 @Database(
-    entities = [JournalEntity::class],
-    version = 5,
+    entities = [JournalEntity::class, SentimentEntity::class],
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(JournalConverters::class)
@@ -20,6 +20,11 @@ abstract class JournalDatabase : RoomDatabase() {
      * 获取日记DAO
      */
     abstract fun journalDao(): JournalDao
+    
+    /**
+     * 获取情感分析DAO
+     */
+    abstract fun sentimentDao(): SentimentDao
 
     companion object {
         @Volatile

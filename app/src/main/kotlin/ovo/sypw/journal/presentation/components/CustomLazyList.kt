@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
+import ovo.sypw.journal.presentation.viewmodels.SentimentViewModel
 
 private const val TAG = "CustomLazyList"
 
@@ -63,9 +64,11 @@ fun CustomLazyCardList(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     listState: LazyListState = rememberLazyListState(),
     journalListViewModel: JournalListViewModel,
+    sentimentViewModel: SentimentViewModel? = null,
     onItemClick: (JournalData) -> Unit = {},
     onRefresh: () -> Unit = {},
-    onScrollChange: (Boolean) -> Unit = {}
+    onScrollChange: (Boolean) -> Unit = {},
+    onViewSentimentReport: () -> Unit = {}
 ) {
     // 从ViewModel获取UI状态
     val uiState by journalListViewModel.uiState.collectAsState()
@@ -73,6 +76,10 @@ fun CustomLazyCardList(
     // 编辑日记状态
     var showEditScreen by remember { mutableStateOf(false) }
     var editingJournal by remember { mutableStateOf<JournalData?>(null) }
+    
+    // 情感分析对话框状态
+    var showSentimentDialog by remember { mutableStateOf(false) }
+    var selectedJournalForSentiment by remember { mutableStateOf<JournalData?>(null) }
 
     // 根据是否处于搜索模式选择要显示的日记列表
     val journalList = if (uiState.isSearchMode) uiState.searchResults else uiState.journals
@@ -175,6 +182,23 @@ fun CustomLazyCardList(
         )
     }
 
+    // 显示情感分析对话框
+    if (showSentimentDialog && selectedJournalForSentiment != null && sentimentViewModel != null) {
+        SentimentAnalysisDialog(
+            journal = selectedJournalForSentiment!!,
+            viewModel = sentimentViewModel,
+            onDismiss = {
+                showSentimentDialog = false
+                selectedJournalForSentiment = null
+            },
+            onViewReport = {
+                showSentimentDialog = false
+                selectedJournalForSentiment = null
+                onViewSentimentReport()
+            }
+        )
+    }
+
     Box(
         modifier = modifier
     ) {
@@ -215,6 +239,13 @@ fun CustomLazyCardList(
                         onClick = {
                             // 处理点击事件
                             onItemClick(journalData)
+                        },
+                        onLongClick = {
+                            // 处理长按事件，显示情感分析对话框
+                            if (sentimentViewModel != null) {
+                                selectedJournalForSentiment = journalData
+                                showSentimentDialog = true
+                            }
                         }
                     )
                 }

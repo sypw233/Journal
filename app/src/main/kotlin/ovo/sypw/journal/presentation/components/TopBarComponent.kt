@@ -370,7 +370,7 @@ fun CustomDropdownMenu(
             DropdownMenuItem(
                 text = {
                     Text(
-                        "情感分析(施工中...)",
+                        "情感分析",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },

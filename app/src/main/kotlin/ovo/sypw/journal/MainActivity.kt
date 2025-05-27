@@ -40,7 +40,7 @@ import ovo.sypw.journal.di.AppDependencyManager
 import ovo.sypw.journal.presentation.screens.AIChatScreen
 import ovo.sypw.journal.presentation.screens.DatabaseManagementScreen
 import ovo.sypw.journal.presentation.screens.MainScreen
-import ovo.sypw.journal.presentation.screens.SentimentAnalysisScreen
+import ovo.sypw.journal.presentation.screens.SentimentReportScreen
 import ovo.sypw.journal.presentation.screens.SettingsScreen
 import ovo.sypw.journal.presentation.viewmodels.AIChatViewModel
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
@@ -332,9 +332,9 @@ fun AppNavHost(
                 })
         }
         
-        // 情感分析界面路由
+        // 情感分析报告界面路由
         composable(
-            "sentiment_analysis",
+            "sentiment_report",
             enterTransition = {
                 // 自定义进入动画：从中心放大并淡入
                 scaleIn(
@@ -364,7 +364,7 @@ fun AppNavHost(
                 ) + fadeOut(animationSpec = tween(350))
             }
         ) {
-            SentimentAnalysisScreen(
+            SentimentReportScreen(
                 onBackClick = {
                     navController.popBackStack()
                 }

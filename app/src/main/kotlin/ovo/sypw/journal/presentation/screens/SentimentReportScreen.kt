@@ -58,11 +58,12 @@ import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 import ovo.sypw.journal.presentation.viewmodels.SentimentViewModel
 
 /**
- * 情感分析屏幕
+ * 情感分析报告屏幕
+ * 显示所有日记的情感分析结果统计和分布
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SentimentAnalysisScreen(
+fun SentimentReportScreen(
     onBackClick: () -> Unit,
     viewModel: SentimentViewModel = hiltViewModel(),
     journalListViewModel: JournalListViewModel = hiltViewModel()
@@ -88,18 +89,16 @@ fun SentimentAnalysisScreen(
         journalListViewModel.loadJournals()
     }
     
-    // 初始化情感分析器并检查是否有日记需要分析
-    LaunchedEffect(Unit) {
+    // 当日记列表加载完成后，从数据库加载情感分析结果
+    LaunchedEffect(journals) {
         if (journals.isNotEmpty()) {
-            // 尝试分析第一篇日记以初始化情感分析器
-            journals.firstOrNull()?.let { firstJournal ->
-                viewModel.analyzeSentiment(firstJournal)
-            }
+            // 从数据库加载日记与情感分析结果
+            viewModel.loadJournalsWithSentiments(journals)
         }
     }
     
-    // 当日记列表改变时，更新过滤结果
-    LaunchedEffect(journals, currentFilter) {
+    // 当过滤器改变时，更新过滤结果
+    LaunchedEffect(currentFilter) {
         if (journals.isNotEmpty()) {
             viewModel.updateFilteredResults(journals)
         }
@@ -108,7 +107,7 @@ fun SentimentAnalysisScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("情感分析") },
+                title = { Text("情感分析报告") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -344,7 +343,7 @@ fun SentimentAnalysisScreen(
             title = { Text("批量情感分析") },
             text = { 
                 Column {
-                    Text("将对所有日记进行情感分析，每5条为一批次，每批次之间会有3秒延迟。")
+                    Text("将对所有日记进行情感分析，每篇日记单独请求，每次请求之间会有0.5秒延迟。")
                     Text("当前共有 ${journals.size} 篇日记需要分析")
                     
                     if (isAnalyzing) {
