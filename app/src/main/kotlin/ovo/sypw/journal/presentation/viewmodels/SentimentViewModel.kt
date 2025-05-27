@@ -54,9 +54,22 @@ class SentimentViewModel @Inject constructor(
     private val _currentFilter = MutableStateFlow<SentimentType?>(null)
     val currentFilter: StateFlow<SentimentType?> = _currentFilter.asStateFlow()
     
+    // 时间周期过滤
+    private val _currentTimePeriod = MutableStateFlow(TimePeriod.ALL)
+    val currentTimePeriod: StateFlow<TimePeriod> = _currentTimePeriod.asStateFlow()
+    
     // 过滤后的结果
     private val _filteredResults = MutableStateFlow<List<Pair<JournalData, SentimentData>>>(emptyList())
     val filteredResults: StateFlow<List<Pair<JournalData, SentimentData>>> = _filteredResults.asStateFlow()
+    
+    // 时间周期枚举
+    enum class TimePeriod(val displayName: String) {
+        ALL("全部时间"),
+        LAST_WEEK("最近一周"),
+        LAST_MONTH("最近一个月"),
+        LAST_THREE_MONTHS("最近三个月"),
+        LAST_YEAR("最近一年")
+    }
     
     init {
         // 初始化时从数据库加载情感分析结果
@@ -102,12 +115,44 @@ class SentimentViewModel @Inject constructor(
                 val sentimentCount = results.count { it.second != null }
                 Log.d(TAG, "从数据库加载了${results.size}条日记，其中${sentimentCount}条有情感分析结果")
                 
+                // 调试日记日期信息
+                debugJournalDates(journals)
+                
                 // 根据当前过滤器更新结果
                 updateFilteredResults(journals)
             } catch (e: Exception) {
-                Log.e(TAG, "加载日记与情感分析数据失败", e)
-                SnackBarUtils.showSnackBar("加载日记与情感分析数据失败: ${e.message}")
+                // 只处理非取消异常
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "加载日记与情感分析数据失败", e)
+                    SnackBarUtils.showSnackBar("加载日记与情感分析数据失败: ${e.message}")
+                } else {
+                    Log.d(TAG, "情感分析数据加载已取消")
+                }
             }
+        }
+    }
+    
+    /**
+     * 调试日记日期信息
+     */
+    private fun debugJournalDates(journals: List<JournalData>) {
+        val currentTime = System.currentTimeMillis()
+        val oneMonthAgo = currentTime - 30 * 24 * 60 * 60 * 1000L
+        val threeMonthsAgo = currentTime - 90 * 24 * 60 * 60 * 1000L
+        
+        Log.d(TAG, "====== 日记日期调试信息 ======")
+        Log.d(TAG, "当前时间: $currentTime (${java.util.Date(currentTime)})")
+        Log.d(TAG, "一个月前: $oneMonthAgo (${java.util.Date(oneMonthAgo)})")
+        Log.d(TAG, "三个月前: $threeMonthsAgo (${java.util.Date(threeMonthsAgo)})")
+        
+        journals.forEach { journal ->
+            val date = journal.date
+            val time = date?.time ?: 0
+            val isInOneMonth = time > oneMonthAgo
+            val isInThreeMonths = time > threeMonthsAgo
+            
+            Log.d(TAG, "日记ID=${journal.id}, 日期=${date}, 时间戳=${time}")
+            Log.d(TAG, "  一个月内=${isInOneMonth}, 三个月内=${isInThreeMonths}")
         }
     }
     
@@ -311,24 +356,40 @@ class SentimentViewModel @Inject constructor(
     }
     
     /**
+     * 设置时间周期过滤
+     */
+    fun setTimePeriod(period: TimePeriod) {
+        _currentTimePeriod.value = period
+    }
+    
+    /**
      * 根据当前的过滤类型更新过滤结果
      */
     fun updateFilteredResults(journals: List<JournalData>) {
         val filter = _currentFilter.value
+        val timePeriod = _currentTimePeriod.value
         val journalMap = journals.associateBy { it.id }
         
+        // 先按时间过滤日记
+        val timeFilteredJournals = filterJournalsByTimePeriod(journals, timePeriod)
+        val timeFilteredJournalIds = timeFilteredJournals.map { it.id }.toSet()
+        
         val filtered = if (filter == null) {
-            // 不过滤，返回所有有情感分析结果的日记
+            // 不按情感类型过滤，返回所有有情感分析结果且在时间范围内的日记
             sentimentCache.entries
+                .filter { entry -> timeFilteredJournalIds.contains(entry.key) }
                 .mapNotNull { entry -> 
                     journalMap[entry.key]?.let { journal -> 
                         Pair(journal, entry.value)
                     }
                 }
         } else {
-            // 按情感类型过滤
+            // 按情感类型和时间过滤
             sentimentCache.entries
-                .filter { it.value.sentimentType == filter }
+                .filter { entry -> 
+                    timeFilteredJournalIds.contains(entry.key) && 
+                    entry.value.sentimentType == filter 
+                }
                 .mapNotNull { entry -> 
                     journalMap[entry.key]?.let { journal -> 
                         Pair(journal, entry.value)
@@ -346,7 +407,59 @@ class SentimentViewModel @Inject constructor(
         }
         
         _filteredResults.value = sortedResults
-        Log.d(TAG, "过滤结果更新: 共${sortedResults.size}条结果")
+        Log.d(TAG, "过滤结果更新: 共${sortedResults.size}条结果，时间周期：${timePeriod.displayName}")
+    }
+    
+    /**
+     * 根据时间周期过滤日记
+     */
+    private fun filterJournalsByTimePeriod(journals: List<JournalData>, period: TimePeriod): List<JournalData> {
+        if (period == TimePeriod.ALL) {
+            return journals
+        }
+        
+        val currentTime = System.currentTimeMillis()
+        
+        // 确保使用Long类型避免整数溢出
+        val msInDay = 24L * 60L * 60L * 1000L
+        val cutoffTime = when (period) {
+            TimePeriod.LAST_WEEK -> currentTime - 7L * msInDay
+            TimePeriod.LAST_MONTH -> currentTime - 30L * msInDay
+            TimePeriod.LAST_THREE_MONTHS -> currentTime - 90L * msInDay
+            TimePeriod.LAST_YEAR -> currentTime - 365L * msInDay
+            else -> 0L
+        }
+        
+        // 输出调试信息，查看过滤时间点
+        Log.d(TAG, "过滤时间点: 当前时间=${currentTime}, 截止时间=${cutoffTime}, 周期=${period.displayName}")
+        Log.d(TAG, "过滤时间点(可读): 当前=${java.util.Date(currentTime)}, 截止=${java.util.Date(cutoffTime)}")
+        
+        // 输出每一个截止时间点，便于调试
+        Log.d(TAG, "一周前: ${currentTime - 7L * msInDay} (${java.util.Date(currentTime - 7L * msInDay)})")
+        Log.d(TAG, "一月前: ${currentTime - 30L * msInDay} (${java.util.Date(currentTime - 30L * msInDay)})")
+        Log.d(TAG, "三月前: ${currentTime - 90L * msInDay} (${java.util.Date(currentTime - 90L * msInDay)})")
+        Log.d(TAG, "一年前: ${currentTime - 365L * msInDay} (${java.util.Date(currentTime - 365L * msInDay)})")
+        
+        // 过滤日记
+        val filteredJournals = journals.filter { journal ->
+            val journalTime = journal.date?.time ?: 0L
+            
+            // 确保这里使用Long类型比较
+            val isInRange = journalTime > cutoffTime
+            
+            // 记录每篇日记的筛选结果，帮助调试
+            if (period == TimePeriod.LAST_MONTH || period == TimePeriod.LAST_THREE_MONTHS) {
+                Log.d(TAG, "日记ID=${journal.id}, 时间=${journalTime} (${journal.date}), 是否在范围内=${isInRange}")
+                Log.d(TAG, "  时间差=${currentTime - journalTime}毫秒, 约${(currentTime - journalTime) / msInDay}天")
+            }
+            
+            isInRange
+        }
+        
+        // 记录筛选结果
+        Log.d(TAG, "时间筛选结果: 共${journals.size}篇日记，筛选后${filteredJournals.size}篇，周期=${period.displayName}")
+        
+        return filteredJournals
     }
     
     /**

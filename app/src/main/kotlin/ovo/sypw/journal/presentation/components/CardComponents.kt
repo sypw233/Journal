@@ -522,7 +522,7 @@ fun ContentSection(
     location: LocationData?,
     date: Date?,
     expanded: Boolean,
-//    onExpandClick: () -> Unit,
+    onExpandClick: () -> Unit,
     textLayoutResult: MutableState<TextLayoutResult?>,
     isMarkdown: Boolean = false
 ) {
@@ -541,15 +541,13 @@ fun ContentSection(
                     style = textStyle,
                 )
             } else {
-                // 普通文本显示
+                // 普通文本显示 - 移除clickable修饰符，让事件传递到父级
                 Text(
                     text = text,
                     style = textStyle,
                     maxLines = if (expanded) Int.MAX_VALUE else 6,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .padding(16.dp),
-//                    .clickable(onClick = onExpandClick),
+                    modifier = Modifier.padding(16.dp),
                     onTextLayout = { textLayoutResult.value = it }
                 )
             }
@@ -567,30 +565,62 @@ fun ContentSection(
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
-fun JournalCard(modifier: Modifier, journalData: JournalData) {
-    // 控制文本展开状态
-    val (expanded, setExpanded) = remember { mutableStateOf(false) }
+fun JournalCard(
+    modifier: Modifier, 
+    journalData: JournalData,
+    handleClickInternally: Boolean = false, // 控制是否在内部处理点击事件
+    expandedState: Boolean? = null, // 外部控制的展开状态
+    onExpandChange: ((Boolean) -> Unit)? = null // 展开状态变化回调
+) {
+    // 使用本地状态变量
+    val expandedLocal = remember { mutableStateOf(false) }
+    
+    // 确定实际使用的展开状态
+    val expanded = expandedState ?: expandedLocal.value
+    
+    // 处理展开状态变化的函数
+    val toggleExpanded = {
+        if (expandedState != null && onExpandChange != null) {
+            // 如果有外部控制，调用外部回调
+            onExpandChange(!expanded)
+        } else {
+            // 否则更新本地状态
+            expandedLocal.value = !expandedLocal.value
+        }
+    }
+    
     val textLayoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
     // 添加图片预览状态
     val (showImagePreview, setShowImagePreview) = remember { mutableStateOf(false) }
     val (selectedImageIndex, setSelectedImageIndex) = remember { mutableIntStateOf(0) }
-//    val journalDataRem = remember { mutableStateOf(journalData) }
+    
+    // 准备卡片的Modifier
+    val cardModifier = if (handleClickInternally) {
+        // 当内部处理点击时，添加clickable修饰符
+        modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(
+                remember { MutableInteractionSource() },
+                indication = null  // 移除点击动画效果
+            ) {
+                // 点击卡片时切换展开状态
+                toggleExpanded()
+            }
+    } else {
+        // 否则，仅使用传入的modifier和基本padding
+        modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    }
+    
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-//        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(
-                remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                setExpanded(!expanded)
-            }
+        modifier = cardModifier
     ) {
         Column {
             // 图片区域
@@ -609,7 +639,7 @@ fun JournalCard(modifier: Modifier, journalData: JournalData) {
                 location = journalData.location,
                 date = journalData.date,
                 expanded = expanded,
-//                onExpandClick = { setExpanded(!expanded) },
+                onExpandClick = { toggleExpanded() },
                 textLayoutResult = textLayoutResult,
                 isMarkdown = journalData.isMarkdown
             )

@@ -22,28 +22,45 @@ data class SentimentData(
          * 从API情感分析结果创建数据对象
          */
         fun fromApiResult(journalId: Int, result: SentimentApiService.SentimentResult): SentimentData {
-            // 根据API返回的score确定情感类型
-            val type = when {
-                result.score > 80 -> SentimentType.POSITIVE
-                result.score > 60 -> SentimentType.POSITIVE
-                result.score > 40 -> SentimentType.NEUTRAL
-                result.score > 20 -> SentimentType.NEGATIVE
-                else -> SentimentType.NEGATIVE
-            }
-            
             // 计算正负面得分（API只返回一个总分）
             val normalizedScore = result.score / 100f
-            val positiveScore = if (result.score > 50) normalizedScore else 1f - normalizedScore
-            val negativeScore = if (result.score <= 50) normalizedScore else 1f - normalizedScore
             
-            return SentimentData(
-                journalId = journalId,
-                sentimentType = type,
-                positiveScore = positiveScore,
-                negativeScore = negativeScore,
-                dominantEmotion = result.label,
-                confidence = Math.abs(2 * normalizedScore - 1f) // 置信度：越接近0或1越高
-            )
+            // 修复正负面得分的计算逻辑
+            // API分数直接作为积极得分比例，消极得分为1减去积极得分
+            val positiveScore = normalizedScore
+            val negativeScore = 1f - normalizedScore
+            
+            // 重新计算情感类型，确保与UI显示一致
+            val type = when {
+                negativeScore >= 0.8f -> SentimentType.NEGATIVE    // 负面得分>=80%时为强烈消极
+                negativeScore >= 0.6f -> SentimentType.NEGATIVE    // 负面得分>=60%时为消极
+                negativeScore > 0.4f && negativeScore < 0.6f -> SentimentType.NEUTRAL // 40-60%为中性
+                positiveScore >= 0.6f -> SentimentType.POSITIVE    // 积极得分>=60%时为积极
+                else -> SentimentType.NEUTRAL                      // 其它情况为中性
+            }
+            
+            // 创建SentimentData对象，对于消极类型进行特殊处理
+            return if (type == SentimentType.NEGATIVE) {
+                // 消极类型下，交换积极和消极得分以符合UI显示习惯
+                SentimentData(
+                    journalId = journalId,
+                    sentimentType = type,
+                    positiveScore = negativeScore,  // 显示消极得分为主要得分
+                    negativeScore = positiveScore,  // 显示积极得分为次要得分
+                    dominantEmotion = result.label,
+                    confidence = Math.abs(2 * normalizedScore - 1f)
+                )
+            } else {
+                // 其他类型保持原有计算
+                SentimentData(
+                    journalId = journalId,
+                    sentimentType = type,
+                    positiveScore = positiveScore,
+                    negativeScore = negativeScore,
+                    dominantEmotion = result.label,
+                    confidence = Math.abs(2 * normalizedScore - 1f)
+                )
+            }
         }
         
         /**

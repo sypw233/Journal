@@ -242,6 +242,7 @@ fun CustomLazyCardList(
                         },
                         onLongClick = {
                             // 处理长按事件，显示情感分析对话框
+                            Log.d(TAG, "CustomLazyCardList: 触发长按事件 ${journalData.id}")
                             if (sentimentViewModel != null) {
                                 selectedJournalForSentiment = journalData
                                 showSentimentDialog = true

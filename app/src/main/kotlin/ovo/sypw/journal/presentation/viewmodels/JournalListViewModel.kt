@@ -17,6 +17,7 @@ import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
+import ovo.sypw.journal.data.repository.SentimentRepository
 import ovo.sypw.journal.presentation.screens.JournalListState
 import java.util.Date
 import java.util.LinkedList
@@ -33,7 +34,8 @@ private const val PAGE_SIZE = 10
 @HiltViewModel
 class JournalListViewModel @Inject constructor(
     private val repository: JournalRepository,
-    private val preferences: JournalPreferences
+    private val preferences: JournalPreferences,
+    private val sentimentRepository: SentimentRepository
 ) : ViewModel() {
     // UI 状态
     private val _uiState = MutableStateFlow(JournalListState())
@@ -65,12 +67,26 @@ class JournalListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val allJournalsFlow = repository.getAllJournals()
-                allJournalsFlow.collect { journals ->
-                    _journals.value = journals
+                // 使用 collectLatest 替代 collect，当有新的调用时会自动取消之前的收集
+                // 添加 try-catch 块处理 JobCancellationException
+                try {
+                    allJournalsFlow.collect { journals ->
+                        _journals.value = journals
+                    }
+                } catch (e: Exception) {
+                    // 如果是取消异常，则静默处理，不显示错误信息
+                    if (e is kotlinx.coroutines.CancellationException) {
+                        Log.d(TAG, "Journal loading cancelled gracefully")
+                    } else {
+                        throw e // 重新抛出非取消异常
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading all journals", e)
-                SnackBarUtils.showSnackBar("加载失败: ${e.message}")
+                // 只记录非取消异常
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error loading all journals", e)
+                    SnackBarUtils.showSnackBar("加载失败: ${e.message}")
+                }
             }
         }
     }
@@ -289,8 +305,23 @@ class JournalListViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isLoading = true) }
 
+                // 获取原始日记内容
+                val originalJournal = repository.getJournalById(journalData.id)
+                
                 // 更新本地数据库
                 repository.updateJournal(journalData)
+                
+                // 如果文本内容发生变化，删除对应的情感分析结果
+                if (originalJournal != null && originalJournal.text != journalData.text) {
+                    try {
+                        Log.d(TAG, "日记内容已变更，删除对应的情感分析结果: journalId=${journalData.id}")
+                        sentimentRepository.deleteSentimentByJournalId(journalData.id)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "删除情感分析结果失败", e)
+                        // 不影响主流程，继续执行
+                    }
+                }
+                
                 SnackBarUtils.showSnackBar("更新日记成功")
 
                 // 更新UI状态

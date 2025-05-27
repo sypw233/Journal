@@ -1,5 +1,7 @@
 package ovo.sypw.journal.presentation.screens
 
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,15 +9,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
@@ -23,11 +32,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,11 +57,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import ovo.sypw.journal.common.theme.SentimentColors
 import ovo.sypw.journal.common.utils.SentimentType
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
@@ -72,35 +89,38 @@ fun SentimentReportScreen(
     val journals by journalListViewModel.journals.collectAsState()
     val isAnalyzing by viewModel.isAnalyzing.collectAsState()
     val batchAnalysisProgress by viewModel.batchAnalysisProgress.collectAsState()
-    val selectedJournalSentiment by viewModel.selectedJournalSentiment.collectAsState()
     val currentFilter by viewModel.currentFilter.collectAsState()
+    val currentTimePeriod by viewModel.currentTimePeriod.collectAsState()
     val filteredResults by viewModel.filteredResults.collectAsState()
     
     // 本地UI状态
-    var selectedJournal by remember { mutableStateOf<JournalData?>(null) }
-    var showFilterDialog by remember { mutableStateOf(false) }
     var showBatchAnalysisDialog by remember { mutableStateOf(false) }
-    var showDistributionDialog by remember { mutableStateOf(false) }
+    var showPeriodSelectorDialog by remember { mutableStateOf(false) }
     
     val coroutineScope = rememberCoroutineScope()
     
     // 加载日记列表
     LaunchedEffect(Unit) {
-        journalListViewModel.loadJournals()
+        try {
+            journalListViewModel.loadJournals()
+        } catch (e: Exception) {
+            if (e !is kotlinx.coroutines.CancellationException) {
+                Log.e("SentimentReportScreen", "加载日记列表失败", e)
+            }
+        }
     }
     
     // 当日记列表加载完成后，从数据库加载情感分析结果
     LaunchedEffect(journals) {
         if (journals.isNotEmpty()) {
-            // 从数据库加载日记与情感分析结果
-            viewModel.loadJournalsWithSentiments(journals)
-        }
-    }
-    
-    // 当过滤器改变时，更新过滤结果
-    LaunchedEffect(currentFilter) {
-        if (journals.isNotEmpty()) {
-            viewModel.updateFilteredResults(journals)
+            try {
+                // 从数据库加载日记与情感分析结果
+                viewModel.loadJournalsWithSentiments(journals)
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("SentimentReportScreen", "加载情感分析结果失败", e)
+                }
+            }
         }
     }
     
@@ -117,6 +137,16 @@ fun SentimentReportScreen(
                     }
                 },
                 actions = {
+                    // 时间周期筛选按钮
+                    IconButton(
+                        onClick = { showPeriodSelectorDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "筛选时间周期"
+                        )
+                    }
+                    
                     // 批量分析按钮
                     IconButton(
                         onClick = { showBatchAnalysisDialog = true },
@@ -127,28 +157,8 @@ fun SentimentReportScreen(
                             contentDescription = "批量分析"
                         )
                     }
-                    
-                    // 过滤按钮
-                    IconButton(
-                        onClick = { showFilterDialog = true },
-                        enabled = !isAnalyzing
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = "过滤"
-                        )
-                    }
                 }
             )
-        },
-        floatingActionButton = {
-            if (!isAnalyzing && journals.isNotEmpty()) {
-                ExtendedFloatingActionButton(
-                    onClick = { showDistributionDialog = true },
-                    icon = { Icon(Icons.Default.FilterList, contentDescription = "情感分布") },
-                    text = { Text("情感分布") }
-                )
-            }
         }
     ) { paddingValues ->
         Box(
@@ -156,180 +166,126 @@ fun SentimentReportScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (journals.isEmpty()) {
-                // 无日记状态
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // 显示当前选择的时间周期
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "暂无日记",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onBackClick) {
-                        Text("返回创建日记")
-                    }
-                }
-            } else if (filteredResults.isEmpty() && !isAnalyzing) {
-                // 无分析结果状态
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (currentFilter == null) 
-                            "暂无情感分析结果，点击批量分析开始分析日记" 
-                        else 
-                            "没有${getFilterName(currentFilter)}类型的日记",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
+                        text = "时间范围: ${currentTimePeriod.displayName}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     Button(
-                        onClick = { 
-                            if (currentFilter == null) {
-                                showBatchAnalysisDialog = true 
-                            } else {
-                                viewModel.setFilter(null)
-                            }
-                        }
+                        onClick = { showPeriodSelectorDialog = true },
+                        modifier = Modifier.height(36.dp)
                     ) {
                         Text(
-                            if (currentFilter == null) "开始分析" else "查看所有类型"
+                            text = "更改",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
-            } else {
-                // 日记列表和情感分析
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // 选中的情感分析卡片
-                    if (selectedJournal != null && selectedJournalSentiment != null) {
-                        SentimentAnalysisCard(
-                            sentimentData = selectedJournalSentiment,
-                            isAnalyzing = isAnalyzing,
-                            expanded = true,
-                            onReAnalyze = {
-                                selectedJournal?.let { 
-                                    viewModel.analyzeSentiment(it, true)
-                                    coroutineScope.launch {
-                                        viewModel.updateFilteredResults(journals)
-                                    }
+
+                HorizontalDivider()
+                
+                if (journals.isEmpty()) {
+                    // 无日记状态
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "暂无日记",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onBackClick) {
+                            Text("返回创建日记")
+                        }
+                    }
+                } else {
+                    val sentiments = filteredResults.map { it.second }
+                    val hasData = sentiments.isNotEmpty()
+                    
+                    if (!hasData && !isAnalyzing) {
+                        // 无分析结果状态
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "在${currentTimePeriod.displayName}内暂无情感分析结果",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { showBatchAnalysisDialog = true }
+                                ) {
+                                    Text("开始分析")
                                 }
-                            },
-                            modifier = Modifier.padding(16.dp)
+                                OutlinedButton(
+                                    onClick = { showPeriodSelectorDialog = true }
+                                ) {
+                                    Text("更改时间范围")
+                                }
+                            }
+                        }
+                    } else {
+                        // 分析报告界面
+                        SentimentReportContent(
+                            journals = journals,
+                            results = filteredResults,
+                            isAnalyzing = isAnalyzing,
+                            currentTimePeriod = currentTimePeriod
                         )
                     }
-                    
-                    // 过滤信息
-                    if (currentFilter != null) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.medium,
-                            tonalElevation = 2.dp
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "当前过滤: ${getFilterName(currentFilter)}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                TextButton(onClick = { viewModel.setFilter(null) }) {
-                                    Text("清除")
-                                }
-                            }
-                        }
-                    }
-                    
-                    // 日记列表
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp),
-                        modifier = Modifier.weight(1f)
+                }
+            }
+            
+            // 显示加载进度
+            if (isAnalyzing) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        items(filteredResults) { (journal, sentiment) ->
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clickable {
-                                        selectedJournal = journal
-                                        viewModel.analyzeSentiment(journal)
-                                    },
-                                shape = MaterialTheme.shapes.medium,
-                                tonalElevation = 4.dp,
-                                shadowElevation = 2.dp
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    // 日记卡片
-                                    JournalCard(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        journalData = journal
-                                    )
-                                    
-                                    Divider(
-                                        modifier = Modifier.padding(vertical = 8.dp),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    )
-                                    
-                                    // 简要情感信息
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        val sentimentColor = when (sentiment.sentimentType) {
-                                            SentimentType.POSITIVE -> MaterialTheme.colorScheme.primary
-                                            SentimentType.NEGATIVE -> MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                        
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = when (sentiment.sentimentType) {
-                                                    SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
-                                                    SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
-                                                    else -> Icons.Default.SentimentSatisfied
-                                                },
-                                                contentDescription = sentiment.getSentimentDescription(),
-                                                tint = sentimentColor,
-                                                modifier = Modifier.padding(end = 8.dp)
-                                            )
-                                            
-                                            Text(
-                                                text = sentiment.getSentimentDescription(),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = sentimentColor
-                                            )
-                                        }
-                                        
-                                        if (sentiment.dominantEmotion.isNotEmpty()) {
-                                            Text(
-                                                text = sentiment.dominantEmotion,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        CircularProgressIndicator(progress = { batchAnalysisProgress })
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "正在分析... ${(batchAnalysisProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -380,197 +336,888 @@ fun SentimentReportScreen(
         )
     }
     
-    // 批量分析进度对话框
-    if (isAnalyzing && batchAnalysisProgress > 0f) {
+    // 时间周期选择对话框
+    if (showPeriodSelectorDialog) {
         AlertDialog(
-            onDismissRequest = { /* 不允许关闭 */ },
-            title = { Text("正在分析...") },
-            text = { 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(progress = { batchAnalysisProgress })
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "已完成 ${(batchAnalysisProgress * 100).toInt()}%",
-                        textAlign = TextAlign.Center
+            onDismissRequest = { showPeriodSelectorDialog = false },
+            title = { 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "批量处理中，分析结果会实时显示",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("选择时间周期")
                 }
             },
-            confirmButton = { /* 无按钮 */ },
-            dismissButton = { /* 无按钮 */ }
-        )
-    }
-    
-    // 情感过滤对话框
-    if (showFilterDialog) {
-        FilterDialog(
-            currentFilter = currentFilter,
-            onFilterSelected = { filter ->
-                viewModel.setFilter(filter)
-                showFilterDialog = false
-            },
-            onDismiss = { showFilterDialog = false }
-        )
-    }
-    
-    // 情感分布对话框
-    if (showDistributionDialog) {
-        val distribution = viewModel.getSentimentDistribution()
-        SentimentDistributionDialog(
-            distribution = distribution,
-            onDismiss = { showDistributionDialog = false }
-        )
-    }
-}
-
-/**
- * 情感过滤对话框
- */
-@Composable
-private fun FilterDialog(
-    currentFilter: SentimentType?,
-    onFilterSelected: (SentimentType?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("按情感类型过滤") },
-        text = { 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                FilterOption(
-                    title = "全部",
-                    isSelected = currentFilter == null,
-                    onClick = { onFilterSelected(null) }
-                )
-                FilterOption(
-                    title = "积极情感",
-                    isSelected = currentFilter == SentimentType.POSITIVE,
-                    onClick = { onFilterSelected(SentimentType.POSITIVE) }
-                )
-                FilterOption(
-                    title = "消极情感",
-                    isSelected = currentFilter == SentimentType.NEGATIVE,
-                    onClick = { onFilterSelected(SentimentType.NEGATIVE) }
-                )
-                FilterOption(
-                    title = "中性情感",
-                    isSelected = currentFilter == SentimentType.NEUTRAL,
-                    onClick = { onFilterSelected(SentimentType.NEUTRAL) }
-                )
-            }
-        },
-        confirmButton = { 
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
-            }
-        },
-        dismissButton = {}
-    )
-}
-
-/**
- * 情感分布对话框
- */
-@Composable
-private fun SentimentDistributionDialog(
-    distribution: Map<SentimentType, Pair<Int, Float>>,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("情感分布统计") },
-        text = { 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (distribution.isEmpty()) {
-                    Text("暂无情感分析数据")
-                } else {
-                    Text(
-                        text = "总计分析: ${distribution.values.sumOf { it.first }} 篇日记",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    distribution.forEach { (type, data) ->
-                        val (count, percentage) = data
-                        Row(
+            text = { 
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SentimentViewModel.TimePeriod.values().forEach { period ->
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .clickable {
+                                    coroutineScope.launch {
+                                        viewModel.setTimePeriod(period)
+                                        viewModel.updateFilteredResults(journals)
+                                        showPeriodSelectorDialog = false
+                                    }
+                                },
+                            shape = MaterialTheme.shapes.small
                         ) {
-                            Text(
-                                text = getFilterName(type),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = when(type) {
-                                    SentimentType.POSITIVE -> 
-                                        MaterialTheme.colorScheme.primary
-                                    SentimentType.NEGATIVE -> 
-                                        MaterialTheme.colorScheme.error
-                                    else -> MaterialTheme.colorScheme.onSurface
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = period.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (period == currentTimePeriod) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                if (period == currentTimePeriod) {
+                                    Icon(
+                                        imageVector = Icons.Default.FilterList,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            )
-                            
-                            Text(
-                                text = "$count (${(percentage * 100).toInt()}%)",
-                                style = MaterialTheme.typography.bodyMedium
+                            }
+                        }
+                        
+                        if (period != SentimentViewModel.TimePeriod.values().last()) {
+                            Divider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             )
                         }
                     }
                 }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPeriodSelectorDialog = false }) {
+                    Text("关闭")
+                }
             }
-        },
-        confirmButton = { 
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
-            }
-        }
-    )
-}
-
-/**
- * 过滤选项
- */
-@Composable
-private fun FilterOption(
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = title,
-            color = if (isSelected) 
-                MaterialTheme.colorScheme.primary 
-            else 
-                MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            textAlign = TextAlign.Center
         )
     }
 }
 
 /**
- * 获取情感类型的可读名称
+ * 情感分析报告内容
  */
-private fun getFilterName(type: SentimentType?): String {
-    return when(type) {
-        SentimentType.POSITIVE -> "积极"
-        SentimentType.NEGATIVE -> "消极"
-        SentimentType.NEUTRAL -> "中性"
-        SentimentType.UNKNOWN -> "未知"
-        null -> "全部"
+@Composable
+private fun SentimentReportContent(
+    journals: List<JournalData>,
+    results: List<Pair<JournalData, SentimentData>>,
+    isAnalyzing: Boolean,
+    currentTimePeriod: SentimentViewModel.TimePeriod
+) {
+    // 记录日记和筛选结果数量
+    val totalJournals = journals.size
+    val filteredCount = results.size
+    Log.d("SentimentReportScreen", "报告内容: 总日记数=${totalJournals}, 筛选结果数=${filteredCount}, 时间周期=${currentTimePeriod.displayName}")
+    
+    // 计算当前时间范围内应该有的日记数量
+    val currentTime = System.currentTimeMillis()
+    val journalsInCurrentPeriod = when (currentTimePeriod) {
+        SentimentViewModel.TimePeriod.ALL -> journals.size
+        SentimentViewModel.TimePeriod.LAST_WEEK -> {
+            journals.count { it.date?.time ?: 0 > currentTime - 7L * 24L * 60L * 60L * 1000L }
+        }
+        SentimentViewModel.TimePeriod.LAST_MONTH -> {
+            journals.count { it.date?.time ?: 0 > currentTime - 30L * 24L * 60L * 60L * 1000L }
+        }
+        SentimentViewModel.TimePeriod.LAST_THREE_MONTHS -> {
+            journals.count { it.date?.time ?: 0 > currentTime - 90L * 24L * 60L * 60L * 1000L }
+        }
+        SentimentViewModel.TimePeriod.LAST_YEAR -> {
+            journals.count { it.date?.time ?: 0 > currentTime - 365L * 24L * 60L * 60L * 1000L }
+        }
+    }
+    Log.d("SentimentReportScreen", "当前时间范围应有日记数=${journalsInCurrentPeriod}")
+    
+    // 计算情感分布统计
+    val totalCount = results.size
+    val positiveCount = results.count { it.second.sentimentType == SentimentType.POSITIVE }
+    val negativeCount = results.count { it.second.sentimentType == SentimentType.NEGATIVE }
+    val neutralCount = results.count { it.second.sentimentType == SentimentType.NEUTRAL }
+    
+    // 计算情感占比
+    val positivePercentage = if (totalCount > 0) positiveCount * 100f / totalCount else 0f
+    val negativePercentage = if (totalCount > 0) negativeCount * 100f / totalCount else 0f
+    val neutralPercentage = if (totalCount > 0) neutralCount * 100f / totalCount else 0f
+    
+    // 计算最近7天的数据，只有在查看全部时间或时间段超过7天时才计算
+    val oneWeekAgo = currentTime - 7L * 24L * 60L * 60L * 1000L
+    val showRecentWeekSection = currentTimePeriod == SentimentViewModel.TimePeriod.ALL || 
+        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_MONTH || 
+        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_THREE_MONTHS || 
+        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_YEAR
+    
+    val recentResults = if (showRecentWeekSection) {
+        results.filter { it.first.date?.time ?: 0 > oneWeekAgo }
+    } else {
+        emptyList()
+    }
+    
+    // 最近情感统计
+    val recentCount = recentResults.size
+    val recentPositiveCount = recentResults.count { it.second.sentimentType == SentimentType.POSITIVE }
+    val recentNegativeCount = recentResults.count { it.second.sentimentType == SentimentType.NEGATIVE }
+    val recentNeutralCount = recentResults.count { it.second.sentimentType == SentimentType.NEUTRAL }
+    
+    // 最近情感占比
+    val recentPositivePercentage = if (recentCount > 0) recentPositiveCount * 100f / recentCount else 0f
+    val recentNegativePercentage = if (recentCount > 0) recentNegativeCount * 100f / recentCount else 0f
+    val recentNeutralPercentage = if (recentCount > 0) recentNeutralCount * 100f / recentCount else 0f
+    
+    // 计算平均情感分数
+    val avgPositiveScore = results.map { it.second.positiveScore }.average().toFloat()
+    val avgNegativeScore = results.map { it.second.negativeScore }.average().toFloat()
+    val recentAvgPositiveScore = if (recentResults.isNotEmpty()) 
+        recentResults.map { it.second.positiveScore }.average().toFloat() else 0f
+    val recentAvgNegativeScore = if (recentResults.isNotEmpty()) 
+        recentResults.map { it.second.negativeScore }.average().toFloat() else 0f
+    
+    // 找出主要情绪
+    val emotionGroups = results
+        .filter { it.second.dominantEmotion.isNotBlank() }
+        .groupBy { it.second.dominantEmotion }
+        .mapValues { it.value.size }
+        .toList()
+        .sortedByDescending { it.second }
+        .take(5)
+    
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // 筛选结果为空的提示
+        if (totalCount == 0) {
+            item {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SentimentVeryDissatisfied,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "在${currentTimePeriod.displayName}内未找到情感分析结果",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "请尝试更改时间范围或添加更多日记",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 分析概况
+        if (totalCount > 0) {
+            item {
+                ReportSection(
+                    title = "情感分析概况",
+                    content = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val journalsInPeriod = when (currentTimePeriod) {
+                                SentimentViewModel.TimePeriod.ALL -> journals.size
+                                SentimentViewModel.TimePeriod.LAST_WEEK -> {
+                                    journals.count { it.date?.time ?: 0 > currentTime - 7L * 24L * 60L * 60L * 1000L }
+                                }
+                                SentimentViewModel.TimePeriod.LAST_MONTH -> {
+                                    journals.count { it.date?.time ?: 0 > currentTime - 30L * 24L * 60L * 60L * 1000L }
+                                }
+                                SentimentViewModel.TimePeriod.LAST_THREE_MONTHS -> {
+                                    journals.count { it.date?.time ?: 0 > currentTime - 90L * 24L * 60L * 60L * 1000L }
+                                }
+                                SentimentViewModel.TimePeriod.LAST_YEAR -> {
+                                    journals.count { it.date?.time ?: 0 > currentTime - 365L * 24L * 60L * 60L * 1000L }
+                                }
+                            }
+                            
+                            // 添加信息卡片样式
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "已分析日记",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "$totalCount / $journalsInPeriod",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        
+                                        Text(
+                                            text = " (${currentTimePeriod.displayName})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            // 总体情感倾向
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = when {
+                                    positivePercentage > neutralPercentage && positivePercentage > negativePercentage -> 
+                                        SentimentColors.POSITIVE_LIGHT // 使用统一颜色
+                                    negativePercentage > neutralPercentage && negativePercentage > positivePercentage -> 
+                                        SentimentColors.NEGATIVE_LIGHT // 使用统一颜色
+                                    else -> 
+                                        SentimentColors.NEUTRAL_LIGHT // 使用统一颜色
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "总体情感倾向",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = getDominantSentimentType(positivePercentage, negativePercentage, neutralPercentage),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = when {
+                                            positivePercentage > neutralPercentage && positivePercentage > negativePercentage -> 
+                                                SentimentColors.POSITIVE // 使用统一颜色
+                                            negativePercentage > neutralPercentage && negativePercentage > positivePercentage -> 
+                                                SentimentColors.NEGATIVE // 使用统一颜色
+                                            else -> 
+                                                SentimentColors.NEUTRAL // 使用统一颜色
+                                        }
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // 情感分布柱状图
+                            Text("整体情感分布:", style = MaterialTheme.typography.titleSmall)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            ) {
+                                if (totalCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(positivePercentage)
+                                            .fillMaxHeight()
+                                            .background(SentimentColors.POSITIVE) // 使用统一颜色
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(neutralPercentage)
+                                            .fillMaxHeight()
+                                            .background(SentimentColors.NEUTRAL) // 使用统一颜色
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(negativePercentage)
+                                            .fillMaxHeight()
+                                            .background(SentimentColors.NEGATIVE) // 使用统一颜色
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(SentimentColors.PROGRESS_TRACK) // 使用统一颜色
+                                    )
+                                }
+                            }
+                            
+                            // 情感分布图例
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                LegendItem(
+                                    color = SentimentColors.POSITIVE, // 使用统一颜色
+                                    text = "积极: ${String.format("%.1f", positivePercentage)}%"
+                                )
+                                LegendItem(
+                                    color = SentimentColors.NEUTRAL, // 使用统一颜色
+                                    text = "中性: ${String.format("%.1f", neutralPercentage)}%"
+                                )
+                                LegendItem(
+                                    color = SentimentColors.NEGATIVE, // 使用统一颜色
+                                    text = "消极: ${String.format("%.1f", negativePercentage)}%"
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+        }
+        
+        // 最近7天情感报告，仅当选择的时间范围足够大时显示
+        if (showRecentWeekSection && recentCount > 0) {
+            item {
+                ReportSection(
+                    title = "最近7天情感报告",
+                    content = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // 统计信息卡片
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "最近7天日记数量",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = "$recentCount",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            
+                            Text(
+                                text = "最近情感倾向: ${getDominantSentimentType(recentPositivePercentage, recentNegativePercentage, recentNeutralPercentage)}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // 最近情感分布柱状图
+                            Text("最近情感分布:", style = MaterialTheme.typography.titleSmall)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(recentPositivePercentage)
+                                        .fillMaxHeight()
+                                        .background(SentimentColors.POSITIVE) // 使用统一颜色
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(recentNeutralPercentage)
+                                        .fillMaxHeight()
+                                        .background(SentimentColors.NEUTRAL) // 使用统一颜色
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(recentNegativePercentage)
+                                        .fillMaxHeight()
+                                        .background(SentimentColors.NEGATIVE) // 使用统一颜色
+                                )
+                            }
+                            
+                            // 情感分布图例
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                LegendItem(
+                                    color = SentimentColors.POSITIVE, // 使用统一颜色
+                                    text = "积极: ${String.format("%.1f", recentPositivePercentage)}%"
+                                )
+                                LegendItem(
+                                    color = SentimentColors.NEUTRAL, // 使用统一颜色
+                                    text = "中性: ${String.format("%.1f", recentNeutralPercentage)}%"
+                                )
+                                LegendItem(
+                                    color = SentimentColors.NEGATIVE, // 使用统一颜色
+                                    text = "消极: ${String.format("%.1f", recentNegativePercentage)}%"
+                                )
+                            }
+                            
+                            // 情感对比
+                            if (totalCount > recentCount) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("与整体情感对比:", style = MaterialTheme.typography.titleSmall)
+                                
+                                val positiveChange = recentPositivePercentage - positivePercentage
+                                val negativeChange = recentNegativePercentage - negativePercentage
+                                val neutralChange = recentNeutralPercentage - neutralPercentage
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                ) {
+                                    SentimentChangeItem(
+                                        label = "积极",
+                                        change = positiveChange
+                                    )
+                                    SentimentChangeItem(
+                                        label = "中性",
+                                        change = neutralChange
+                                    )
+                                    SentimentChangeItem(
+                                        label = "消极",
+                                        change = negativeChange
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+        
+        // 情感强度报告
+        item {
+            ReportSection(
+                title = "情感强度分析",
+                content = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 积极情感强度 - 使用绿色
+                        Text("积极情感强度: ${String.format("%.1f", avgPositiveScore * 100)}%")
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SentimentColors.PROGRESS_TRACK)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(avgPositiveScore)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SentimentColors.POSITIVE)
+                            )
+                        }
+                        
+                        // 消极情感强度 - 使用红色
+                        Text("消极情感强度: ${String.format("%.1f", avgNegativeScore * 100)}%")
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SentimentColors.PROGRESS_TRACK)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(avgNegativeScore)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SentimentColors.NEGATIVE)
+                            )
+                        }
+                        
+                        // 最近7天情感强度，仅当选择的时间范围足够大时显示
+                        if (showRecentWeekSection && recentCount > 0) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("最近7天情感强度:", style = MaterialTheme.typography.titleSmall)
+                            
+                            // 最近7天积极情感
+                            Text("积极情感: ${String.format("%.1f", recentAvgPositiveScore * 100)}%")
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SentimentColors.PROGRESS_TRACK)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(recentAvgPositiveScore)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(SentimentColors.POSITIVE)
+                                )
+                            }
+
+                            
+                            // 最近7天消极情感
+                            Text("消极情感: ${String.format("%.1f", recentAvgNegativeScore * 100)}%")
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SentimentColors.PROGRESS_TRACK)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(recentAvgNegativeScore)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(SentimentColors.NEGATIVE)
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+        
+        // 主要情绪词统计
+        item {
+            ReportSection(
+                title = "主要情绪词统计",
+                content = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // 定义固定的五种情绪类型
+                        val fixedEmotionTypes = listOf("非常正面", "正面", "中性", "负面", "非常负面")
+                        
+                        // 创建情绪类型映射，包含实际统计的情绪和固定情绪类型
+                        val emotionMap = fixedEmotionTypes.associateWith { emotionType ->
+                            emotionGroups.find { it.first == emotionType }?.second ?: 0
+                        }.toList()
+                        
+                        // 显示所有固定情绪类型，包括数量为0的
+                        emotionMap.forEach { (emotion, count) ->
+                            val percentage = if (totalCount > 0) count * 100f / totalCount else 0f
+                            
+                            // 根据情绪类型选择颜色
+                            val barColor = when (emotion) {
+                                "非常正面" -> SentimentColors.POSITIVE
+                                "正面" -> SentimentColors.POSITIVE.copy(alpha = 0.8f)
+                                "中性" -> SentimentColors.NEUTRAL
+                                "负面" -> SentimentColors.NEGATIVE.copy(alpha = 0.8f)
+                                "非常负面" -> SentimentColors.NEGATIVE
+                                else -> SentimentColors.NEUTRAL
+                            }
+                            
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = emotion,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "$count 次",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "(${String.format("%.1f", percentage)}%)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(SentimentColors.PROGRESS_TRACK)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(percentage / 100f)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(barColor)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // 如果有其他情绪类型，也显示出来（不在固定五种类型中的）
+                        val otherEmotions = emotionGroups.filter { (emotion, _) -> 
+                            !fixedEmotionTypes.contains(emotion)
+                        }
+                        
+                        if (otherEmotions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "其他情绪类型:",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            
+                            otherEmotions.forEach { (emotion, count) ->
+                                val percentage = count * 100f / totalCount
+                                val barColor = when {
+                                    percentage > 60f -> SentimentColors.POSITIVE
+                                    percentage > 30f -> SentimentColors.NEUTRAL
+                                    else -> SentimentColors.NEGATIVE
+                                }
+                                
+                                Column(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = emotion,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "$count 次",
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "(${String.format("%.1f", percentage)}%)",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(8.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(SentimentColors.PROGRESS_TRACK)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(percentage / 100f)
+                                                .fillMaxHeight()
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(barColor)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * 报告章节组件
+ */
+@Composable
+private fun ReportSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 1.dp,
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(20.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(1.dp)
+                        )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            content()
+        }
+    }
+}
+
+/**
+ * 图例项组件
+ */
+@Composable
+private fun LegendItem(
+    color: Color,
+    text: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(color, shape = RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+/**
+ * 情感变化项组件
+ */
+@Composable
+private fun SentimentChangeItem(
+    label: String,
+    change: Float
+) {
+    val changeText = if (change > 0) "+${String.format("%.1f", change)}%" 
+                     else String.format("%.1f", change) + "%"
+    val changeColor = when {
+        change > 5 -> SentimentColors.POSITIVE // 明显上升-绿色
+        change > 0 -> SentimentColors.POSITIVE_LIGHT // 轻微上升-浅绿色
+        change < -5 -> SentimentColors.NEGATIVE // 明显下降-红色
+        change < 0 -> SentimentColors.NEGATIVE_LIGHT // 轻微下降-橙色
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = changeColor.copy(alpha = 0.1f),
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = changeText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = changeColor,
+                fontWeight = FontWeight.Bold
+            )
+            
+            // 添加箭头指示方向
+            Icon(
+                imageVector = if (change > 0) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = changeColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 获取主要情感类型
+ */
+private fun getDominantSentimentType(
+    positivePercentage: Float,
+    negativePercentage: Float,
+    neutralPercentage: Float
+): String {
+    return when {
+        positivePercentage >= negativePercentage && positivePercentage >= neutralPercentage -> 
+            "积极"
+        negativePercentage >= positivePercentage && negativePercentage >= neutralPercentage -> 
+            "消极"
+        else -> 
+            "中性"
     }
 } 

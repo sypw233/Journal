@@ -48,6 +48,9 @@ fun SwipeCard(
     // 记住当前日记ID，确保操作的是正确的项
     val currentJournalId = remember { mutableStateOf(journalData.id) }
     
+    // 用于控制卡片展开状态
+    val expanded = remember { mutableStateOf(false) }
+    
     // 更新当前ID，确保在重组时ID始终是最新的
     LaunchedEffect(journalData.id) {
         currentJournalId.value = journalData.id
@@ -85,6 +88,21 @@ fun SwipeCard(
     ForUpdateData {
         currentProgress.floatValue = dismissState.progress
     }
+    
+    // 将手势检测移到这里，覆盖整个SwipeToDismissBox区域
+    val gestureModifier = Modifier.pointerInput(journalData.id) {
+        detectTapGestures(
+            onTap = { 
+                // 点击时切换展开状态
+                expanded.value = !expanded.value
+            },
+            onLongPress = { 
+                // 长按时触发情感分析
+                onLongClick() 
+            }
+        )
+    }
+    
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = enableScroll, // 允许从左向右滑动
@@ -118,21 +136,24 @@ fun SwipeCard(
         modifier = modifier
             .animateContentSize()
             .fillMaxSize()
+            .then(gestureModifier) // 添加手势检测到SwipeToDismissBox
 
     ) {
-        // 卡片内容
-        JournalCard(
-            modifier = modifier
+        // 卡片内容 - 移除了Box中的pointerInput
+        Box(
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(vertical = 12.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { onClick() },
-                        onLongPress = { onLongClick() }
-                    )
-                },
-            journalData = journalData
-        )
+        ) {
+            // 传递展开状态给JournalCard
+            JournalCard(
+                modifier = Modifier.fillMaxSize(),
+                journalData = journalData,
+                handleClickInternally = false,  // 不在JournalCard内部处理点击
+                expandedState = expanded.value,  // 传递展开状态
+                onExpandChange = { newState -> expanded.value = newState }  // 接收展开状态变化
+            )
+        }
     }
 }
 
