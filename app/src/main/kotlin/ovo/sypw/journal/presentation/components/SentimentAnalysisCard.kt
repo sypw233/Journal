@@ -46,7 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import ovo.sypw.journal.common.utils.SentimentAnalyzer
+import ovo.sypw.journal.common.utils.SentimentType
 import ovo.sypw.journal.data.model.SentimentData
 
 /**
@@ -169,7 +169,7 @@ fun SentimentAnalysisCard(
                 }
             } 
             // 错误状态
-            else if (sentimentData.sentimentType == SentimentAnalyzer.SentimentType.UNKNOWN) {
+            else if (sentimentData.sentimentType == SentimentType.UNKNOWN) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -222,107 +222,117 @@ fun SentimentAnalysisCard(
 @Composable
 private fun SentimentSummary(data: SentimentData) {
     val sentimentIcon = when (data.sentimentType) {
-        SentimentAnalyzer.SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
-        SentimentAnalyzer.SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
+        SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
+        SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
         else -> Icons.Default.SentimentSatisfied
     }
     
     val sentimentColor = when (data.sentimentType) {
-        SentimentAnalyzer.SentimentType.POSITIVE -> Color(0xFF4CAF50)  // 绿色
-        SentimentAnalyzer.SentimentType.NEGATIVE -> Color(0xFFF44336)  // 红色
-        SentimentAnalyzer.SentimentType.NEUTRAL -> Color(0xFF9E9E9E)   // 灰色
-        SentimentAnalyzer.SentimentType.UNKNOWN -> Color(0xFF9E9E9E)   // 灰色
+        SentimentType.POSITIVE -> Color(0xFF4CAF50)  // 绿色
+        SentimentType.NEGATIVE -> Color(0xFFF44336)  // 红色
+        SentimentType.NEUTRAL -> Color(0xFF9E9E9E)   // 灰色
+        SentimentType.UNKNOWN -> Color(0xFF9E9E9E)   // 灰色
     }
     
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 图标
-        Icon(
-            imageVector = sentimentIcon,
-            contentDescription = data.getSentimentDescription(),
-            tint = sentimentColor,
-            modifier = Modifier.padding(end = 12.dp)
-        )
-        
-        // 文字说明
-        Column(modifier = Modifier.weight(1f)) {
+        // 情感图标和描述
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = sentimentIcon,
+                contentDescription = data.getSentimentDescription(),
+                tint = sentimentColor,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+            
             Text(
                 text = if (data.dominantEmotion.isNotEmpty()) {
-                    "主要情绪: ${data.dominantEmotion}"
+                    data.dominantEmotion
                 } else {
-                    "情感倾向: ${data.getSentimentDescription()}"
+                    data.getSentimentDescription()
                 },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = sentimentColor
             )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // 情感得分条
-            val positiveProgress by animateFloatAsState(
-                targetValue = data.positiveScore, 
-                label = "positive"
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 情感得分条
+        val positiveProgress by animateFloatAsState(
+            targetValue = data.positiveScore, 
+            label = "positive"
+        )
+        val negativeProgress by animateFloatAsState(
+            targetValue = data.negativeScore, 
+            label = "negative"
+        )
+        
+        // 积极得分条
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "积极",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF4CAF50)
             )
-            val negativeProgress by animateFloatAsState(
-                targetValue = data.negativeScore, 
-                label = "negative"
+            Spacer(modifier = Modifier.width(8.dp))
+            LinearProgressIndicator(
+                progress = { positiveProgress },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp)),
+                color = Color(0xFF4CAF50),
+                trackColor = Color(0xFF4CAF50).copy(alpha = 0.2f)
             )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "积极",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF4CAF50)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                LinearProgressIndicator(
-                    progress = { positiveProgress },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color(0xFF4CAF50),
-                    trackColor = Color(0xFF4CAF50).copy(alpha = 0.2f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${(data.positiveScore * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "消极",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFF44336)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                LinearProgressIndicator(
-                    progress = { negativeProgress },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color(0xFFF44336),
-                    trackColor = Color(0xFFF44336).copy(alpha = 0.2f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${(data.negativeScore * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${(data.positiveScore * 100).toInt()}%",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // 消极得分条
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "消极",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFF44336)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            LinearProgressIndicator(
+                progress = { negativeProgress },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp)),
+                color = Color(0xFFF44336),
+                trackColor = Color(0xFFF44336).copy(alpha = 0.2f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${(data.negativeScore * 100).toInt()}%",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -337,15 +347,15 @@ private fun SentimentDetails(data: SentimentData) {
             title = "情感类型",
             value = data.getSentimentDescription(),
             icon = when (data.sentimentType) {
-                SentimentAnalyzer.SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
-                SentimentAnalyzer.SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
+                SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
+                SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
                 else -> Icons.Default.SentimentSatisfied
             },
             iconTint = when (data.sentimentType) {
-                SentimentAnalyzer.SentimentType.POSITIVE -> Color(0xFF4CAF50)
-                SentimentAnalyzer.SentimentType.NEGATIVE -> Color(0xFFF44336)
-                SentimentAnalyzer.SentimentType.NEUTRAL -> Color(0xFF9E9E9E)
-                SentimentAnalyzer.SentimentType.UNKNOWN -> Color(0xFF9E9E9E)
+                SentimentType.POSITIVE -> Color(0xFF4CAF50)
+                SentimentType.NEGATIVE -> Color(0xFFF44336)
+                SentimentType.NEUTRAL -> Color(0xFF9E9E9E)
+                SentimentType.UNKNOWN -> Color(0xFF9E9E9E)
             }
         )
         
@@ -368,12 +378,6 @@ private fun SentimentDetails(data: SentimentData) {
             title = "消极得分",
             value = String.format("%.2f", data.negativeScore),
             valueColor = Color(0xFFF44336)
-        )
-        
-        DetailRow(
-            title = "置信度",
-            value = String.format("%.2f", data.confidence),
-            valueColor = MaterialTheme.colorScheme.primary
         )
     }
 }

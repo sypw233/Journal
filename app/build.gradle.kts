@@ -112,6 +112,9 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     
     implementation(libs.retrofit)
+    // 添加OkHttp依赖
+    implementation (libs.okhttp)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -141,11 +144,11 @@ dependencies {
 
     // ML Kit 自然语言处理库
     //noinspection UseTomlInstead
-    implementation("com.google.mlkit:language-id:17.0.6")
-    implementation(libs.translate)
-    
-    // TensorFlow Lite
-    implementation(libs.tensorflow.lite)
-    implementation(libs.tensorflow.lite.task.text)
-    implementation(libs.tensorflow.lite.gpu) // 可选，用于GPU加速
+//    implementation("com.google.mlkit:language-id:17.0.6")
+//    implementation(libs.translate)
+//
+//    // TensorFlow Lite
+//    implementation(libs.tensorflow.lite)
+//    implementation(libs.tensorflow.lite.task.text)
+//    implementation(libs.tensorflow.lite.gpu) // 可选，用于GPU加速
 }

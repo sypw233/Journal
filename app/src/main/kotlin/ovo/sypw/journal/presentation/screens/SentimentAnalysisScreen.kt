@@ -17,9 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -40,11 +43,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
-import ovo.sypw.journal.common.utils.SentimentAnalyzer
+import ovo.sypw.journal.common.utils.SentimentType
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.SentimentData
@@ -258,18 +262,19 @@ fun SentimentAnalysisScreen(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
                                     .clickable {
                                         selectedJournal = journal
                                         viewModel.analyzeSentiment(journal)
                                     },
                                 shape = MaterialTheme.shapes.medium,
-                                tonalElevation = 2.dp
+                                tonalElevation = 4.dp,
+                                shadowElevation = 2.dp
                             ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp)
+                                        .padding(16.dp)
                                 ) {
                                     // 日记卡片
                                     JournalCard(
@@ -277,38 +282,51 @@ fun SentimentAnalysisScreen(
                                         journalData = journal
                                     )
                                     
+                                    Divider(
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    
                                     // 简要情感信息
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
+                                            .padding(top = 4.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = "情感: ${sentiment.getSentimentDescription()}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = when (sentiment.sentimentType) {
-                                                SentimentAnalyzer.SentimentType.POSITIVE -> 
-                                                    MaterialTheme.colorScheme.primary
-                                                SentimentAnalyzer.SentimentType.NEGATIVE -> 
-                                                    MaterialTheme.colorScheme.error
-                                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
-                                        )
+                                        val sentimentColor = when (sentiment.sentimentType) {
+                                            SentimentType.POSITIVE -> MaterialTheme.colorScheme.primary
+                                            SentimentType.NEGATIVE -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                        
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = when (sentiment.sentimentType) {
+                                                    SentimentType.POSITIVE -> Icons.Default.SentimentSatisfied
+                                                    SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
+                                                    else -> Icons.Default.SentimentSatisfied
+                                                },
+                                                contentDescription = sentiment.getSentimentDescription(),
+                                                tint = sentimentColor,
+                                                modifier = Modifier.padding(end = 8.dp)
+                                            )
+                                            
+                                            Text(
+                                                text = sentiment.getSentimentDescription(),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = sentimentColor
+                                            )
+                                        }
                                         
                                         if (sentiment.dominantEmotion.isNotEmpty()) {
                                             Text(
                                                 text = sentiment.dominantEmotion,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.padding(horizontal = 8.dp)
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
                                             )
                                         }
-                                        
-                                        Text(
-                                            text = "信心: ${(sentiment.confidence * 100).toInt()}%",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
                                     }
                                 }
                             }
@@ -326,7 +344,7 @@ fun SentimentAnalysisScreen(
             title = { Text("批量情感分析") },
             text = { 
                 Column {
-                    Text("将对所有日记进行情感分析，这可能需要一些时间。")
+                    Text("将对所有日记进行情感分析，每5条为一批次，每批次之间会有3秒延迟。")
                     Text("当前共有 ${journals.size} 篇日记需要分析")
                     
                     if (isAnalyzing) {
@@ -376,6 +394,14 @@ fun SentimentAnalysisScreen(
                         text = "已完成 ${(batchAnalysisProgress * 100).toInt()}%",
                         textAlign = TextAlign.Center
                     )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "批量处理中，分析结果会实时显示",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             },
             confirmButton = { /* 无按钮 */ },
@@ -410,8 +436,8 @@ fun SentimentAnalysisScreen(
  */
 @Composable
 private fun FilterDialog(
-    currentFilter: SentimentAnalyzer.SentimentType?,
-    onFilterSelected: (SentimentAnalyzer.SentimentType?) -> Unit,
+    currentFilter: SentimentType?,
+    onFilterSelected: (SentimentType?) -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -426,18 +452,18 @@ private fun FilterDialog(
                 )
                 FilterOption(
                     title = "积极情感",
-                    isSelected = currentFilter == SentimentAnalyzer.SentimentType.POSITIVE,
-                    onClick = { onFilterSelected(SentimentAnalyzer.SentimentType.POSITIVE) }
+                    isSelected = currentFilter == SentimentType.POSITIVE,
+                    onClick = { onFilterSelected(SentimentType.POSITIVE) }
                 )
                 FilterOption(
                     title = "消极情感",
-                    isSelected = currentFilter == SentimentAnalyzer.SentimentType.NEGATIVE,
-                    onClick = { onFilterSelected(SentimentAnalyzer.SentimentType.NEGATIVE) }
+                    isSelected = currentFilter == SentimentType.NEGATIVE,
+                    onClick = { onFilterSelected(SentimentType.NEGATIVE) }
                 )
                 FilterOption(
                     title = "中性情感",
-                    isSelected = currentFilter == SentimentAnalyzer.SentimentType.NEUTRAL,
-                    onClick = { onFilterSelected(SentimentAnalyzer.SentimentType.NEUTRAL) }
+                    isSelected = currentFilter == SentimentType.NEUTRAL,
+                    onClick = { onFilterSelected(SentimentType.NEUTRAL) }
                 )
             }
         },
@@ -455,7 +481,7 @@ private fun FilterDialog(
  */
 @Composable
 private fun SentimentDistributionDialog(
-    distribution: Map<SentimentAnalyzer.SentimentType, Pair<Int, Float>>,
+    distribution: Map<SentimentType, Pair<Int, Float>>,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -484,9 +510,9 @@ private fun SentimentDistributionDialog(
                                 text = getFilterName(type),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = when(type) {
-                                    SentimentAnalyzer.SentimentType.POSITIVE -> 
+                                    SentimentType.POSITIVE -> 
                                         MaterialTheme.colorScheme.primary
-                                    SentimentAnalyzer.SentimentType.NEGATIVE -> 
+                                    SentimentType.NEGATIVE -> 
                                         MaterialTheme.colorScheme.error
                                     else -> MaterialTheme.colorScheme.onSurface
                                 }
@@ -540,12 +566,12 @@ private fun FilterOption(
 /**
  * 获取情感类型的可读名称
  */
-private fun getFilterName(type: SentimentAnalyzer.SentimentType?): String {
+private fun getFilterName(type: SentimentType?): String {
     return when(type) {
-        SentimentAnalyzer.SentimentType.POSITIVE -> "积极"
-        SentimentAnalyzer.SentimentType.NEGATIVE -> "消极"
-        SentimentAnalyzer.SentimentType.NEUTRAL -> "中性"
-        SentimentAnalyzer.SentimentType.UNKNOWN -> "未知"
+        SentimentType.POSITIVE -> "积极"
+        SentimentType.NEGATIVE -> "消极"
+        SentimentType.NEUTRAL -> "中性"
+        SentimentType.UNKNOWN -> "未知"
         null -> "全部"
     }
 } 

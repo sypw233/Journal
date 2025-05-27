@@ -6,12 +6,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ovo.sypw.journal.common.utils.SentimentAnalyzer
+import ovo.sypw.journal.common.utils.SentimentApiService
+import ovo.sypw.journal.common.utils.SentimentType
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.SentimentData
@@ -24,7 +26,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SentimentViewModel @Inject constructor(
-    private val sentimentAnalyzer: SentimentAnalyzer,
+    private val sentimentApiService: SentimentApiService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -44,34 +46,12 @@ class SentimentViewModel @Inject constructor(
     val batchAnalysisProgress: StateFlow<Float> = _batchAnalysisProgress.asStateFlow()
     
     // 情感过滤类型
-    private val _currentFilter = MutableStateFlow<SentimentAnalyzer.SentimentType?>(null)
-    val currentFilter: StateFlow<SentimentAnalyzer.SentimentType?> = _currentFilter.asStateFlow()
+    private val _currentFilter = MutableStateFlow<SentimentType?>(null)
+    val currentFilter: StateFlow<SentimentType?> = _currentFilter.asStateFlow()
     
     // 过滤后的结果
     private val _filteredResults = MutableStateFlow<List<Pair<JournalData, SentimentData>>>(emptyList())
     val filteredResults: StateFlow<List<Pair<JournalData, SentimentData>>> = _filteredResults.asStateFlow()
-    
-    // 初始化状态
-    private var isInitialized = false
-    
-    /**
-     * 确保情感分析器已初始化
-     */
-    private fun ensureInitialized(): Boolean {
-        if (isInitialized) return true
-        
-        try {
-            val result = sentimentAnalyzer.initialize(context)
-            isInitialized = result
-            if (!result) {
-                SnackBarUtils.showSnackBar("情感分析器初始化失败")
-            }
-            return result
-        } catch (e: Exception) {
-            SnackBarUtils.showSnackBar("情感分析器初始化出错: ${e.message}")
-            return false
-        }
-    }
     
     /**
      * 分析单篇日记的情感
@@ -94,24 +74,21 @@ class SentimentViewModel @Inject constructor(
             _isAnalyzing.value = true
             
             try {
-                // 确保初始化
-                val initialized = ensureInitialized()
-                if (!initialized) {
+                // 调用API进行分析
+                try {
+                    val result = sentimentApiService.analyzeSentiment(journal.text)
+                    
+                    // 创建分析结果数据对象
+                    val sentimentData = SentimentData.fromApiResult(journal.id, result)
+                    
+                    // 更新状态和缓存
+                    _selectedJournalSentiment.value = sentimentData
+                    sentimentCache[journal.id] = sentimentData
+                } catch (e: IllegalStateException) {
+                    // API密钥未设置，提示用户
                     _selectedJournalSentiment.value = SentimentData.createNeutral(journal.id)
-                    return@launch
+                    SnackBarUtils.showSnackBar("请在设置中配置情感分析API密钥")
                 }
-                
-                // 在IO线程执行分析
-                val result = withContext(Dispatchers.IO) {
-                    sentimentAnalyzer.analyzeSentiment(journal.text)
-                }
-                
-                // 创建分析结果数据对象
-                val sentimentData = SentimentData.fromResult(journal.id, result)
-                
-                // 更新状态和缓存
-                _selectedJournalSentiment.value = sentimentData
-                sentimentCache[journal.id] = sentimentData
             } catch (e: Exception) {
                 _selectedJournalSentiment.value = SentimentData.createNeutral(journal.id)
                 SnackBarUtils.showSnackBar("分析过程中出现错误: ${e.message}")
@@ -122,13 +99,17 @@ class SentimentViewModel @Inject constructor(
     }
     
     /**
-     * 批量分析多篇日记的情感
+     * 批量分析多篇日记的情感（分批次进行）
      * @param journals 日记列表
      * @param forceReAnalyze 是否强制重新分析
+     * @param batchSize 每批次处理的日记数量
+     * @param delayMillis 每批次之间的延迟时间（毫秒）
      */
     fun batchAnalyzeSentiment(
         journals: List<JournalData>,
-        forceReAnalyze: Boolean = false
+        forceReAnalyze: Boolean = false,
+        batchSize: Int = 5,
+        delayMillis: Long = 3000
     ) {
         if (journals.isEmpty()) {
             SnackBarUtils.showSnackBar("没有可分析的日记")
@@ -140,43 +121,87 @@ class SentimentViewModel @Inject constructor(
             _batchAnalysisProgress.value = 0f
             
             try {
-                // 确保初始化
-                val initialized = ensureInitialized()
-                if (!initialized) {
-                    SnackBarUtils.showSnackBar("情感分析器初始化失败，无法进行批量分析")
-                    return@launch
-                }
-                
-                val results = withContext(Dispatchers.Default) {
-                    val totalJournals = journals.size
-                    val resultMap = mutableMapOf<Int, SentimentData>()
-                    
-                    journals.forEachIndexed { index, journal ->
-                        if (journal.text.isNullOrBlank()) {
-                            resultMap[journal.id] = SentimentData.createNeutral(journal.id)
-                        } else if (!forceReAnalyze && sentimentCache.containsKey(journal.id)) {
-                            resultMap[journal.id] = sentimentCache[journal.id]!!
-                        } else {
-                            try {
-                                val result = sentimentAnalyzer.analyzeSentiment(journal.text)
-                                val sentimentData = SentimentData.fromResult(journal.id, result)
-                                resultMap[journal.id] = sentimentData
-                                sentimentCache[journal.id] = sentimentData
-                            } catch (e: Exception) {
-                                resultMap[journal.id] = SentimentData.createNeutral(journal.id)
-                            }
-                        }
-                        
-                        // 更新进度
-                        _batchAnalysisProgress.value = (index + 1).toFloat() / totalJournals
+                // 检查API密钥是否已设置
+                try {
+                    if (journals.isNotEmpty() && journals[0].text?.isNotBlank() == true) {
+                        // 只检查密钥，不需要真正分析
+                        sentimentApiService.getApiKey() ?: throw IllegalStateException("API密钥未设置")
                     }
                     
-                    resultMap
+                    // 过滤出需要分析的日记
+                    val journalsToAnalyze = journals.filter { journal -> 
+                        journal.text?.isNotBlank() == true && 
+                        (forceReAnalyze || !sentimentCache.containsKey(journal.id)) 
+                    }
+                    
+                    // 已有缓存的日记直接加载
+                    val cachedJournals = journals.filter { journal ->
+                        !forceReAnalyze && sentimentCache.containsKey(journal.id)
+                    }
+                    
+                    // 计算总日记数（包括缓存的和需要分析的）
+                    val totalJournals = journals.size
+                    var processedCount = cachedJournals.size
+                    
+                    // 更新进度
+                    _batchAnalysisProgress.value = processedCount.toFloat() / totalJournals
+                    
+                    // 如果有需要分析的日记
+                    if (journalsToAnalyze.isNotEmpty()) {
+                        // 按批次处理
+                        val batches = journalsToAnalyze.chunked(batchSize)
+                        
+                        for ((batchIndex, batch) in batches.withIndex()) {
+                            // 提取文本内容
+                            val textsToAnalyze = batch.mapNotNull { it.text }
+                            
+                            // 批量分析
+                            val results = sentimentApiService.analyzeBatchSentiment(textsToAnalyze)
+                            
+                            // 处理结果
+                            results.forEachIndexed { index, result ->
+                                val journal = batch[index]
+                                val sentimentData = SentimentData.fromApiResult(journal.id, result)
+                                
+                                // 更新缓存
+                                sentimentCache[journal.id] = sentimentData
+                                
+                                // 如果是当前选中的日记，更新选中状态
+                                if (_selectedJournalSentiment.value?.journalId == journal.id) {
+                                    _selectedJournalSentiment.value = sentimentData
+                                }
+                            }
+                            
+                            // 更新处理计数和进度
+                            processedCount += batch.size
+                            _batchAnalysisProgress.value = processedCount.toFloat() / totalJournals
+                            
+                            // 每批次处理完成后更新界面
+                            updateFilteredResults(journals)
+                            
+                            // 不是最后一批，延迟后继续
+                            if (batchIndex < batches.size - 1) {
+                                delay(delayMillis)
+                            }
+                        }
+                    }
+                    
+                    // 分析完成，更新界面
+                    updateFilteredResults(journals)
+                    SnackBarUtils.showSnackBar("分析完成，共分析${journalsToAnalyze.size}篇日记")
+                    
+                } catch (e: IllegalStateException) {
+                    // API密钥未设置，提示用户
+                    SnackBarUtils.showSnackBar("请在设置中配置情感分析API密钥")
+                    // 使用中性情感作为默认结果
+                    journals.forEach { journal ->
+                        if (!sentimentCache.containsKey(journal.id)) {
+                            sentimentCache[journal.id] = SentimentData.createNeutral(journal.id)
+                        }
+                    }
+                    _batchAnalysisProgress.value = 1f
+                    updateFilteredResults(journals)
                 }
-                
-                // 分析完成
-                updateFilteredResults(journals)
-                SnackBarUtils.showSnackBar("分析完成，共分析${journals.size}篇日记")
             } catch (e: Exception) {
                 SnackBarUtils.showSnackBar("分析过程中出现错误: ${e.message}")
             } finally {
@@ -189,7 +214,7 @@ class SentimentViewModel @Inject constructor(
     /**
      * 设置情感过滤类型
      */
-    fun setFilter(type: SentimentAnalyzer.SentimentType?) {
+    fun setFilter(type: SentimentType?) {
         _currentFilter.value = type
     }
     
@@ -222,8 +247,8 @@ class SentimentViewModel @Inject constructor(
         // 按情感强度排序（从高到低）
         val sortedResults = filtered.sortedByDescending { 
             when (it.second.sentimentType) {
-                SentimentAnalyzer.SentimentType.POSITIVE -> it.second.positiveScore
-                SentimentAnalyzer.SentimentType.NEGATIVE -> it.second.negativeScore
+                SentimentType.POSITIVE -> it.second.positiveScore
+                SentimentType.NEGATIVE -> it.second.negativeScore
                 else -> it.second.confidence
             }
         }
@@ -235,7 +260,7 @@ class SentimentViewModel @Inject constructor(
      * 获取情感分析结果列表（按情感类型过滤）
      * @param type 情感类型，null表示不过滤
      */
-    fun getSentimentByType(type: SentimentAnalyzer.SentimentType?): List<SentimentData> {
+    fun getSentimentByType(type: SentimentType?): List<SentimentData> {
         return sentimentCache.values.filter { 
             type == null || it.sentimentType == type 
         }.toList()
@@ -245,11 +270,11 @@ class SentimentViewModel @Inject constructor(
      * 获取情感分布统计
      * @return 各情感类型的数量和百分比
      */
-    fun getSentimentDistribution(): Map<SentimentAnalyzer.SentimentType, Pair<Int, Float>> {
+    fun getSentimentDistribution(): Map<SentimentType, Pair<Int, Float>> {
         val total = sentimentCache.size
         if (total == 0) return emptyMap()
         
-        val distribution = mutableMapOf<SentimentAnalyzer.SentimentType, Int>()
+        val distribution = mutableMapOf<SentimentType, Int>()
         
         // 统计各类型数量
         sentimentCache.values.forEach { sentiment ->

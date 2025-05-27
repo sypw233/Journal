@@ -12,14 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
-private const val TAG = "ImagePickerUtils"
+
 
 /**
  * 智能图片选择器工具类
  * 根据Android版本选择合适的图片选择器实现
  */
 object ImagePickerUtils {
-
+    private const val TAG = "ImagePickerUtils"
     /**
      * 创建适合当前系统版本的图片选择器
      * 

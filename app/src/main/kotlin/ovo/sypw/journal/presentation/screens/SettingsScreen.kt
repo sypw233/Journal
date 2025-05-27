@@ -1,5 +1,6 @@
 package ovo.sypw.journal.presentation.screens
 
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -62,6 +63,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -79,17 +81,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.AIModels
 import ovo.sypw.journal.data.model.SettingsEvent
+import ovo.sypw.journal.presentation.components.SettingsItem
 import ovo.sypw.journal.presentation.viewmodels.SettingsViewModel
-
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * 设置界面
@@ -101,6 +106,9 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val sharedPrefs = context.getSharedPreferences("journal_prefs", Context.MODE_PRIVATE)
+    
     val uiState by viewModel.uiState.collectAsState()
     val needsRestart by viewModel.needsRestart.collectAsState()
     
@@ -114,6 +122,13 @@ fun SettingsScreen(
     var showModelPickerDialog by remember { mutableStateOf(false) }
 
     var colorEgg by remember { mutableIntStateOf(0) }
+
+    // 从SharedPreferences获取API密钥
+    var apiKey by remember { 
+        mutableStateOf(sharedPrefs.getString("sentiment_api_key", "") ?: "") 
+    }
+    var passwordVisible by remember { mutableStateOf(false) }
+    
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
@@ -191,6 +206,12 @@ fun SettingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
+            // 常规设置
+            Text(
+                text = "常规设置",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
             // 外观设置
             SettingsCategory(
                 title = "外观设置",
@@ -789,30 +810,64 @@ fun SettingsScreen(
                 }
             }
             
-            // 关于信息
-            SettingItem(
-                title = "关于",
-                description = "应用版本 v0.0.0.0.0.0.0.7fK9qR2Tb4XmN6pL",
-                icon = Icons.Default.Info,
-                onClick = {
-                    if(colorEgg==0){
-                        SnackBarUtils.showSnackBar("这里什么都没有")
-                    }else if(colorEgg<=3){
-                        SnackBarUtils.showSnackBar("这里真的什么都没有")
-                    }else if(colorEgg<=6){
-                        SnackBarUtils.showSnackBar("再点也什么都不会有的")
-                    }else if(colorEgg>=10){
-                        SnackBarUtils.showSnackBar("Lp6NmX4bT2Rq9Kf7")
+            // API设置
+            Text(
+                text = "API设置",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            // 情感分析API密钥设置
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = { apiKey = it },
+                label = { Text("情感分析API密钥") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        if (passwordVisible) {
+                            Text("隐藏")
+                        } else {
+                            Text("显示")
+                        }
                     }
-                    colorEgg+=1
                 }
+            )
+            
+            Button(
+                onClick = {
+                    // 保存API密钥到SharedPreferences
+                    sharedPrefs.edit().putString("sentiment_api_key", apiKey).apply()
+                    SnackBarUtils.showSnackBar("API密钥已保存")
+                },
+                modifier = Modifier.align(Alignment.End)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "查看详情",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
+                Text("保存API密钥")
             }
+            
+            Text(
+                text = "注意：API密钥用于情感分析功能，请从百度千帆平台获取",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // 关于
+            Text(
+                text = "关于",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            SettingsItem(
+                title = "版本信息",
+                description = "查看应用版本和更新日志",
+                onClick = { viewModel.showVersionInfo() }
+            )
+            
+            SettingsItem(
+                title = "隐私政策",
+                description = "查看应用的隐私政策",
+                onClick = { viewModel.showPrivacyPolicy() }
+            )
             
             Spacer(modifier = Modifier.height(80.dp)) // 为FAB留出空间
         }
@@ -1439,4 +1494,15 @@ fun AIModelPickerDialog(
             }
         }
     )
+}
+
+// 在SettingsViewModel类中添加这两个方法
+fun SettingsViewModel.showVersionInfo() {
+    // 版本信息逻辑
+    SnackBarUtils.showSnackBar("应用版本: 1.0.0")
+}
+
+fun SettingsViewModel.showPrivacyPolicy() {
+    // 隐私政策逻辑
+    SnackBarUtils.showSnackBar("隐私政策: 暂未提供")
 } 

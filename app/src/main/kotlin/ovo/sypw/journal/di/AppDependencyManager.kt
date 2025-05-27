@@ -5,7 +5,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.remote.api.AuthService
 import ovo.sypw.journal.common.utils.AutoSyncManager
-import ovo.sypw.journal.common.utils.SentimentAnalyzer
+import ovo.sypw.journal.common.utils.SentimentApiService
 import ovo.sypw.journal.data.repository.JournalRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +19,7 @@ class AppDependencyManager @Inject constructor(
     @ApplicationContext private val context: Context,
     val authService: AuthService,
     val autoSyncManager: AutoSyncManager,
-    val sentimentAnalyzer: SentimentAnalyzer,
+    val sentimentApiService: SentimentApiService,
     val preferences: JournalPreferences,
     private val journalRepository: JournalRepository
 ) {
@@ -43,27 +43,8 @@ class AppDependencyManager @Inject constructor(
      * 初始化所有依赖项
      */
     fun initializeAll() {
-        // 初始化情感分析器
-        initializeSentimentAnalyzer()
-        
         // 验证token
         validateToken()
-    }
-    
-    /**
-     * 初始化情感分析器
-     */
-    private fun initializeSentimentAnalyzer() {
-        Thread {
-            try {
-                Thread.sleep(300)
-                
-                val result = sentimentAnalyzer.initialize(context)
-                android.util.Log.d("AppDependencyManager", "情感分析器初始化: $result")
-            } catch (e: Exception) {
-                android.util.Log.e("AppDependencyManager", "情感分析器初始化失败", e)
-            }
-        }.start()
     }
     
     /**

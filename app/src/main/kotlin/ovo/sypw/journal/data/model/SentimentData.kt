@@ -1,6 +1,7 @@
 package ovo.sypw.journal.data.model
 
-import ovo.sypw.journal.common.utils.SentimentAnalyzer
+import ovo.sypw.journal.common.utils.SentimentApiService
+import ovo.sypw.journal.common.utils.SentimentType
 
 /**
  * 情感分析数据类
@@ -8,7 +9,7 @@ import ovo.sypw.journal.common.utils.SentimentAnalyzer
  */
 data class SentimentData(
     val journalId: Int,                             // 日记ID
-    val sentimentType: SentimentAnalyzer.SentimentType, // 情感类型
+    val sentimentType: SentimentType,               // 情感类型
     val positiveScore: Float,                       // 积极情感得分 (0.0-1.0)
     val negativeScore: Float,                       // 消极情感得分 (0.0-1.0)
     val dominantEmotion: String,                    // 主要情绪
@@ -16,17 +17,32 @@ data class SentimentData(
     val timestamp: Long = System.currentTimeMillis() // 分析时间戳
 ) {
     companion object {
+
         /**
-         * 从情感分析结果创建数据对象
+         * 从API情感分析结果创建数据对象
          */
-        fun fromResult(journalId: Int, result: SentimentAnalyzer.SentimentResult): SentimentData {
+        fun fromApiResult(journalId: Int, result: SentimentApiService.SentimentResult): SentimentData {
+            // 根据API返回的score确定情感类型
+            val type = when {
+                result.score > 80 -> SentimentType.POSITIVE
+                result.score > 60 -> SentimentType.POSITIVE
+                result.score > 40 -> SentimentType.NEUTRAL
+                result.score > 20 -> SentimentType.NEGATIVE
+                else -> SentimentType.NEGATIVE
+            }
+            
+            // 计算正负面得分（API只返回一个总分）
+            val normalizedScore = result.score / 100f
+            val positiveScore = if (result.score > 50) normalizedScore else 1f - normalizedScore
+            val negativeScore = if (result.score <= 50) normalizedScore else 1f - normalizedScore
+            
             return SentimentData(
                 journalId = journalId,
-                sentimentType = result.type,
-                positiveScore = result.positiveScore,
-                negativeScore = result.negativeScore,
-                dominantEmotion = result.dominantEmotion,
-                confidence = result.confidence
+                sentimentType = type,
+                positiveScore = positiveScore,
+                negativeScore = negativeScore,
+                dominantEmotion = result.label,
+                confidence = Math.abs(2 * normalizedScore - 1f) // 置信度：越接近0或1越高
             )
         }
         
@@ -36,7 +52,7 @@ data class SentimentData(
         fun createNeutral(journalId: Int): SentimentData {
             return SentimentData(
                 journalId = journalId,
-                sentimentType = SentimentAnalyzer.SentimentType.NEUTRAL,
+                sentimentType = SentimentType.NEUTRAL,
                 positiveScore = 0.5f,
                 negativeScore = 0.5f,
                 dominantEmotion = "",
@@ -50,10 +66,10 @@ data class SentimentData(
      */
     fun getSentimentDescription(): String {
         return when (sentimentType) {
-            SentimentAnalyzer.SentimentType.POSITIVE -> "积极"
-            SentimentAnalyzer.SentimentType.NEGATIVE -> "消极"
-            SentimentAnalyzer.SentimentType.NEUTRAL -> "中性"
-            SentimentAnalyzer.SentimentType.UNKNOWN -> "未知"
+            SentimentType.POSITIVE -> "积极"
+            SentimentType.NEGATIVE -> "消极"
+            SentimentType.NEUTRAL -> "中性"
+            else -> "未知"
         }
     }
     
