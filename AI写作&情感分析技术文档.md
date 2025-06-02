@@ -266,7 +266,6 @@ data class SentimentData(
 - 响应式布局
 - 无障碍访问支持
 
-## 情感分析模型训练与部署
 
 ### 训练数据集
 **位置**: `/Users/sypw/PycharmProjects/sentiment_data/`

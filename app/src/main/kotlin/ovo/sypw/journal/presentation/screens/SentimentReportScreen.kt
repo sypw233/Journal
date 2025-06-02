@@ -659,19 +659,19 @@ private fun SentimentReportContent(
                                 if (totalCount > 0) {
                                     Box(
                                         modifier = Modifier
-                                            .weight(positivePercentage)
+                                            .weight(if (positivePercentage > 0f) positivePercentage else 0.01f)
                                             .fillMaxHeight()
                                             .background(SentimentColors.POSITIVE) // 使用统一颜色
                                     )
                                     Box(
                                         modifier = Modifier
-                                            .weight(neutralPercentage)
+                                            .weight(if (neutralPercentage > 0f) neutralPercentage else 0.01f)
                                             .fillMaxHeight()
                                             .background(SentimentColors.NEUTRAL) // 使用统一颜色
                                     )
                                     Box(
                                         modifier = Modifier
-                                            .weight(negativePercentage)
+                                            .weight(if (negativePercentage > 0f) negativePercentage else 0.01f)
                                             .fillMaxHeight()
                                             .background(SentimentColors.NEGATIVE) // 使用统一颜色
                                     )
@@ -764,19 +764,19 @@ private fun SentimentReportContent(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .weight(recentPositivePercentage)
+                                        .weight(if (recentPositivePercentage > 0f) recentPositivePercentage else 0.01f)
                                         .fillMaxHeight()
                                         .background(SentimentColors.POSITIVE) // 使用统一颜色
                                 )
                                 Box(
                                     modifier = Modifier
-                                        .weight(recentNeutralPercentage)
+                                        .weight(if (recentNeutralPercentage > 0f) recentNeutralPercentage else 0.01f)
                                         .fillMaxHeight()
                                         .background(SentimentColors.NEUTRAL) // 使用统一颜色
                                 )
                                 Box(
                                     modifier = Modifier
-                                        .weight(recentNegativePercentage)
+                                        .weight(if (recentNegativePercentage > 0f) recentNegativePercentage else 0.01f)
                                         .fillMaxHeight()
                                         .background(SentimentColors.NEGATIVE) // 使用统一颜色
                                 )
@@ -1220,4 +1220,4 @@ private fun getDominantSentimentType(
         else -> 
             "中性"
     }
-} 
+}
