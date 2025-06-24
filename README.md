@@ -4,14 +4,6 @@
 
 Journal 是一款基于现代 Android 技术栈开发的智能日记应用，采用 **Jetpack Compose** 构建流畅的用户界面，集成 **AI 写作助手** 和 **情感分析** 功能，为用户提供智能化的日记记录体验。
 
-## 📱 应用预览
-
-<table>
-<tr>
-<td><img src="README_IMAGES/image1.jpg" alt="主界面" width="300"/></td>
-<td><img src="README_IMAGES/image2.jpg" alt="编辑界面" width="300"/></td>
-</tr>
-</table>
 
 ## ✨ 核心特性
 
