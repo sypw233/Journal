@@ -23,25 +23,25 @@ class LocalSentimentRepository @Inject constructor(
 ) : SentimentRepository {
     private val TAG = "LocalSentimentRepository"
     private val ioScope = CoroutineScope(Dispatchers.IO)
-    
+
     override suspend fun getSentimentByJournalId(journalId: Int): SentimentData? {
         return withContext(Dispatchers.IO) {
             sentimentDao.getSentimentByJournalId(journalId)?.toSentimentData()
         }
     }
-    
+
     override suspend fun getAllSentiments(): List<SentimentData> {
         return withContext(Dispatchers.IO) {
             sentimentDao.getAllSentiments().map { it.toSentimentData() }
         }
     }
-    
+
     override suspend fun getSentimentsByType(sentimentType: SentimentType): List<SentimentData> {
         return withContext(Dispatchers.IO) {
             sentimentDao.getSentimentsByType(sentimentType.name).map { it.toSentimentData() }
         }
     }
-    
+
     override suspend fun saveSentiment(sentiment: SentimentData) {
         withContext(Dispatchers.IO) {
             try {
@@ -52,7 +52,7 @@ class LocalSentimentRepository @Inject constructor(
             }
         }
     }
-    
+
     override suspend fun saveSentiments(sentiments: List<SentimentData>) {
         withContext(Dispatchers.IO) {
             try {
@@ -64,7 +64,7 @@ class LocalSentimentRepository @Inject constructor(
             }
         }
     }
-    
+
     override suspend fun deleteSentimentByJournalId(journalId: Int) {
         withContext(Dispatchers.IO) {
             try {
@@ -75,7 +75,7 @@ class LocalSentimentRepository @Inject constructor(
             }
         }
     }
-    
+
     override suspend fun deleteAllSentiments() {
         withContext(Dispatchers.IO) {
             try {
@@ -86,19 +86,19 @@ class LocalSentimentRepository @Inject constructor(
             }
         }
     }
-    
+
     override suspend fun getSentimentCount(): Int {
         return withContext(Dispatchers.IO) {
             sentimentDao.getSentimentCount()
         }
     }
-    
+
     override suspend fun getJournalIdsByType(sentimentType: SentimentType): List<Int> {
         return withContext(Dispatchers.IO) {
             sentimentDao.getJournalIdsByType(sentimentType.name)
         }
     }
-    
+
     override suspend fun getJournalsWithSentiments(): List<Pair<JournalData, SentimentData?>> {
         return withContext(Dispatchers.IO) {
             try {

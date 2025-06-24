@@ -1,18 +1,12 @@
 package ovo.sypw.journal.presentation.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudSync
-import androidx.compose.material.icons.rounded.Error
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.SyncDisabled
 import androidx.compose.material.icons.rounded.SyncProblem
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +15,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.SyncState
@@ -85,7 +78,7 @@ fun SyncStatusButton(
 
         },
 
-    ) {
+        ) {
 
         Icon(
             imageVector = icon,

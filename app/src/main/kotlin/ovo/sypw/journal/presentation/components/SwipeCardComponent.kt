@@ -1,9 +1,7 @@
 package ovo.sypw.journal.presentation.components
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -19,18 +17,13 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import ovo.sypw.journal.R
 import ovo.sypw.journal.data.model.JournalData
 
 /** 可滑动卡片组件，支持左右滑动进行编辑和删除操作 */
@@ -47,10 +40,10 @@ fun SwipeCard(
 ) {
     // 记住当前日记ID，确保操作的是正确的项
     val currentJournalId = remember { mutableStateOf(journalData.id) }
-    
+
     // 用于控制卡片展开状态
     val expanded = remember { mutableStateOf(false) }
-    
+
     // 更新当前ID，确保在重组时ID始终是最新的
     LaunchedEffect(journalData.id) {
         currentJournalId.value = journalData.id
@@ -88,21 +81,21 @@ fun SwipeCard(
     ForUpdateData {
         currentProgress.floatValue = dismissState.progress
     }
-    
+
     // 将手势检测移到这里，覆盖整个SwipeToDismissBox区域
     val gestureModifier = Modifier.pointerInput(journalData.id) {
         detectTapGestures(
-            onTap = { 
+            onTap = {
                 // 点击时切换展开状态
                 expanded.value = !expanded.value
             },
-            onLongPress = { 
+            onLongPress = {
                 // 长按时触发情感分析
-                onLongClick() 
+                onLongClick()
             }
         )
     }
-    
+
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = enableScroll, // 允许从左向右滑动

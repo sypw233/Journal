@@ -17,7 +17,7 @@ import ovo.sypw.journal.data.JournalPreferences
  * 根据用户设置决定是否显示删除确认对话框
  */
 object DeleteConfirmationUtils {
-    
+
     /**
      * 删除确认流程
      * @param preferences 用户偏好设置
@@ -32,7 +32,7 @@ object DeleteConfirmationUtils {
     ): MutableState<Boolean> {
         // 创建确认对话框显示状态
         val showDialog = remember { mutableStateOf(false) }
-        
+
         // 如果需要确认并且对话框被触发
         if (preferences.isDeleteConfirmationEnabled() && showDialog.value) {
             DeleteConfirmationDialog(
@@ -47,10 +47,10 @@ object DeleteConfirmationUtils {
                 }
             )
         }
-        
+
         return showDialog
     }
-    
+
     /**
      * 直接执行删除操作
      * 根据用户设置决定是直接删除还是先显示确认对话框

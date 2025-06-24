@@ -9,7 +9,6 @@ import android.util.Log
 import android.webkit.MimeTypeMap
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.io.InputStream
 
 /**
  * 图片Base64工具类
@@ -19,7 +18,7 @@ object ImageBase64Utils {
     private const val TAG = "ImageBase64Utils"
     private const val MAX_IMAGE_SIZE = 1024 * 1024 // 1MB
     private const val QUALITY = 80 // 压缩质量
-    
+
     /**
      * 将Uri转换为Base64格式
      * @param context 上下文
@@ -34,27 +33,27 @@ object ImageBase64Utils {
                 Log.e(TAG, "Failed to open input stream for uri: $uri")
                 return null
             }
-            
+
             // 解码为Bitmap
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
-            
+
             if (bitmap == null) {
                 Log.e(TAG, "Failed to decode bitmap from uri: $uri")
                 return null
             }
-            
+
             // 压缩并转换为Base64
             val base64 = compressAndEncodeToBase64(bitmap)
             bitmap.recycle()
-            
+
             base64
         } catch (e: Exception) {
             Log.e(TAG, "Error converting uri to base64: $uri", e)
             null
         }
     }
-    
+
     /**
      * 压缩Bitmap并转换为Base64格式
      * @param bitmap 原始Bitmap
@@ -62,29 +61,29 @@ object ImageBase64Utils {
      */
     private fun compressAndEncodeToBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
-        
+
         // 计算初始压缩质量
         var quality = QUALITY
-        
+
         // 压缩图片
         bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-        
+
         // 如果图片太大，继续压缩
         while (outputStream.size() > MAX_IMAGE_SIZE && quality > 10) {
             outputStream.reset()
             quality -= 10
             bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
         }
-        
+
         // 转换为Base64
         val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-        
+
         try {
             outputStream.close()
         } catch (e: IOException) {
             Log.e(TAG, "Error closing output stream", e)
         }
-        
+
         // 返回带前缀的Base64字符串
         return "data:image/jpeg;base64,$base64"
     }

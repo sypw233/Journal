@@ -37,7 +37,7 @@ object DatabaseModule {
     fun provideJournalDao(database: JournalDatabase): JournalDao {
         return database.journalDao()
     }
-    
+
     /**
      * 提供DatabaseManager实例
      */

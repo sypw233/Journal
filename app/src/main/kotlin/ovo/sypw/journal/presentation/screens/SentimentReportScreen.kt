@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,20 +25,15 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -66,11 +60,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.theme.SentimentColors
 import ovo.sypw.journal.common.utils.SentimentType
-import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.SentimentData
-import ovo.sypw.journal.presentation.components.JournalCard
-import ovo.sypw.journal.presentation.components.SentimentAnalysisCard
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 import ovo.sypw.journal.presentation.viewmodels.SentimentViewModel
 
@@ -92,13 +83,13 @@ fun SentimentReportScreen(
     val currentFilter by viewModel.currentFilter.collectAsState()
     val currentTimePeriod by viewModel.currentTimePeriod.collectAsState()
     val filteredResults by viewModel.filteredResults.collectAsState()
-    
+
     // 本地UI状态
     var showBatchAnalysisDialog by remember { mutableStateOf(false) }
     var showPeriodSelectorDialog by remember { mutableStateOf(false) }
-    
+
     val coroutineScope = rememberCoroutineScope()
-    
+
     // 加载日记列表
     LaunchedEffect(Unit) {
         try {
@@ -109,7 +100,7 @@ fun SentimentReportScreen(
             }
         }
     }
-    
+
     // 当日记列表加载完成后，从数据库加载情感分析结果
     LaunchedEffect(journals) {
         if (journals.isNotEmpty()) {
@@ -123,7 +114,7 @@ fun SentimentReportScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -146,7 +137,7 @@ fun SentimentReportScreen(
                             contentDescription = "筛选时间周期"
                         )
                     }
-                    
+
                     // 批量分析按钮
                     IconButton(
                         onClick = { showBatchAnalysisDialog = true },
@@ -207,7 +198,7 @@ fun SentimentReportScreen(
                 }
 
                 HorizontalDivider()
-                
+
                 if (journals.isEmpty()) {
                     // 无日记状态
                     Column(
@@ -228,7 +219,7 @@ fun SentimentReportScreen(
                 } else {
                     val sentiments = filteredResults.map { it.second }
                     val hasData = sentiments.isNotEmpty()
-                    
+
                     if (!hasData && !isAnalyzing) {
                         // 无分析结果状态
                         Column(
@@ -268,7 +259,7 @@ fun SentimentReportScreen(
                     }
                 }
             }
-            
+
             // 显示加载进度
             if (isAnalyzing) {
                 Box(
@@ -291,17 +282,17 @@ fun SentimentReportScreen(
             }
         }
     }
-    
+
     // 批量分析对话框
     if (showBatchAnalysisDialog) {
         AlertDialog(
             onDismissRequest = { if (!isAnalyzing) showBatchAnalysisDialog = false },
             title = { Text("批量情感分析") },
-            text = { 
+            text = {
                 Column {
                     Text("将对所有日记进行情感分析，每篇日记单独请求，每次请求之间会有0.5秒延迟。")
                     Text("当前共有 ${journals.size} 篇日记需要分析")
-                    
+
                     if (isAnalyzing) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
@@ -335,12 +326,12 @@ fun SentimentReportScreen(
             }
         )
     }
-    
+
     // 时间周期选择对话框
     if (showPeriodSelectorDialog) {
         AlertDialog(
             onDismissRequest = { showPeriodSelectorDialog = false },
-            title = { 
+            title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -354,7 +345,7 @@ fun SentimentReportScreen(
                     Text("选择时间周期")
                 }
             },
-            text = { 
+            text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -381,9 +372,9 @@ fun SentimentReportScreen(
                                 Text(
                                     text = period.displayName,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = if (period == currentTimePeriod) 
-                                        MaterialTheme.colorScheme.primary 
-                                    else 
+                                    color = if (period == currentTimePeriod)
+                                        MaterialTheme.colorScheme.primary
+                                    else
                                         MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
@@ -396,7 +387,7 @@ fun SentimentReportScreen(
                                 }
                             }
                         }
-                        
+
                         if (period != SentimentViewModel.TimePeriod.values().last()) {
                             Divider(
                                 modifier = Modifier.padding(vertical = 4.dp),
@@ -428,8 +419,11 @@ private fun SentimentReportContent(
     // 记录日记和筛选结果数量
     val totalJournals = journals.size
     val filteredCount = results.size
-    Log.d("SentimentReportScreen", "报告内容: 总日记数=${totalJournals}, 筛选结果数=${filteredCount}, 时间周期=${currentTimePeriod.displayName}")
-    
+    Log.d(
+        "SentimentReportScreen",
+        "报告内容: 总日记数=${totalJournals}, 筛选结果数=${filteredCount}, 时间周期=${currentTimePeriod.displayName}"
+    )
+
     // 计算当前时间范围内应该有的日记数量
     val currentTime = System.currentTimeMillis()
     val journalsInCurrentPeriod = when (currentTimePeriod) {
@@ -437,61 +431,70 @@ private fun SentimentReportContent(
         SentimentViewModel.TimePeriod.LAST_WEEK -> {
             journals.count { it.date?.time ?: 0 > currentTime - 7L * 24L * 60L * 60L * 1000L }
         }
+
         SentimentViewModel.TimePeriod.LAST_MONTH -> {
             journals.count { it.date?.time ?: 0 > currentTime - 30L * 24L * 60L * 60L * 1000L }
         }
+
         SentimentViewModel.TimePeriod.LAST_THREE_MONTHS -> {
             journals.count { it.date?.time ?: 0 > currentTime - 90L * 24L * 60L * 60L * 1000L }
         }
+
         SentimentViewModel.TimePeriod.LAST_YEAR -> {
             journals.count { it.date?.time ?: 0 > currentTime - 365L * 24L * 60L * 60L * 1000L }
         }
     }
     Log.d("SentimentReportScreen", "当前时间范围应有日记数=${journalsInCurrentPeriod}")
-    
+
     // 计算情感分布统计
     val totalCount = results.size
     val positiveCount = results.count { it.second.sentimentType == SentimentType.POSITIVE }
     val negativeCount = results.count { it.second.sentimentType == SentimentType.NEGATIVE }
     val neutralCount = results.count { it.second.sentimentType == SentimentType.NEUTRAL }
-    
+
     // 计算情感占比
     val positivePercentage = if (totalCount > 0) positiveCount * 100f / totalCount else 0f
     val negativePercentage = if (totalCount > 0) negativeCount * 100f / totalCount else 0f
     val neutralPercentage = if (totalCount > 0) neutralCount * 100f / totalCount else 0f
-    
+
     // 计算最近7天的数据，只有在查看全部时间或时间段超过7天时才计算
     val oneWeekAgo = currentTime - 7L * 24L * 60L * 60L * 1000L
-    val showRecentWeekSection = currentTimePeriod == SentimentViewModel.TimePeriod.ALL || 
-        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_MONTH || 
-        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_THREE_MONTHS || 
-        currentTimePeriod == SentimentViewModel.TimePeriod.LAST_YEAR
-    
+    val showRecentWeekSection = currentTimePeriod == SentimentViewModel.TimePeriod.ALL ||
+            currentTimePeriod == SentimentViewModel.TimePeriod.LAST_MONTH ||
+            currentTimePeriod == SentimentViewModel.TimePeriod.LAST_THREE_MONTHS ||
+            currentTimePeriod == SentimentViewModel.TimePeriod.LAST_YEAR
+
     val recentResults = if (showRecentWeekSection) {
         results.filter { it.first.date?.time ?: 0 > oneWeekAgo }
     } else {
         emptyList()
     }
-    
+
     // 最近情感统计
     val recentCount = recentResults.size
-    val recentPositiveCount = recentResults.count { it.second.sentimentType == SentimentType.POSITIVE }
-    val recentNegativeCount = recentResults.count { it.second.sentimentType == SentimentType.NEGATIVE }
-    val recentNeutralCount = recentResults.count { it.second.sentimentType == SentimentType.NEUTRAL }
-    
+    val recentPositiveCount =
+        recentResults.count { it.second.sentimentType == SentimentType.POSITIVE }
+    val recentNegativeCount =
+        recentResults.count { it.second.sentimentType == SentimentType.NEGATIVE }
+    val recentNeutralCount =
+        recentResults.count { it.second.sentimentType == SentimentType.NEUTRAL }
+
     // 最近情感占比
-    val recentPositivePercentage = if (recentCount > 0) recentPositiveCount * 100f / recentCount else 0f
-    val recentNegativePercentage = if (recentCount > 0) recentNegativeCount * 100f / recentCount else 0f
-    val recentNeutralPercentage = if (recentCount > 0) recentNeutralCount * 100f / recentCount else 0f
-    
+    val recentPositivePercentage =
+        if (recentCount > 0) recentPositiveCount * 100f / recentCount else 0f
+    val recentNegativePercentage =
+        if (recentCount > 0) recentNegativeCount * 100f / recentCount else 0f
+    val recentNeutralPercentage =
+        if (recentCount > 0) recentNeutralCount * 100f / recentCount else 0f
+
     // 计算平均情感分数
     val avgPositiveScore = results.map { it.second.positiveScore }.average().toFloat()
     val avgNegativeScore = results.map { it.second.negativeScore }.average().toFloat()
-    val recentAvgPositiveScore = if (recentResults.isNotEmpty()) 
+    val recentAvgPositiveScore = if (recentResults.isNotEmpty())
         recentResults.map { it.second.positiveScore }.average().toFloat() else 0f
-    val recentAvgNegativeScore = if (recentResults.isNotEmpty()) 
+    val recentAvgNegativeScore = if (recentResults.isNotEmpty())
         recentResults.map { it.second.negativeScore }.average().toFloat() else 0f
-    
+
     // 找出主要情绪
     val emotionGroups = results
         .filter { it.second.dominantEmotion.isNotBlank() }
@@ -500,7 +503,7 @@ private fun SentimentReportContent(
         .toList()
         .sortedByDescending { it.second }
         .take(5)
-    
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -544,7 +547,7 @@ private fun SentimentReportContent(
                 }
             }
         }
-        
+
         // 分析概况
         if (totalCount > 0) {
             item {
@@ -560,17 +563,20 @@ private fun SentimentReportContent(
                                 SentimentViewModel.TimePeriod.LAST_WEEK -> {
                                     journals.count { it.date?.time ?: 0 > currentTime - 7L * 24L * 60L * 60L * 1000L }
                                 }
+
                                 SentimentViewModel.TimePeriod.LAST_MONTH -> {
                                     journals.count { it.date?.time ?: 0 > currentTime - 30L * 24L * 60L * 60L * 1000L }
                                 }
+
                                 SentimentViewModel.TimePeriod.LAST_THREE_MONTHS -> {
                                     journals.count { it.date?.time ?: 0 > currentTime - 90L * 24L * 60L * 60L * 1000L }
                                 }
+
                                 SentimentViewModel.TimePeriod.LAST_YEAR -> {
                                     journals.count { it.date?.time ?: 0 > currentTime - 365L * 24L * 60L * 60L * 1000L }
                                 }
                             }
-                            
+
                             // 添加信息卡片样式
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
@@ -595,7 +601,7 @@ private fun SentimentReportContent(
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
-                                        
+
                                         Text(
                                             text = " (${currentTimePeriod.displayName})",
                                             style = MaterialTheme.typography.bodySmall,
@@ -603,18 +609,18 @@ private fun SentimentReportContent(
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(4.dp))
-                            
+
                             // 总体情感倾向
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = when {
-                                    positivePercentage > neutralPercentage && positivePercentage > negativePercentage -> 
+                                    positivePercentage > neutralPercentage && positivePercentage > negativePercentage ->
                                         SentimentColors.POSITIVE_LIGHT // 使用统一颜色
-                                    negativePercentage > neutralPercentage && negativePercentage > positivePercentage -> 
+                                    negativePercentage > neutralPercentage && negativePercentage > positivePercentage ->
                                         SentimentColors.NEGATIVE_LIGHT // 使用统一颜色
-                                    else -> 
+                                    else ->
                                         SentimentColors.NEUTRAL_LIGHT // 使用统一颜色
                                 },
                                 modifier = Modifier.fillMaxWidth()
@@ -631,23 +637,27 @@ private fun SentimentReportContent(
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        text = getDominantSentimentType(positivePercentage, negativePercentage, neutralPercentage),
+                                        text = getDominantSentimentType(
+                                            positivePercentage,
+                                            negativePercentage,
+                                            neutralPercentage
+                                        ),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = when {
-                                            positivePercentage > neutralPercentage && positivePercentage > negativePercentage -> 
+                                            positivePercentage > neutralPercentage && positivePercentage > negativePercentage ->
                                                 SentimentColors.POSITIVE // 使用统一颜色
-                                            negativePercentage > neutralPercentage && negativePercentage > positivePercentage -> 
+                                            negativePercentage > neutralPercentage && negativePercentage > positivePercentage ->
                                                 SentimentColors.NEGATIVE // 使用统一颜色
-                                            else -> 
+                                            else ->
                                                 SentimentColors.NEUTRAL // 使用统一颜色
                                         }
                                     )
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(12.dp))
-                            
+
                             // 情感分布柱状图
                             Text("整体情感分布:", style = MaterialTheme.typography.titleSmall)
                             Row(
@@ -683,7 +693,7 @@ private fun SentimentReportContent(
                                     )
                                 }
                             }
-                            
+
                             // 情感分布图例
                             Row(
                                 modifier = Modifier
@@ -709,7 +719,7 @@ private fun SentimentReportContent(
                 )
             }
         }
-        
+
         // 最近7天情感报告，仅当选择的时间范围足够大时显示
         if (showRecentWeekSection && recentCount > 0) {
             item {
@@ -746,14 +756,20 @@ private fun SentimentReportContent(
                                     )
                                 }
                             }
-                            
+
                             Text(
-                                text = "最近情感倾向: ${getDominantSentimentType(recentPositivePercentage, recentNegativePercentage, recentNeutralPercentage)}",
+                                text = "最近情感倾向: ${
+                                    getDominantSentimentType(
+                                        recentPositivePercentage,
+                                        recentNegativePercentage,
+                                        recentNeutralPercentage
+                                    )
+                                }",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             // 最近情感分布柱状图
                             Text("最近情感分布:", style = MaterialTheme.typography.titleSmall)
                             Row(
@@ -781,7 +797,7 @@ private fun SentimentReportContent(
                                         .background(SentimentColors.NEGATIVE) // 使用统一颜色
                                 )
                             }
-                            
+
                             // 情感分布图例
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -789,27 +805,42 @@ private fun SentimentReportContent(
                             ) {
                                 LegendItem(
                                     color = SentimentColors.POSITIVE, // 使用统一颜色
-                                    text = "积极: ${String.format("%.1f", recentPositivePercentage)}%"
+                                    text = "积极: ${
+                                        String.format(
+                                            "%.1f",
+                                            recentPositivePercentage
+                                        )
+                                    }%"
                                 )
                                 LegendItem(
                                     color = SentimentColors.NEUTRAL, // 使用统一颜色
-                                    text = "中性: ${String.format("%.1f", recentNeutralPercentage)}%"
+                                    text = "中性: ${
+                                        String.format(
+                                            "%.1f",
+                                            recentNeutralPercentage
+                                        )
+                                    }%"
                                 )
                                 LegendItem(
                                     color = SentimentColors.NEGATIVE, // 使用统一颜色
-                                    text = "消极: ${String.format("%.1f", recentNegativePercentage)}%"
+                                    text = "消极: ${
+                                        String.format(
+                                            "%.1f",
+                                            recentNegativePercentage
+                                        )
+                                    }%"
                                 )
                             }
-                            
+
                             // 情感对比
                             if (totalCount > recentCount) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text("与整体情感对比:", style = MaterialTheme.typography.titleSmall)
-                                
+
                                 val positiveChange = recentPositivePercentage - positivePercentage
                                 val negativeChange = recentNegativePercentage - negativePercentage
                                 val neutralChange = recentNeutralPercentage - neutralPercentage
-                                
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceAround
@@ -833,7 +864,7 @@ private fun SentimentReportContent(
                 )
             }
         }
-        
+
         // 情感强度报告
         item {
             ReportSection(
@@ -860,7 +891,7 @@ private fun SentimentReportContent(
                                     .background(SentimentColors.POSITIVE)
                             )
                         }
-                        
+
                         // 消极情感强度 - 使用红色
                         Text("消极情感强度: ${String.format("%.1f", avgNegativeScore * 100)}%")
                         Box(
@@ -878,14 +909,21 @@ private fun SentimentReportContent(
                                     .background(SentimentColors.NEGATIVE)
                             )
                         }
-                        
+
                         // 最近7天情感强度，仅当选择的时间范围足够大时显示
                         if (showRecentWeekSection && recentCount > 0) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text("最近7天情感强度:", style = MaterialTheme.typography.titleSmall)
-                            
+
                             // 最近7天积极情感
-                            Text("积极情感: ${String.format("%.1f", recentAvgPositiveScore * 100)}%")
+                            Text(
+                                "积极情感: ${
+                                    String.format(
+                                        "%.1f",
+                                        recentAvgPositiveScore * 100
+                                    )
+                                }%"
+                            )
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -902,9 +940,16 @@ private fun SentimentReportContent(
                                 )
                             }
 
-                            
+
                             // 最近7天消极情感
-                            Text("消极情感: ${String.format("%.1f", recentAvgNegativeScore * 100)}%")
+                            Text(
+                                "消极情感: ${
+                                    String.format(
+                                        "%.1f",
+                                        recentAvgNegativeScore * 100
+                                    )
+                                }%"
+                            )
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -925,7 +970,7 @@ private fun SentimentReportContent(
                 }
             )
         }
-        
+
         // 主要情绪词统计
         item {
             ReportSection(
@@ -936,17 +981,18 @@ private fun SentimentReportContent(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // 定义固定的五种情绪类型
-                        val fixedEmotionTypes = listOf("非常正面", "正面", "中性", "负面", "非常负面")
-                        
+                        val fixedEmotionTypes =
+                            listOf("非常正面", "正面", "中性", "负面", "非常负面")
+
                         // 创建情绪类型映射，包含实际统计的情绪和固定情绪类型
                         val emotionMap = fixedEmotionTypes.associateWith { emotionType ->
                             emotionGroups.find { it.first == emotionType }?.second ?: 0
                         }.toList()
-                        
+
                         // 显示所有固定情绪类型，包括数量为0的
                         emotionMap.forEach { (emotion, count) ->
                             val percentage = if (totalCount > 0) count * 100f / totalCount else 0f
-                            
+
                             // 根据情绪类型选择颜色
                             val barColor = when (emotion) {
                                 "非常正面" -> SentimentColors.POSITIVE
@@ -956,7 +1002,7 @@ private fun SentimentReportContent(
                                 "非常负面" -> SentimentColors.NEGATIVE
                                 else -> SentimentColors.NEUTRAL
                             }
-                            
+
                             Column(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -985,9 +1031,9 @@ private fun SentimentReportContent(
                                         )
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(4.dp))
-                                
+
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1005,12 +1051,12 @@ private fun SentimentReportContent(
                                 }
                             }
                         }
-                        
+
                         // 如果有其他情绪类型，也显示出来（不在固定五种类型中的）
-                        val otherEmotions = emotionGroups.filter { (emotion, _) -> 
+                        val otherEmotions = emotionGroups.filter { (emotion, _) ->
                             !fixedEmotionTypes.contains(emotion)
                         }
-                        
+
                         if (otherEmotions.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
@@ -1018,7 +1064,7 @@ private fun SentimentReportContent(
                                 style = MaterialTheme.typography.titleSmall,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            
+
                             otherEmotions.forEach { (emotion, count) ->
                                 val percentage = count * 100f / totalCount
                                 val barColor = when {
@@ -1026,7 +1072,7 @@ private fun SentimentReportContent(
                                     percentage > 30f -> SentimentColors.NEUTRAL
                                     else -> SentimentColors.NEGATIVE
                                 }
-                                
+
                                 Column(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -1055,9 +1101,9 @@ private fun SentimentReportContent(
                                             )
                                         }
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    
+
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1122,9 +1168,9 @@ private fun ReportSection(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             content()
         }
     }
@@ -1162,8 +1208,8 @@ private fun SentimentChangeItem(
     label: String,
     change: Float
 ) {
-    val changeText = if (change > 0) "+${String.format("%.1f", change)}%" 
-                     else String.format("%.1f", change) + "%"
+    val changeText = if (change > 0) "+${String.format("%.1f", change)}%"
+    else String.format("%.1f", change) + "%"
     val changeColor = when {
         change > 5 -> SentimentColors.POSITIVE // 明显上升-绿色
         change > 0 -> SentimentColors.POSITIVE_LIGHT // 轻微上升-浅绿色
@@ -1171,7 +1217,7 @@ private fun SentimentChangeItem(
         change < 0 -> SentimentColors.NEGATIVE_LIGHT // 轻微下降-橙色
         else -> MaterialTheme.colorScheme.onSurface
     }
-    
+
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = changeColor.copy(alpha = 0.1f),
@@ -1192,7 +1238,7 @@ private fun SentimentChangeItem(
                 color = changeColor,
                 fontWeight = FontWeight.Bold
             )
-            
+
             // 添加箭头指示方向
             Icon(
                 imageVector = if (change > 0) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -1213,11 +1259,13 @@ private fun getDominantSentimentType(
     neutralPercentage: Float
 ): String {
     return when {
-        positivePercentage >= negativePercentage && positivePercentage >= neutralPercentage -> 
+        positivePercentage >= negativePercentage && positivePercentage >= neutralPercentage ->
             "积极"
-        negativePercentage >= positivePercentage && negativePercentage >= neutralPercentage -> 
+
+        negativePercentage >= positivePercentage && negativePercentage >= neutralPercentage ->
             "消极"
-        else -> 
+
+        else ->
             "中性"
     }
 }

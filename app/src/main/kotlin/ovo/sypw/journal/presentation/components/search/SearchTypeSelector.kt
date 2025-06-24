@@ -39,14 +39,14 @@ fun SearchTypeSelector(
             onCheckedChange = onSearchByContentChange,
             label = "内容"
         )
-        
+
         // 位置搜索选项
         SearchTypeOption(
             checked = searchByLocation,
             onCheckedChange = onSearchByLocationChange,
             label = "位置"
         )
-        
+
         // 日期范围搜索选项
         SearchTypeOption(
             checked = searchByDate,

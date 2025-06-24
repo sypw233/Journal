@@ -56,7 +56,7 @@ fun DateRangeSelector(
 ) {
     // 日期格式化
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    
+
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn() + expandVertically(),
@@ -81,9 +81,9 @@ fun DateRangeSelector(
                     "选择日期范围",
                     style = MaterialTheme.typography.titleMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,9 +97,9 @@ fun DateRangeSelector(
                         onClick = { onShowStartDatePicker(true) },
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     // 结束日期选择
                     DateSelector(
                         label = "结束日期",
@@ -112,23 +112,23 @@ fun DateRangeSelector(
             }
         }
     }
-    
+
     // 起始日期选择器对话框
     if (showStartDatePicker) {
         DatePickerDialogComponent(
             onDismiss = { onShowStartDatePicker(false) },
-            onDateSelected = { date -> 
+            onDateSelected = { date ->
                 onStartDateChange(date)
                 onShowStartDatePicker(false)
             }
         )
     }
-    
+
     // 结束日期选择器对话框
     if (showEndDatePicker) {
         DatePickerDialogComponent(
             onDismiss = { onShowEndDatePicker(false) },
-            onDateSelected = { date -> 
+            onDateSelected = { date ->
                 onEndDateChange(date)
                 onShowEndDatePicker(false)
             }
@@ -156,9 +156,9 @@ private fun DateSelector(
             contentDescription = label,
             tint = MaterialTheme.colorScheme.primary
         )
-        
+
         Spacer(modifier = Modifier.width(8.dp))
-        
+
         Text(
             text = selectedDate?.let { dateFormat.format(it) } ?: label,
             style = MaterialTheme.typography.bodyMedium,
@@ -178,7 +178,7 @@ private fun DatePickerDialogComponent(
     onDateSelected: (Date) -> Unit
 ) {
     val datePickerState = rememberDatePickerState()
-    
+
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {

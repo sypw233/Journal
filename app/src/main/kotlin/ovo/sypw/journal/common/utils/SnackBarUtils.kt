@@ -1,7 +1,6 @@
 package ovo.sypw.journal.common.utils
 
 import android.util.Log
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -9,7 +8,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -61,7 +59,7 @@ object SnackBarUtils {
             }
         }
     }
-    
+
     // 获取协程作用域
     fun getCoroutineScope(): CoroutineScope? {
         return if (::coroutineScope.isInitialized) coroutineScope else null

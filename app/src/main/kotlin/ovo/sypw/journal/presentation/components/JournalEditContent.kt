@@ -1,25 +1,25 @@
 package ovo.sypw.journal.presentation.components
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,42 +36,37 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Fullscreen
+import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.outlined.AspectRatio
-import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,45 +77,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import dev.jeziellago.compose.markdowntext.MarkdownText
-import ovo.sypw.journal.R
+import ovo.sypw.journal.JournalApplication
 import ovo.sypw.journal.common.utils.AMapLocationUtils
+import ovo.sypw.journal.common.utils.ImagePickerUtils
+import ovo.sypw.journal.common.utils.ImageStorageUtils
 import ovo.sypw.journal.common.utils.PermissionUtils
 import ovo.sypw.journal.common.utils.RequestPermissions
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.LocationData
-import java.util.Date
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.graphicsLayer
-import android.os.Build
-import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
-import androidx.compose.material.icons.outlined.FormatListBulleted
-import androidx.compose.material3.IconToggleButton
-import ovo.sypw.journal.common.utils.ImageUriUtils
-import ovo.sypw.journal.common.utils.ImagePickerUtils
-import ovo.sypw.journal.common.utils.ImageStorageUtils
-import ovo.sypw.journal.di.AppDependencyManager
-import ovo.sypw.journal.JournalApplication
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 
 /**
  * 日记编辑内容组件
@@ -519,7 +496,7 @@ fun JournalEditContent(
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
-                        
+
                         IconButton(
                             onClick = {
                                 // 循环切换三种比例模式
@@ -538,13 +515,13 @@ fun JournalEditContent(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 // Markdown切换按钮 - 所有模式下都显示
                 IconToggleButton(
                     checked = isMarkdown,
-                    onCheckedChange = { 
+                    onCheckedChange = {
                         isMarkdown = it
                         onIsMarkdownChanged?.invoke(it)
                         if (!it) {
@@ -566,7 +543,7 @@ fun JournalEditContent(
                         tint = if (isMarkdown) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // 保存按钮 - 仅在展开模式下显示
@@ -604,7 +581,7 @@ fun JournalEditContent(
                     )
                 }
             }
-            
+
             // 内容编辑区域 - 根据状态显示不同的编辑界面
             if (isExpanded) {
                 // 展开模式
@@ -616,7 +593,7 @@ fun JournalEditContent(
                 ) {
                     // 使用AnimatedContent为整个编辑区域添加过渡动画
                     AnimatedContent(
-                        targetState = if(isMarkdown) showExpandedPreview else false, // 非Markdown模式下强制关闭预览
+                        targetState = if (isMarkdown) showExpandedPreview else false, // 非Markdown模式下强制关闭预览
                         transitionSpec = {
                             fadeIn(
                                 animationSpec = spring(
@@ -851,7 +828,7 @@ fun JournalEditContent(
                                             modifier = Modifier.fillMaxSize()
                                         )
                                     }
-                                    
+
                                     // 删除按钮 - 改进版
                                     Box(
                                         modifier = Modifier
@@ -859,14 +836,16 @@ fun JournalEditContent(
                                             .padding(4.dp)
                                             .size(24.dp)
                                             .background(
-                                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                                                color = MaterialTheme.colorScheme.errorContainer.copy(
+                                                    alpha = 0.8f
+                                                ),
                                                 shape = CircleShape
                                             )
                                             .clickable(
                                                 interactionSource = remember { MutableInteractionSource() },
                                                 indication = null
-                                            ) { 
-                                                selectedImages.remove(image) 
+                                            ) {
+                                                selectedImages.remove(image)
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {

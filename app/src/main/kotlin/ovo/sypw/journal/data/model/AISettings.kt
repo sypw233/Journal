@@ -7,15 +7,15 @@ package ovo.sypw.journal.data.model
 data class AISettings(
     // 模型设置
     val modelType: String = "qwen-turbo", // 默认使用通义千问-turbo模型
-    
+
     // 历史参考设置
     val useHistoricalJournalsDefault: Boolean = true, // 默认使用历史日记参考
     val historicalJournalsCountDefault: Int = 5, // 默认参考5篇历史日记
-    
+
     // 生成设置
     val maxContentLength: Int = 500, // 内容最大长度
     val defaultPromptTemplate: String = "", // 默认提示词模板
-    
+
     // 高级设置
     val showAdvancedSettingsDefault: Boolean = false // 默认不显示高级设置
 )
@@ -36,11 +36,11 @@ object AIModels {
         "qvq-max" to "QVQ-Max",
         "qwen-vl-plus" to "QWEN-VL-Plus",
         "qwen-omni-turbo" to "QWEN-Omni-Turbo",
-        
+
         // DeepSeek系列
         "deepseek-r1" to "DeepSeek-R1",
         "deepseek-v3" to "DeepSeek-V3",
-        
+
         // Llama3系列
         "llama3-8b-instruct" to "Llama3-8B",
         "llama3-70b-instruct" to "Llama3-70B"
@@ -51,12 +51,12 @@ object AIModels {
         "qwen-vl-plus" to "QWEN-VL-Plus",
         "qwen-omni-turbo" to "QWEN-Omni-Turbo",
     )
-    
+
     // 获取模型显示名称
     fun getModelDisplayName(modelId: String): String {
         return AVAILABLE_MODELS[modelId] ?: "未知模型"
     }
-    
+
     // 获取模型按类别分组
     fun getModelsByCategory(): Map<String, Map<String, String>> {
         return mapOf(

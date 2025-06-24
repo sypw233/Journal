@@ -1,11 +1,9 @@
 package ovo.sypw.journal.presentation.components
 
-import android.Manifest
-import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.ViewGroup
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,18 +27,14 @@ import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,9 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import com.amap.api.maps2d.AMap
 import com.amap.api.maps2d.CameraUpdateFactory
 import com.amap.api.maps2d.MapView
@@ -81,15 +78,6 @@ import ovo.sypw.journal.common.utils.AMapLocationUtils
 import ovo.sypw.journal.common.utils.PermissionUtils
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.LocationData
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.zIndex
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 
 
 /**
@@ -109,38 +97,38 @@ fun MapPickerDialog(
     onDismiss: () -> Unit
 ) {
     if (!isVisible) return
-    
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     // 地图状态
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var aMap by remember { mutableStateOf<AMap?>(null) }
     var marker by remember { mutableStateOf<Marker?>(null) }
-    
+
     // 位置状态
-    var currentLatitude by remember { 
-        mutableStateOf(initialLocation?.latitude ?: 39.908823) 
+    var currentLatitude by remember {
+        mutableStateOf(initialLocation?.latitude ?: 39.908823)
     }
-    var currentLongitude by remember { 
-        mutableStateOf(initialLocation?.longitude ?: 116.397470) 
+    var currentLongitude by remember {
+        mutableStateOf(initialLocation?.longitude ?: 116.397470)
     }
-    var currentLocationName by remember { 
-        mutableStateOf(initialLocation?.name ?: "") 
+    var currentLocationName by remember {
+        mutableStateOf(initialLocation?.name ?: "")
     }
-    
+
     // 搜索状态
     var searchText by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var isTextFieldFocused by remember { mutableStateOf(false) }
-    
+
     // POI搜索结果
     var poiItems by remember { mutableStateOf<List<com.amap.api.services.core.PoiItem>>(emptyList()) }
     var isShowingSuggestions by remember { mutableStateOf(false) }
-    
+
     // 地理编码搜索器
     val geocodeSearch = remember { GeocodeSearch(context) }
-    
+
     // POI搜索监听器
     val poiSearchListener = remember {
         object : OnPoiSearchListener {
@@ -154,31 +142,34 @@ fun MapPickerDialog(
                     isShowingSuggestions = false
                 }
             }
-            
-            override fun onPoiItemSearched(poiItem: com.amap.api.services.core.PoiItem?, rCode: Int) {
+
+            override fun onPoiItemSearched(
+                poiItem: com.amap.api.services.core.PoiItem?,
+                rCode: Int
+            ) {
                 // 单个POI项查询回调，这里不需要处理
             }
         }
     }
-    
+
     // 设置定时器以防止每次按键都进行查询
     LaunchedEffect(searchText) {
         if (searchText.length >= 2) {
             delay(500) // 延迟500毫秒，等待用户输入完成
-            
+
             // 如果文本框有焦点，才自动触发搜索
             if (isTextFieldFocused) {
                 isSearching = true
-                
+
                 // 执行POI搜索
                 val query = PoiSearch.Query(searchText, "", "")
                 query.pageSize = 10 // 限制结果数量为10
                 query.pageNum = 1
-                
+
                 // 执行POI搜索
                 val poiSearch = PoiSearch(context, query)
                 poiSearch.bound = PoiSearch.SearchBound(
-                    LatLonPoint(currentLatitude, currentLongitude), 
+                    LatLonPoint(currentLatitude, currentLongitude),
                     5000 // 搜索半径5公里
                 )
                 poiSearch.setOnPoiSearchListener(poiSearchListener)
@@ -192,7 +183,7 @@ fun MapPickerDialog(
             }
         }
     }
-    
+
     // 地理编码结果监听器
     val geocodeListener = remember {
         object : GeocodeSearch.OnGeocodeSearchListener {
@@ -217,11 +208,11 @@ fun MapPickerDialog(
                         currentLatitude = address.latLonPoint?.latitude ?: currentLatitude
                         currentLongitude = address.latLonPoint?.longitude ?: currentLongitude
                         currentLocationName = address.formatAddress ?: searchText
-                        
+
                         // 移动到搜索的位置
                         aMap?.let { map ->
                             val latLng = LatLng(currentLatitude, currentLongitude)
-                            
+
                             // 更新标记点
                             if (marker == null) {
                                 val markerOptions = MarkerOptions()
@@ -233,11 +224,11 @@ fun MapPickerDialog(
                                 marker?.position = latLng
                                 marker?.title = currentLocationName
                             }
-                            
+
                             // 移动到指定位置
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
                         }
-                        
+
                         SnackBarUtils.showSnackBar("已定位到: $currentLocationName")
                     }
                 } else {
@@ -246,17 +237,17 @@ fun MapPickerDialog(
             }
         }
     }
-    
+
     // 设置地理编码监听器
     LaunchedEffect(Unit) {
         geocodeSearch.setOnGeocodeSearchListener(geocodeListener)
     }
-    
+
     // 更新标记点位置并获取地址信息
     fun updateMarkerAndGetAddress(latitude: Double, longitude: Double) {
         aMap?.let { map ->
             val latLng = LatLng(latitude, longitude)
-            
+
             // 更新标记点
             if (marker == null) {
                 val markerOptions = MarkerOptions()
@@ -267,27 +258,27 @@ fun MapPickerDialog(
             } else {
                 marker?.position = latLng
             }
-            
+
             // 移动到当前位置
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
-            
+
             // 使用逆地理编码获取位置信息
             val query = RegeocodeQuery(
                 LatLonPoint(latitude, longitude),
                 200f, // 搜索半径，单位：米
                 GeocodeSearch.AMAP // 使用高德地图
             )
-            
+
             isSearching = true
             geocodeSearch.getFromLocationAsyn(query)
         }
     }
-    
+
     // 移动到指定位置并更新标记点
     fun moveToLocation(map: AMap?, latitude: Double, longitude: Double, name: String?) {
         map?.let {
             val latLng = LatLng(latitude, longitude)
-            
+
             // 更新标记点
             if (marker == null) {
                 val markerOptions = MarkerOptions()
@@ -299,12 +290,12 @@ fun MapPickerDialog(
                 marker?.position = latLng
                 marker?.title = name ?: "选择的位置"
             }
-            
+
             // 移动到指定位置
             it.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
         }
     }
-    
+
     // 获取当前位置
     fun getCurrentLocation() {
         if (PermissionUtils.hasPermissions(context, PermissionUtils.LOCATION_PERMISSIONS)) {
@@ -324,7 +315,7 @@ fun MapPickerDialog(
                             )
                             isSearching = true
                             geocodeSearch.getFromLocationAsyn(query)
-                            
+
                             // 移动到当前位置
                             moveToLocation(aMap, lat, lng, location.name)
                         }
@@ -340,7 +331,7 @@ fun MapPickerDialog(
             SnackBarUtils.showSnackBar("需要定位权限才能获取当前位置")
         }
     }
-    
+
     // 从POI项移动到位置
     fun moveToPoiLocation(poiItem: com.amap.api.services.core.PoiItem) {
         poiItem.latLonPoint?.let { point ->
@@ -348,24 +339,24 @@ fun MapPickerDialog(
             currentLongitude = point.longitude
             currentLocationName = poiItem.title ?: ""
             searchText = poiItem.title ?: "" // 更新搜索框文本为选中的位置名称
-            
+
             // 移动到选中的位置
             moveToLocation(aMap, point.latitude, point.longitude, poiItem.title)
-            
+
             // 关闭候选列表
             isShowingSuggestions = false
             isTextFieldFocused = false
-            
+
             SnackBarUtils.showSnackBar("已定位到: ${poiItem.title}")
         }
     }
-    
+
     // 执行地理编码搜索
     fun executeGeocodeSearch() {
         if (searchText.isNotEmpty()) {
             isSearching = true
             isShowingSuggestions = false
-            
+
             // 使用地理编码搜索位置
             val query = GeocodeQuery(
                 searchText, // 地址
@@ -374,7 +365,7 @@ fun MapPickerDialog(
             geocodeSearch.getFromLocationNameAsyn(query)
         }
     }
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -420,7 +411,7 @@ fun MapPickerDialog(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        
+
                         // 标题
                         Text(
                             text = "选择位置",
@@ -432,7 +423,7 @@ fun MapPickerDialog(
                                 .padding(horizontal = 8.dp),
                             textAlign = TextAlign.Center
                         )
-                        
+
                         // 确认按钮
                         IconButton(
                             onClick = {
@@ -455,7 +446,7 @@ fun MapPickerDialog(
                         }
                     }
                 }
-                
+
                 // 搜索栏和候选列表
                 Box(
                     modifier = Modifier
@@ -478,7 +469,7 @@ fun MapPickerDialog(
                                 .weight(1f)
                                 .padding(end = 6.dp)
                                 .height(56.dp)
-                                .onFocusChanged { 
+                                .onFocusChanged {
                                     isTextFieldFocused = it.isFocused
                                     if (it.isFocused) {
                                         isShowingSuggestions = poiItems.isNotEmpty()
@@ -499,21 +490,21 @@ fun MapPickerDialog(
                                 )
                             }
                         )
-                        
+
                         // 搜索按钮
                         FilledIconButton(
                             onClick = {
                                 if (searchText.isNotEmpty()) {
                                     isSearching = true
-                                    
+
                                     // 执行POI搜索来显示候选列表
                                     val query = PoiSearch.Query(searchText, "", "")
                                     query.pageSize = 10 // 限制结果数量为10
                                     query.pageNum = 1
-                                    
+
                                     val poiSearch = PoiSearch(context, query)
                                     poiSearch.bound = PoiSearch.SearchBound(
-                                        LatLonPoint(currentLatitude, currentLongitude), 
+                                        LatLonPoint(currentLatitude, currentLongitude),
                                         5000 // 搜索半径5公里
                                     )
                                     poiSearch.setOnPoiSearchListener(object : OnPoiSearchListener {
@@ -523,7 +514,7 @@ fun MapPickerDialog(
                                                 poiItems = result?.pois ?: emptyList()
                                                 // 强制显示候选列表，不管文本框是否有焦点
                                                 isShowingSuggestions = poiItems.isNotEmpty()
-                                                
+
                                                 if (poiItems.isEmpty()) {
                                                     // 如果没有候选项，回退到地理编码搜索
                                                     executeGeocodeSearch()
@@ -533,13 +524,16 @@ fun MapPickerDialog(
                                                 executeGeocodeSearch()
                                             }
                                         }
-                                        
-                                        override fun onPoiItemSearched(poiItem: com.amap.api.services.core.PoiItem?, rCode: Int) {
+
+                                        override fun onPoiItemSearched(
+                                            poiItem: com.amap.api.services.core.PoiItem?,
+                                            rCode: Int
+                                        ) {
                                             // 不需要处理
                                         }
                                     })
                                     poiSearch.searchPOIAsyn()
-                                    
+
                                     SnackBarUtils.showSnackBar("正在搜索: $searchText")
                                 } else {
                                     SnackBarUtils.showSnackBar("请输入搜索内容")
@@ -559,7 +553,7 @@ fun MapPickerDialog(
                             )
                         }
                     }
-                    
+
                     // 候选地点列表
                     if (isShowingSuggestions && poiItems.isNotEmpty()) {
                         Surface(
@@ -580,7 +574,7 @@ fun MapPickerDialog(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { 
+                                            .clickable {
                                                 moveToPoiLocation(poiItem)
                                                 // 选择后自动执行地理编码搜索
                                                 isShowingSuggestions = false
@@ -594,9 +588,9 @@ fun MapPickerDialog(
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
                                         )
-                                        
+
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        
+
                                         Column(modifier = Modifier.weight(1f)) { // 添加weight确保文本可以适当换行
                                             Text(
                                                 text = poiItem.title ?: "",
@@ -605,7 +599,7 @@ fun MapPickerDialog(
                                                 ),
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
-                                            
+
                                             if (!poiItem.snippet.isNullOrEmpty()) {
                                                 Text(
                                                     text = poiItem.snippet,
@@ -614,7 +608,7 @@ fun MapPickerDialog(
                                                     maxLines = 1 // 限制地址只显示一行
                                                 )
                                             }
-                                            
+
                                             // 显示所属区域信息
                                             Text(
                                                 text = "${poiItem.cityName ?: ""}${poiItem.adName ?: ""}",
@@ -629,7 +623,7 @@ fun MapPickerDialog(
                         }
                     }
                 }
-                
+
                 // 地图视图
                 Box(
                     modifier = Modifier
@@ -669,16 +663,16 @@ fun MapPickerDialog(
                                             ViewGroup.LayoutParams.MATCH_PARENT,
                                             ViewGroup.LayoutParams.MATCH_PARENT
                                         )
-                                        
+
                                         mapView = this
-                                        
+
                                         // 创建地图
                                         /*
                                          * 调用 MapView 的 onCreate 方法，传入 null 作为 Bundle。
                                          * 这是高德地图 SDK 的要求，用于初始化地图。
                                          */
                                         onCreate(null)
-                                        
+
                                         // 获取AMap对象
                                         /*
                                          * 获取 MapView 中的 AMap 对象，AMap 是高德地图的核心类，用于操作地图。
@@ -698,14 +692,14 @@ fun MapPickerDialog(
                                                 // 启用滑动手势
                                                 isScrollGesturesEnabled = true
                                             }
-                                            
+
                                             // 启用定位层
                                             /*
                                              * 启用地图的定位图层。
                                              * 如果设置为 true，地图上会显示当前位置的蓝色圆点，并且可以获取定位信息。
                                              */
                                             isMyLocationEnabled = true
-                                            
+
                                             // 设置地图点击监听
                                             /*
                                              * 设置地图的点击事件监听器。
@@ -715,9 +709,12 @@ fun MapPickerDialog(
                                             setOnMapClickListener { latLng ->
                                                 currentLatitude = latLng.latitude
                                                 currentLongitude = latLng.longitude
-                                                updateMarkerAndGetAddress(latLng.latitude, latLng.longitude)
+                                                updateMarkerAndGetAddress(
+                                                    latLng.latitude,
+                                                    latLng.longitude
+                                                )
                                             }
-                                            
+
                                             // 设置标记拖动监听
                                             /*
                                              * 设置地图标记的拖动事件监听器。
@@ -727,11 +724,12 @@ fun MapPickerDialog(
                                              * 在 onMarkerDragEnd 回调中，获取拖动结束后标记的位置，更新当前的经纬度状态，
                                              * 并调用 updateMarkerAndGetAddress 方法更新标记点和获取地址信息。
                                              */
-                                            setOnMarkerDragListener(object : AMap.OnMarkerDragListener {
+                                            setOnMarkerDragListener(object :
+                                                AMap.OnMarkerDragListener {
                                                 override fun onMarkerDragStart(marker: Marker) {}
-                                                
+
                                                 override fun onMarkerDrag(marker: Marker) {}
-                                                
+
                                                 override fun onMarkerDragEnd(marker: Marker) {
                                                     currentLatitude = marker.position.latitude
                                                     currentLongitude = marker.position.longitude
@@ -742,7 +740,7 @@ fun MapPickerDialog(
                                                 }
                                             })
                                         }
-                                        
+
                                         // 初始位置
                                         /*
                                          * 判断是否有初始位置信息 (initialLocation)。
@@ -771,7 +769,7 @@ fun MapPickerDialog(
                             )
                         }
                     }
-                    
+
                     // 当前位置按钮
                     IconButton(
                         onClick = { getCurrentLocation() },
@@ -793,7 +791,7 @@ fun MapPickerDialog(
                         )
                     }
                 }
-                
+
                 // 底部区域 - 显示当前选择的位置
                 Surface(
                     modifier = Modifier
@@ -826,38 +824,43 @@ fun MapPickerDialog(
                                     )
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.width(8.dp))
-                            
+
                             Text(
                                 text = "当前选择位置",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // 位置名称
                         Text(
                             text = currentLocationName.ifEmpty { "尚未选择位置" },
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                            color = if (currentLocationName.isNotEmpty()) 
-                                MaterialTheme.colorScheme.onSurface 
-                            else 
+                            color = if (currentLocationName.isNotEmpty())
+                                MaterialTheme.colorScheme.onSurface
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
-                        
+
                         if (currentLatitude != 0.0 && currentLongitude != 0.0) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            
+
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "坐标: ${String.format("%.6f", currentLatitude)}, ${String.format("%.6f", currentLongitude)}",
+                                    text = "坐标: ${
+                                        String.format(
+                                            "%.6f",
+                                            currentLatitude
+                                        )
+                                    }, ${String.format("%.6f", currentLongitude)}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(6.dp)
@@ -869,7 +872,7 @@ fun MapPickerDialog(
             }
         }
     }
-    
+
     // 处理地图生命周期
     DisposableEffect(Unit) {
         onDispose {

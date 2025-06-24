@@ -27,21 +27,21 @@ data class SearchState(
 sealed class SearchEvent {
     // 更新搜索关键词
     data class UpdateSearchQuery(val query: String) : SearchEvent()
-    
+
     // 切换搜索类型
     data class ToggleSearchByContent(val enabled: Boolean) : SearchEvent()
     data class ToggleSearchByLocation(val enabled: Boolean) : SearchEvent()
     data class ToggleSearchByDate(val enabled: Boolean) : SearchEvent()
-    
+
     // 日期选择
     data class SetStartDate(val date: Date?) : SearchEvent()
     data class SetEndDate(val date: Date?) : SearchEvent()
     data class ToggleStartDatePicker(val show: Boolean) : SearchEvent()
     data class ToggleEndDatePicker(val show: Boolean) : SearchEvent()
-    
+
     // 执行搜索
     object Search : SearchEvent()
-    
+
     // 重置搜索
     object Reset : SearchEvent()
 } 

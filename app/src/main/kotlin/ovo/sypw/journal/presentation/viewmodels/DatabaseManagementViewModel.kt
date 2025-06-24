@@ -1,29 +1,30 @@
 package ovo.sypw.journal.presentation.viewmodels
 
+import android.os.Environment
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ovo.sypw.journal.common.utils.AutoSyncManager
+import ovo.sypw.journal.common.utils.DatabaseExportDebugger
 import ovo.sypw.journal.common.utils.DatabaseManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
+import ovo.sypw.journal.data.database.JournalDatabase
 import ovo.sypw.journal.data.remote.api.AuthService
 import ovo.sypw.journal.data.remote.api.FileItem
 import ovo.sypw.journal.data.remote.api.FileService
 import java.io.File
-import javax.inject.Inject
-import ovo.sypw.journal.common.utils.AutoSyncManager
-import ovo.sypw.journal.common.utils.DatabaseExportDebugger
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.*
-import android.os.Environment
-import ovo.sypw.journal.data.database.JournalDatabase
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
 
 // 数据库同步比较结果
 data class DatabaseCompareResult(
@@ -62,10 +63,11 @@ class DatabaseManagementViewModel @Inject constructor(
     // 远程数据库目录路径
     private val _remoteDatabaseDir = MutableStateFlow("")
     val remoteDatabaseDir: StateFlow<String> = _remoteDatabaseDir.asStateFlow()
-    
+
     // 数据库比较结果
     private val _databaseCompareResult = MutableStateFlow<DatabaseCompareResult?>(null)
-    val databaseCompareResult: StateFlow<DatabaseCompareResult?> = _databaseCompareResult.asStateFlow()
+    val databaseCompareResult: StateFlow<DatabaseCompareResult?> =
+        _databaseCompareResult.asStateFlow()
 
     // 重启提示对话框的状态
     private val _showRestartDialog = MutableStateFlow(false)
@@ -74,11 +76,11 @@ class DatabaseManagementViewModel @Inject constructor(
     // 自动同步状态
     private val _autoSyncEnabled = MutableStateFlow(false)
     val autoSyncEnabled: StateFlow<Boolean> = _autoSyncEnabled.asStateFlow()
-    
+
     // 上次同步时间
     private val _lastSyncTime = MutableStateFlow(0L)
     val lastSyncTime: StateFlow<Long> = _lastSyncTime.asStateFlow()
-    
+
     // 自动同步进行中
     private val _isAutoSyncing = MutableStateFlow(false)
     val isAutoSyncing: StateFlow<Boolean> = _isAutoSyncing.asStateFlow()
@@ -86,20 +88,20 @@ class DatabaseManagementViewModel @Inject constructor(
     init {
         refreshLocalFiles()
         updateRemotePath()
-        
+
         // 监听自动同步管理器状态
         viewModelScope.launch {
             autoSyncManager.autoSyncEnabled.collectLatest { enabled ->
                 _autoSyncEnabled.value = enabled
             }
         }
-        
+
         viewModelScope.launch {
             autoSyncManager.lastSyncTime.collectLatest { time ->
                 _lastSyncTime.value = time
             }
         }
-        
+
         viewModelScope.launch {
             autoSyncManager.isSyncing.collectLatest { syncing ->
                 _isAutoSyncing.value = syncing
@@ -205,68 +207,71 @@ class DatabaseManagementViewModel @Inject constructor(
                     withContext(Dispatchers.Main) {
                         SnackBarUtils.showSnackBar("正在导出数据库...")
                     }
-                    
+
                     // 获取数据库文件路径
                     val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
-                    
+
                     if (!dbFile.exists()) {
                         withContext(Dispatchers.Main) {
                             SnackBarUtils.showSnackBar("数据库文件不存在")
                         }
                         return@withContext
                     }
-                    
+
                     // 创建导出目录
                     val exportDir = File(
-                        databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                        databaseManager.getContext()
+                            .getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
                         "database_exports"
                     )
                     if (!exportDir.exists()) {
                         exportDir.mkdirs()
                     }
-                    
+
                     // 创建带时间戳的文件名
-                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val timestamp =
+                        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val exportFile = File(exportDir, "journal_database_${timestamp}.db")
-                    
+
                     // 先尝试关闭数据库连接
                     try {
                         // 使用反射获取Room数据库实例
-                        val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
+                        val dbInstanceField =
+                            JournalDatabase::class.java.getDeclaredField("INSTANCE")
                         dbInstanceField.isAccessible = true
                         val dbInstance = dbInstanceField.get(null) as? JournalDatabase
-                        
+
                         // 如果数据库实例存在，尝试关闭它
                         dbInstance?.close()
                         Log.i("DatabaseExport", "已尝试关闭数据库实例")
                     } catch (e: Exception) {
                         Log.e("DatabaseExport", "关闭数据库实例时出错", e)
                     }
-                    
+
                     // 尝试复制数据库文件和WAL/SHM文件
                     var success = false
-                    
+
                     try {
                         val walFile = File("${dbFile.absolutePath}-wal")
                         val shmFile = File("${dbFile.absolutePath}-shm")
-                        
+
                         // 复制主数据库文件
                         dbFile.copyTo(exportFile, overwrite = true)
-                        
+
                         // 检查是否有WAL和SHM文件，如果有也复制它们
                         if (walFile.exists()) {
                             walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
                         }
-                        
+
                         if (shmFile.exists()) {
                             shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
                         }
-                        
+
                         success = true
                         Log.i("DatabaseExport", "成功复制数据库文件，包含WAL")
                     } catch (e: Exception) {
                         Log.e("DatabaseExport", "复制数据库文件失败", e)
-                        
+
                         // 如果直接复制失败，尝试使用原来的导出方法
                         try {
                             val result = databaseManager.exportDatabase()
@@ -278,7 +283,7 @@ class DatabaseManagementViewModel @Inject constructor(
                             Log.e("DatabaseExport", "通过Manager导出数据库失败", ex)
                         }
                     }
-                    
+
                     // 如果成功，删除WAL和SHM文件
                     if (success) {
                         try {
@@ -287,11 +292,11 @@ class DatabaseManagementViewModel @Inject constructor(
                         } catch (e: Exception) {
                             Log.e("DatabaseExport", "删除WAL和SHM文件失败", e)
                         }
-                        
+
                         withContext(Dispatchers.Main) {
                             SnackBarUtils.showSnackBar("数据库已导出成功")
                         }
-                        
+
                         // 刷新本地文件列表
                         refreshLocalFiles()
                     } else {
@@ -317,11 +322,13 @@ class DatabaseManagementViewModel @Inject constructor(
             try {
                 withContext(Dispatchers.IO) {
                     // 检查环境
-                    val envResult = DatabaseExportDebugger.checkExportEnvironment(databaseManager.getContext())
-                    
+                    val envResult =
+                        DatabaseExportDebugger.checkExportEnvironment(databaseManager.getContext())
+
                     // 测试文件写入
-                    val writeResult = DatabaseExportDebugger.testFileWrite(databaseManager.getContext())
-                    
+                    val writeResult =
+                        DatabaseExportDebugger.testFileWrite(databaseManager.getContext())
+
                     // 显示结果
                     withContext(Dispatchers.Main) {
                         SnackBarUtils.showSnackBar("环境检查: $envResult, 写入测试: $writeResult")
@@ -349,16 +356,20 @@ class DatabaseManagementViewModel @Inject constructor(
 
                 if (file != null) {
                     // 如果提供了文件，直接上传
-                    val result = databaseManager.uploadDatabaseToServer(file, _remoteDatabaseDir.value)
+                    val result =
+                        databaseManager.uploadDatabaseToServer(file, _remoteDatabaseDir.value)
                     if (result.isSuccess) {
                         refreshRemoteFiles()
                     }
                 } else {
                     // 如果没有提供文件，使用强制导出方法导出当前数据库
                     val exportedFile = exportDatabaseToFile()
-                    
+
                     if (exportedFile != null) {
-                        val result = databaseManager.uploadDatabaseToServer(exportedFile, _remoteDatabaseDir.value)
+                        val result = databaseManager.uploadDatabaseToServer(
+                            exportedFile,
+                            _remoteDatabaseDir.value
+                        )
                         if (result.isSuccess) {
                             refreshRemoteFiles()
                         }
@@ -485,7 +496,7 @@ class DatabaseManagementViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 同步数据库
      * 导出当前数据库，与远程最新数据库进行比较
@@ -501,13 +512,13 @@ class DatabaseManagementViewModel @Inject constructor(
                     _isLoading.value = false
                     return@launch
                 }
-                
+
                 // 显示导出成功的提示
                 SnackBarUtils.showSnackBar("本地数据库导出成功，正在获取远程数据库...")
-                
+
                 // 2. 确保远程目录存在
                 ensureRemoteDirectoryExists()
-                
+
                 // 3. 获取远程数据库列表
                 val result = fileService.listFiles(_remoteDatabaseDir.value)
                 if (result.isFailure) {
@@ -515,13 +526,13 @@ class DatabaseManagementViewModel @Inject constructor(
                     _isLoading.value = false
                     return@launch
                 }
-                
+
                 val fileList = result.getOrThrow()
                 // 只保留数据库文件，并按修改时间排序（最新的在前面）
                 val remoteDbFiles = fileList.items
                     .filter { it.type == "file" && it.name.endsWith(".db") }
                     .sortedByDescending { it.modified }
-                
+
                 if (remoteDbFiles.isEmpty()) {
                     // 如果远程没有数据库文件，则直接上传本地数据库
                     SnackBarUtils.showSnackBar("远程无数据库文件，正在上传本地数据库...")
@@ -529,41 +540,41 @@ class DatabaseManagementViewModel @Inject constructor(
                     _isLoading.value = false
                     return@launch
                 }
-                
+
                 // 4. 获取最新的远程数据库文件
                 val latestRemoteFile = remoteDbFiles[0]
-                
+
                 // 显示下载提示
                 SnackBarUtils.showSnackBar("正在下载远程数据库进行比较...")
-                
+
                 // 5. 下载远程数据库进行比较
                 val remoteFilePath = if (latestRemoteFile.url?.startsWith("http") == true) {
                     latestRemoteFile.url.substringAfter("/webdav")
                 } else {
                     latestRemoteFile.url ?: ""
                 }
-                
+
                 if (remoteFilePath.isEmpty()) {
                     SnackBarUtils.showSnackBar("远程文件路径无效，无法进行同步")
                     _isLoading.value = false
                     return@launch
                 }
-                
+
                 val downloadResult = databaseManager.downloadDatabaseFromServer(remoteFilePath)
                 if (downloadResult.isFailure) {
                     SnackBarUtils.showSnackBar("下载远程数据库失败，无法进行同步")
                     _isLoading.value = false
                     return@launch
                 }
-                
+
                 val remoteFile = downloadResult.getOrThrow()
-                
+
                 // 显示比较提示
                 SnackBarUtils.showSnackBar("正在比较本地和远程数据库...")
-                
+
                 // 6. 比较本地和远程数据库
                 val compareResult = databaseManager.compareDatabases(localFile, remoteFile)
-                
+
                 // 7. 保存比较结果，用于界面展示
                 _databaseCompareResult.value = DatabaseCompareResult(
                     localFile = localFile,
@@ -573,14 +584,21 @@ class DatabaseManagementViewModel @Inject constructor(
                     localLastModified = localFile.lastModified(),
                     remoteLastModified = latestRemoteFile.modified * 1000 // 转换为毫秒
                 )
-                
+
                 // 输出比较结果日志
-                Log.d("DatabaseSync", "本地数据库条目数: ${compareResult.localEntryCount}, 修改时间: ${localFile.lastModified()}")
-                Log.d("DatabaseSync", "远程数据库条目数: ${compareResult.remoteEntryCount}, 修改时间: ${latestRemoteFile.modified * 1000}")
-                
+                Log.d(
+                    "DatabaseSync",
+                    "本地数据库条目数: ${compareResult.localEntryCount}, 修改时间: ${localFile.lastModified()}"
+                )
+                Log.d(
+                    "DatabaseSync",
+                    "远程数据库条目数: ${compareResult.remoteEntryCount}, 修改时间: ${latestRemoteFile.modified * 1000}"
+                )
+
                 // 8. 如果远程数据库明显更新（条目更多且更新时间较新），自动使用远程数据库
-                if (compareResult.remoteEntryCount > compareResult.localEntryCount && 
-                    latestRemoteFile.modified * 1000 > localFile.lastModified()) {
+                if (compareResult.remoteEntryCount > compareResult.localEntryCount &&
+                    latestRemoteFile.modified * 1000 > localFile.lastModified()
+                ) {
                     SnackBarUtils.showSnackBar("远程数据库更新，正在自动同步...")
                     val restoreResult = databaseManager.restoreDatabaseFromFile(remoteFile)
                     if (restoreResult.isSuccess) {
@@ -593,7 +611,7 @@ class DatabaseManagementViewModel @Inject constructor(
                 } else {
                     SnackBarUtils.showSnackBar("数据库已比较完成，请选择要保留的版本")
                 }
-                
+
             } catch (e: Exception) {
                 SnackBarUtils.showSnackBar("同步数据库失败: ${e.message}")
                 Log.e("DatabaseManagementViewModel", "同步数据库失败", e)
@@ -602,7 +620,7 @@ class DatabaseManagementViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 使用本地数据库覆盖远程数据库
      */
@@ -615,7 +633,7 @@ class DatabaseManagementViewModel @Inject constructor(
                     SnackBarUtils.showSnackBar("正在上传本地数据库...")
                     uploadDatabase(localFile)
                     SnackBarUtils.showSnackBar("已使用本地数据库覆盖远程数据库")
-                    
+
                     // 清除比较结果
                     _databaseCompareResult.value = null
                 } else {
@@ -628,7 +646,7 @@ class DatabaseManagementViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 使用远程数据库覆盖本地数据库
      */
@@ -643,25 +661,25 @@ class DatabaseManagementViewModel @Inject constructor(
                     } else {
                         remoteFile.url ?: ""
                     }
-                    
+
                     if (remoteFilePath.isEmpty()) {
                         SnackBarUtils.showSnackBar("远程文件路径无效")
                         _isLoading.value = false
                         return@launch
                     }
-                    
+
                     SnackBarUtils.showSnackBar("正在下载远程数据库...")
                     val downloadResult = databaseManager.downloadDatabaseFromServer(remoteFilePath)
                     if (downloadResult.isSuccess) {
                         val file = downloadResult.getOrThrow()
-                        
+
                         SnackBarUtils.showSnackBar("正在恢复远程数据库...")
                         val restoreResult = databaseManager.restoreDatabaseFromFile(file)
                         if (restoreResult.isSuccess) {
                             // 显示重启对话框
                             _showRestartDialog.value = true
                             SnackBarUtils.showSnackBar("已恢复远程数据库，请重启应用")
-                            
+
                             // 清除比较结果
                             _databaseCompareResult.value = null
                         } else {
@@ -680,7 +698,7 @@ class DatabaseManagementViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 清除比较结果
      */
@@ -705,7 +723,7 @@ class DatabaseManagementViewModel @Inject constructor(
             autoSyncManager.setAutoSyncEnabled(enabled)
         }
     }
-    
+
     /**
      * 立即执行自动同步
      */
@@ -728,70 +746,73 @@ class DatabaseManagementViewModel @Inject constructor(
                     withContext(Dispatchers.Main) {
                         SnackBarUtils.showSnackBar("正在尝试强制导出数据库，这可能需要几秒钟...")
                     }
-                    
+
                     // 获取数据库文件路径
                     val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
-                    
+
                     if (!dbFile.exists()) {
                         withContext(Dispatchers.Main) {
                             SnackBarUtils.showSnackBar("数据库文件不存在")
                         }
                         return@withContext
                     }
-                    
+
                     // 创建导出目录
                     val exportDir = File(
-                        databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                        databaseManager.getContext()
+                            .getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
                         "database_exports"
                     )
                     if (!exportDir.exists()) {
                         exportDir.mkdirs()
                     }
-                    
+
                     // 创建带时间戳的文件名
-                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val timestamp =
+                        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val exportFile = File(exportDir, "journal_database_force_${timestamp}.db")
-                    
+
                     // 先尝试关闭数据库连接
                     try {
                         // 使用反射获取Room数据库实例
-                        val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
+                        val dbInstanceField =
+                            JournalDatabase::class.java.getDeclaredField("INSTANCE")
                         dbInstanceField.isAccessible = true
                         val dbInstance = dbInstanceField.get(null) as? JournalDatabase
-                        
+
                         // 如果数据库实例存在，尝试关闭它
                         dbInstance?.close()
                         Log.i("ForceExport", "已尝试关闭数据库实例")
                     } catch (e: Exception) {
                         Log.e("ForceExport", "关闭数据库实例时出错", e)
                     }
-                    
+
                     // 尝试使用不同的方法复制数据库
                     var success = false
-                    
+
                     // 方法1: 直接复制数据库文件，包含WAL
                     try {
                         val walFile = File("${dbFile.absolutePath}-wal")
                         val shmFile = File("${dbFile.absolutePath}-shm")
-                        
+
                         // 复制主数据库文件
                         dbFile.copyTo(exportFile, overwrite = true)
-                        
+
                         // 检查是否有WAL和SHM文件，如果有也复制它们
                         if (walFile.exists()) {
                             walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
                         }
-                        
+
                         if (shmFile.exists()) {
                             shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
                         }
-                        
+
                         success = true
                         Log.i("ForceExport", "成功复制数据库文件，包含WAL")
                     } catch (e: Exception) {
                         Log.e("ForceExport", "复制数据库文件失败", e)
                     }
-                    
+
                     // 如果成功，删除WAL和SHM文件
                     if (success) {
                         try {
@@ -800,11 +821,11 @@ class DatabaseManagementViewModel @Inject constructor(
                         } catch (e: Exception) {
                             Log.e("ForceExport", "删除WAL和SHM文件失败", e)
                         }
-                        
+
                         withContext(Dispatchers.Main) {
                             SnackBarUtils.showSnackBar("数据库已强制导出到: ${exportFile.absolutePath}")
                         }
-                        
+
                         // 刷新本地文件列表
                         refreshLocalFiles()
                     } else {
@@ -829,12 +850,12 @@ class DatabaseManagementViewModel @Inject constructor(
         try {
             // 获取数据库文件路径
             val dbFile = databaseManager.getContext().getDatabasePath("journal_database")
-            
+
             if (!dbFile.exists()) {
                 Log.e("DatabaseExport", "数据库文件不存在")
                 return@withContext null
             }
-            
+
             // 创建导出目录
             val exportDir = File(
                 databaseManager.getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
@@ -843,48 +864,48 @@ class DatabaseManagementViewModel @Inject constructor(
             if (!exportDir.exists()) {
                 exportDir.mkdirs()
             }
-            
+
             // 创建带时间戳的文件名
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val exportFile = File(exportDir, "journal_database_upload_${timestamp}.db")
-            
+
             // 先尝试关闭数据库连接
             try {
                 // 使用反射获取Room数据库实例
                 val dbInstanceField = JournalDatabase::class.java.getDeclaredField("INSTANCE")
                 dbInstanceField.isAccessible = true
                 val dbInstance = dbInstanceField.get(null) as? JournalDatabase
-                
+
                 // 如果数据库实例存在，尝试关闭它
                 dbInstance?.close()
             } catch (e: Exception) {
                 Log.e("DatabaseExport", "关闭数据库实例时出错", e)
             }
-            
+
             // 尝试复制数据库文件和WAL/SHM文件
             var success = false
-            
+
             try {
                 val walFile = File("${dbFile.absolutePath}-wal")
                 val shmFile = File("${dbFile.absolutePath}-shm")
-                
+
                 // 复制主数据库文件
                 dbFile.copyTo(exportFile, overwrite = true)
-                
+
                 // 检查是否有WAL和SHM文件，如果有也复制它们
                 if (walFile.exists()) {
                     walFile.copyTo(File("${exportFile.absolutePath}-wal"), overwrite = true)
                 }
-                
+
                 if (shmFile.exists()) {
                     shmFile.copyTo(File("${exportFile.absolutePath}-shm"), overwrite = true)
                 }
-                
+
                 success = true
                 Log.i("DatabaseExport", "成功复制数据库文件，包含WAL")
             } catch (e: Exception) {
                 Log.e("DatabaseExport", "复制数据库文件失败", e)
-                
+
                 // 如果直接复制失败，尝试使用原来的导出方法
                 try {
                     val result = databaseManager.exportDatabase()
@@ -895,7 +916,7 @@ class DatabaseManagementViewModel @Inject constructor(
                     Log.e("DatabaseExport", "通过Manager导出数据库失败", ex)
                 }
             }
-            
+
             // 如果成功，删除WAL和SHM文件，并返回导出的文件
             if (success) {
                 try {
@@ -904,10 +925,10 @@ class DatabaseManagementViewModel @Inject constructor(
                 } catch (e: Exception) {
                     Log.e("DatabaseExport", "删除WAL和SHM文件失败", e)
                 }
-                
+
                 return@withContext exportFile
             }
-            
+
             return@withContext null
         } catch (e: Exception) {
             Log.e("DatabaseExport", "导出数据库到文件失败", e)

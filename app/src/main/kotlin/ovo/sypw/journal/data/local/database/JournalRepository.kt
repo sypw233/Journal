@@ -88,7 +88,6 @@ class JournalRepository(private val journalDao: JournalDao) {
     }
 
 
-
     /**
      * 获取日记条目总数
      */

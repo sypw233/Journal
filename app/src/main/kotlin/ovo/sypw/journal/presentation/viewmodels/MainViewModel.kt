@@ -9,16 +9,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.presentation.screens.MainScreenState
-import ovo.sypw.journal.common.utils.SnackBarUtils
 import javax.inject.Inject
-import ovo.sypw.journal.common.utils.ImageStorageUtils
-import android.net.Uri
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 private const val TAG = "MainViewModel"
 
@@ -56,7 +52,8 @@ class MainViewModel @Inject constructor(
                     JournalData(
                         id = index,
                         isMarkdown = true,
-                        text="# $index \n这是一个日记应用")
+                        text = "# $index \n这是一个日记应用"
+                    )
                 }
                 repository.insertJournals(sampleData)
                 // 设置首次启动标志为false

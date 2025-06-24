@@ -18,10 +18,10 @@ import javax.inject.Singleton
 class AutoSaveManager @Inject constructor(
     private val preferences: JournalPreferences
 ) : DefaultLifecycleObserver {
-    
+
     private var autoSaveJob: Job? = null
     private var saveCallback: (suspend () -> Unit)? = null
-    
+
     /**
      * 开始自动保存任务
      * @param lifecycleOwner 生命周期拥有者，通常是一个Activity或Fragment
@@ -32,16 +32,16 @@ class AutoSaveManager @Inject constructor(
         if (!preferences.isAutoSaveEnabled()) {
             return
         }
-        
+
         // 取消之前的自动保存任务
         stopAutoSave()
-        
+
         // 保存回调
         saveCallback = onSave
-        
+
         // 获取自动保存间隔（分钟）
         val interval = preferences.getAutoSaveInterval().toLong() * 60 * 1000
-        
+
         // 创建新的自动保存任务
         autoSaveJob = lifecycleOwner.lifecycleScope.launch {
             while (true) {
@@ -57,7 +57,7 @@ class AutoSaveManager @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 停止自动保存任务
      */
@@ -65,7 +65,7 @@ class AutoSaveManager @Inject constructor(
         autoSaveJob?.cancel()
         autoSaveJob = null
     }
-    
+
     /**
      * 立即执行保存
      */
@@ -81,7 +81,7 @@ class AutoSaveManager @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 生命周期事件：当生命周期拥有者被销毁时取消自动保存
      */

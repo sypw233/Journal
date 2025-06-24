@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocationOn
@@ -160,7 +158,7 @@ fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                 clipToBounds = true
             )
         }
-        
+
         // 右侧上下两张小图
         Column(
             modifier = Modifier
@@ -188,7 +186,7 @@ fun ThreeImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                     clipToBounds = true
                 )
             }
-            
+
             // 右下图片
             Box(
                 modifier = Modifier
@@ -249,7 +247,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
         ) {
             if (images.size == 4) {
                 // 四张图片布局：右侧上方一张，下方两张
-                
+
                 // 右上方一张
                 Box(
                     modifier = Modifier
@@ -270,7 +268,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                         clipToBounds = true
                     )
                 }
-                
+
                 // 右下方两张
                 Row(
                     modifier = Modifier
@@ -298,7 +296,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                             clipToBounds = true
                         )
                     }
-                    
+
                     // 右下右图片
                     Box(
                         modifier = Modifier
@@ -324,7 +322,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                 // 5张及以上图片布局：右侧2x2网格
                 val maxRightImages = minOf(4, images.size - 1)
                 val halfHeight = 1f / 2f
-                
+
                 // 上半部分：两张图片
                 Row(
                     modifier = Modifier
@@ -354,7 +352,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                             )
                         }
                     }
-                    
+
                     // 右上右
                     if (images.size > 2) {
                         Box(
@@ -378,7 +376,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                         }
                     }
                 }
-                
+
                 // 下半部分：两张图片
                 Row(
                     modifier = Modifier
@@ -408,7 +406,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                             )
                         }
                     }
-                    
+
                     // 右下右（如果有第5张图片）
                     if (images.size > 4) {
                         Box(
@@ -429,7 +427,7 @@ fun MultipleImages(images: MutableList<Any>, onImageClick: (Int) -> Unit) {
                                 modifier = Modifier.fillMaxSize(),
                                 clipToBounds = true
                             )
-                            
+
                             // 如果有超过5张图片，显示+N标记
                             if (images.size > 5) {
                                 Box(
@@ -531,7 +529,7 @@ fun ContentSection(
     ) {
         if (text != null) {
             val textStyle = MaterialTheme.typography.bodyMedium
-            
+
             if (isMarkdown) {
                 // 使用Markdown显示
                 MarkdownText(
@@ -566,7 +564,7 @@ fun ContentSection(
 @SuppressLint("MutableCollectionMutableState")
 @Composable
 fun JournalCard(
-    modifier: Modifier, 
+    modifier: Modifier,
     journalData: JournalData,
     handleClickInternally: Boolean = false, // 控制是否在内部处理点击事件
     expandedState: Boolean? = null, // 外部控制的展开状态
@@ -574,10 +572,10 @@ fun JournalCard(
 ) {
     // 使用本地状态变量
     val expandedLocal = remember { mutableStateOf(false) }
-    
+
     // 确定实际使用的展开状态
     val expanded = expandedState ?: expandedLocal.value
-    
+
     // 处理展开状态变化的函数
     val toggleExpanded = {
         if (expandedState != null && onExpandChange != null) {
@@ -588,13 +586,13 @@ fun JournalCard(
             expandedLocal.value = !expandedLocal.value
         }
     }
-    
+
     val textLayoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
     // 添加图片预览状态
     val (showImagePreview, setShowImagePreview) = remember { mutableStateOf(false) }
     val (selectedImageIndex, setSelectedImageIndex) = remember { mutableIntStateOf(0) }
-    
+
     // 准备卡片的Modifier
     val cardModifier = if (handleClickInternally) {
         // 当内部处理点击时，添加clickable修饰符
@@ -614,7 +612,7 @@ fun JournalCard(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 4.dp)
     }
-    
+
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,

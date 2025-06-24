@@ -45,10 +45,10 @@ class JournalDetailViewModel @Inject constructor(
             } else {
                 // 获取原始日记内容
                 val originalJournal = repository.getJournalById(journal.id)
-                
+
                 // 更新日记
                 repository.updateJournal(journal)
-                
+
                 // 如果文本内容发生变化，删除对应的情感分析结果
                 if (originalJournal != null && originalJournal.text != journal.text) {
                     try {

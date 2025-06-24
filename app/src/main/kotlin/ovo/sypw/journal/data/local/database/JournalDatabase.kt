@@ -20,7 +20,7 @@ abstract class JournalDatabase : RoomDatabase() {
      * 获取日记DAO
      */
     abstract fun journalDao(): JournalDao
-    
+
     /**
      * 获取情感分析DAO
      */

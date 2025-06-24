@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import ovo.sypw.journal.data.model.JournalData
-import ovo.sypw.journal.data.model.SentimentData
 import ovo.sypw.journal.presentation.viewmodels.SentimentViewModel
 
 /**
@@ -45,24 +44,24 @@ fun SentimentAnalysisDialog(
     // 获取状态
     val selectedSentiment by viewModel.selectedJournalSentiment.collectAsState()
     val isAnalyzing by viewModel.isAnalyzing.collectAsState()
-    
+
     // 添加动画状态
     var showContent by remember { mutableStateOf(false) }
-    
+
     // 当对话框显示时，尝试分析或加载情感数据
     LaunchedEffect(journal.id) {
         viewModel.analyzeSentiment(journal)
     }
-    
+
     // 延迟显示内容，创建动画效果
     LaunchedEffect(Unit) {
         showContent = true
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("情感分析") },
-        text = { 
+        text = {
             // 使用Box替代Column，减少嵌套层级
             Box(
                 modifier = Modifier
@@ -72,20 +71,22 @@ fun SentimentAnalysisDialog(
             ) {
                 AnimatedVisibility(
                     visible = showContent,
-                    enter = fadeIn(animationSpec = tween(300)) + 
+                    enter = fadeIn(animationSpec = tween(300)) +
                             scaleIn(initialScale = 0.8f, animationSpec = tween(300)),
-                    exit = fadeOut(animationSpec = tween(200)) + 
-                           scaleOut(targetScale = 0.8f, animationSpec = tween(200))
+                    exit = fadeOut(animationSpec = tween(200)) +
+                            scaleOut(targetScale = 0.8f, animationSpec = tween(200))
                 ) {
                     when {
                         isAnalyzing -> {
                             // 加载中状态
                             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
                         }
+
                         selectedSentiment != null -> {
                             // 直接显示分析结果
                             SimplifiedSentimentView(sentimentData = selectedSentiment!!)
                         }
+
                         else -> {
                             // 无数据状态
                             Text(

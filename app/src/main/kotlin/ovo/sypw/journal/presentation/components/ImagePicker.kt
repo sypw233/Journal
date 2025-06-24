@@ -25,7 +25,7 @@ fun ImagePicker(
         onImagesPicked = onImagesPicked,
         maxSelectionCount = maxSelectionCount
     )
-    
+
     Button(
         onClick = launchImagePicker,
         modifier = modifier.padding(vertical = 8.dp)

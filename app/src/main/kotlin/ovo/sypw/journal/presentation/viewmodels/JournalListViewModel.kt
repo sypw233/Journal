@@ -2,9 +2,7 @@ package ovo.sypw.journal.presentation.viewmodels
 
 import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,26 +38,26 @@ class JournalListViewModel @Inject constructor(
     // UI 状态
     private val _uiState = MutableStateFlow(JournalListState())
     val uiState: StateFlow<JournalListState> = _uiState.asStateFlow()
-    
+
     // 日记列表 - 用于情感分析屏幕
     private val _journals = MutableStateFlow<List<JournalData>>(emptyList())
     val journals: StateFlow<List<JournalData>> = _journals.asStateFlow()
-    
+
     // 已删除日记的历史记录，用于撤销删除操作
     private val deletedJournals = LinkedList<JournalData>()
-    
+
     // 分页相关
     private var currentPage = 0
     private var searchQuery = ""
-    
+
     // 删除确认对话框状态
     val showDeleteConfirmDialog = mutableStateOf(false)
     var journalToDelete = mutableStateOf<Int?>(null)
-    
+
     init {
         loadNextPage()
     }
-    
+
     /**
      * 加载所有日记 - 用于情感分析屏幕
      */
@@ -90,15 +88,15 @@ class JournalListViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * 加载下一页数据
      */
     fun loadNextPage() {
         if (!_uiState.value.hasMoreData || _uiState.value.isLoading) return
-        
+
         _uiState.update { it.copy(isLoading = true) }
-        
+
         viewModelScope.launch {
             try {
                 val offset = currentPage * PAGE_SIZE
@@ -107,10 +105,10 @@ class JournalListViewModel @Inject constructor(
                 } else {
                     repository.searchJournalsByContent(searchQuery)
                 }
-                
+
                 // 检查是否还有更多数据
                 val hasMore = journals.isNotEmpty() && journals.size >= PAGE_SIZE
-                
+
                 // 更新UI状态
                 _uiState.update { currentState ->
                     currentState.copy(
@@ -119,7 +117,7 @@ class JournalListViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
-                
+
                 // 更新页码
                 if (journals.isNotEmpty()) {
                     currentPage++
@@ -139,11 +137,11 @@ class JournalListViewModel @Inject constructor(
     fun deleteJournal(id: Int) {
         // 保存要删除的日记ID
         journalToDelete.value = id
-        
+
         // 使用DeleteConfirmationUtils中的delete方法
         // 这里不直接调用，而是设置状态，由UI层处理
         showDeleteConfirmDialog.value = preferences.isDeleteConfirmationEnabled()
-        
+
         // 如果不需要确认，则直接删除
         if (!preferences.isDeleteConfirmationEnabled()) {
             performDelete(id)
@@ -177,7 +175,7 @@ class JournalListViewModel @Inject constructor(
                         canUndo = true
                     )
                 }
-                
+
                 // 使用带有撤销按钮的Snackbar
                 SnackBarUtils.showActionSnackBar(
                     message = "已删除 #${id}",
@@ -252,12 +250,12 @@ class JournalListViewModel @Inject constructor(
 
                 // 重置列表数据以刷新列表
                 currentPage = 0
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        journals = emptyList(), 
+                        journals = emptyList(),
                         hasMoreData = true,
                         scrollToPosition = 0  // 设置滚动位置为0，确保滚动到列表顶部
-                    ) 
+                    )
                 }
                 loadNextPage()
             } catch (e: Exception) {
@@ -307,21 +305,24 @@ class JournalListViewModel @Inject constructor(
 
                 // 获取原始日记内容
                 val originalJournal = repository.getJournalById(journalData.id)
-                
+
                 // 更新本地数据库
                 repository.updateJournal(journalData)
-                
+
                 // 如果文本内容发生变化，删除对应的情感分析结果
                 if (originalJournal != null && originalJournal.text != journalData.text) {
                     try {
-                        Log.d(TAG, "日记内容已变更，删除对应的情感分析结果: journalId=${journalData.id}")
+                        Log.d(
+                            TAG,
+                            "日记内容已变更，删除对应的情感分析结果: journalId=${journalData.id}"
+                        )
                         sentimentRepository.deleteSentimentByJournalId(journalData.id)
                     } catch (e: Exception) {
                         Log.e(TAG, "删除情感分析结果失败", e)
                         // 不影响主流程，继续执行
                     }
                 }
-                
+
                 SnackBarUtils.showSnackBar("更新日记成功")
 
                 // 更新UI状态
@@ -415,13 +416,13 @@ class JournalListViewModel @Inject constructor(
             resetSearchMode()
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isSearching = true, searchQuery = query) }
-                
+
                 val results = repository.searchJournalsByContent(query)
-                
+
                 _uiState.update { currentState ->
                     currentState.copy(
                         isSearchMode = true,
@@ -429,21 +430,24 @@ class JournalListViewModel @Inject constructor(
                         isSearching = false
                     )
                 }
-                
-                Log.d(TAG, "Content search completed. Found ${results.size} results for query: $query")
+
+                Log.d(
+                    TAG,
+                    "Content search completed. Found ${results.size} results for query: $query"
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching journals by content", e)
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isSearching = false,
                         error = "搜索失败: ${e.message}"
-                    ) 
+                    )
                 }
                 SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
             }
         }
     }
-    
+
     /**
      * 搜索日记 - 按日期范围
      * @param startDate 开始日期
@@ -453,9 +457,9 @@ class JournalListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isSearching = true) }
-                
+
                 val results = repository.searchJournalsByDateRange(startDate, endDate)
-                
+
                 _uiState.update { currentState ->
                     currentState.copy(
                         isSearchMode = true,
@@ -464,21 +468,21 @@ class JournalListViewModel @Inject constructor(
                         searchQuery = "${formatDate(startDate)} - ${formatDate(endDate)}"
                     )
                 }
-                
+
                 Log.d(TAG, "Date range search completed. Found ${results.size} results")
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching journals by date range", e)
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isSearching = false,
                         error = "搜索失败: ${e.message}"
-                    ) 
+                    )
                 }
                 SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
             }
         }
     }
-    
+
     /**
      * 搜索日记 - 按位置
      * @param locationName 位置名称
@@ -488,13 +492,13 @@ class JournalListViewModel @Inject constructor(
             resetSearchMode()
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isSearching = true, searchQuery = locationName) }
-                
+
                 val results = repository.searchJournalsByLocation(locationName)
-                
+
                 _uiState.update { currentState ->
                     currentState.copy(
                         isSearchMode = true,
@@ -502,21 +506,24 @@ class JournalListViewModel @Inject constructor(
                         isSearching = false
                     )
                 }
-                
-                Log.d(TAG, "Location search completed. Found ${results.size} results for location: $locationName")
+
+                Log.d(
+                    TAG,
+                    "Location search completed. Found ${results.size} results for location: $locationName"
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching journals by location", e)
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isSearching = false,
                         error = "搜索失败: ${e.message}"
-                    ) 
+                    )
                 }
                 SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
             }
         }
     }
-    
+
     /**
      * 综合搜索日记(内容或位置)
      * @param query 搜索关键词
@@ -526,13 +533,13 @@ class JournalListViewModel @Inject constructor(
             resetSearchMode()
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isSearching = true, searchQuery = query) }
-                
+
                 val results = repository.searchJournalsByContentOrLocation(query)
-                
+
                 _uiState.update { currentState ->
                     currentState.copy(
                         isSearchMode = true,
@@ -540,35 +547,38 @@ class JournalListViewModel @Inject constructor(
                         isSearching = false
                     )
                 }
-                
-                Log.d(TAG, "Combined search completed. Found ${results.size} results for query: $query")
+
+                Log.d(
+                    TAG,
+                    "Combined search completed. Found ${results.size} results for query: $query"
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching journals by content or location", e)
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isSearching = false,
                         error = "搜索失败: ${e.message}"
-                    ) 
+                    )
                 }
                 SnackBarUtils.showSnackBar("搜索失败: ${e.message}")
             }
         }
     }
-    
+
     /**
      * 退出搜索模式
      */
     fun resetSearchMode() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 isSearchMode = false,
                 searchResults = emptyList(),
                 searchQuery = "",
                 isSearching = false
-            ) 
+            )
         }
     }
-    
+
     /**
      * 格式化日期，用于显示
      */

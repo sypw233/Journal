@@ -1,8 +1,6 @@
 package ovo.sypw.journal.presentation.screens
 
-import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,9 +44,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -71,8 +68,8 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
-import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.common.utils.ImageUriUtils
+import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.presentation.viewmodels.AIChatViewModel
 
 /**
@@ -124,7 +121,7 @@ fun AIChatScreen(
                     null
                 }
             }
-            
+
             selectedImages = processedUris
             if (processedUris.isNotEmpty()) {
                 SnackBarUtils.showSnackBar("已选择${processedUris.size}张图片")
@@ -159,14 +156,14 @@ fun AIChatScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Icon(
-                                imageVector = if (uiState.contextEnabled) 
-                                    Icons.Default.History 
-                                else 
+                                imageVector = if (uiState.contextEnabled)
+                                    Icons.Default.History
+                                else
                                     Icons.Default.HistoryToggleOff,
                                 contentDescription = "上下文状态",
-                                tint = if (uiState.contextEnabled) 
-                                    MaterialTheme.colorScheme.primary 
-                                else 
+                                tint = if (uiState.contextEnabled)
+                                    MaterialTheme.colorScheme.primary
+                                else
                                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                             Switch(
@@ -174,7 +171,7 @@ fun AIChatScreen(
                                 onCheckedChange = { enabled ->
                                     viewModel.toggleContext(enabled)
                                     SnackBarUtils.showSnackBar(
-                                        if (enabled) "上下文已启用，AI将记住对话历史" 
+                                        if (enabled) "上下文已启用，AI将记住对话历史"
                                         else "上下文已禁用，每次对话独立"
                                     )
                                 },
@@ -182,7 +179,7 @@ fun AIChatScreen(
                             )
                         }
                     }
-                    
+
                     // 模型选择下拉菜单
                     Box {
                         TextButton(

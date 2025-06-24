@@ -73,7 +73,7 @@ fun JournalBottomSheet(
     var editedLocationName by remember { mutableStateOf(initialJournalData?.location?.name ?: "") }
     var editedLocationData by remember { mutableStateOf(initialJournalData?.location) }
     var editedImages by remember { mutableStateOf(initialJournalData?.images ?: mutableListOf()) }
-    var editedIsMarkdown by remember {  mutableStateOf(initialJournalData?.isMarkdown == true)}
+    var editedIsMarkdown by remember { mutableStateOf(initialJournalData?.isMarkdown == true) }
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
 
@@ -192,7 +192,7 @@ fun JournalBottomSheet(
                         editedLocationName = name
                         editedLocationData = data
                     },
-                    onIsMarkdownChanged = {editedIsMarkdown = it},
+                    onIsMarkdownChanged = { editedIsMarkdown = it },
                     onImagesChanged = { editedImages = it },
                     showSaveButton = false // 不显示保存按钮，因为已经在顶部有保存按钮了
                 )

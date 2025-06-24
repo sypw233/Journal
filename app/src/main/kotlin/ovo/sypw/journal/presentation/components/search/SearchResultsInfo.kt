@@ -30,7 +30,7 @@ fun SearchResultsInfo(
             modifier = Modifier.padding(horizontal = 16.dp),
             color = MaterialTheme.colorScheme.outlineVariant
         )
-        
+
         Row(
             modifier = modifier
                 .fillMaxWidth()
@@ -42,9 +42,9 @@ fun SearchResultsInfo(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             if (resultCount > 0) {
                 TextButton(onClick = onClearResults) {
                     Text("清除")

@@ -4,8 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import ovo.sypw.journal.data.repository.JournalRepository
 import ovo.sypw.journal.data.repositories.LocalJournalRepository
+import ovo.sypw.journal.data.repository.JournalRepository
 import javax.inject.Singleton
 
 /**

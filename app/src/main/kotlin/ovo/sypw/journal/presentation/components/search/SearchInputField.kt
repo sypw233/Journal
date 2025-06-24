@@ -44,7 +44,7 @@ fun SearchInputField(
     // 动画相关状态
     val searchBoxWeight = remember { Animatable(1f) }
     val buttonWeight = remember { Animatable(0f) }
-    
+
     // 根据搜索内容更新动画
     LaunchedEffect(searchQuery.isNotEmpty()) {
         // 搜索框宽度动画
@@ -52,14 +52,14 @@ fun SearchInputField(
             targetValue = if (searchQuery.isNotEmpty()) 0.8f else 1f,
             animationSpec = tween(300)
         )
-        
+
         // 搜索按钮宽度动画
         buttonWeight.animateTo(
             targetValue = if (searchQuery.isNotEmpty()) 0.2f else 0f,
             animationSpec = tween(300)
         )
     }
-    
+
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -90,7 +90,7 @@ fun SearchInputField(
                 shape = RoundedCornerShape(24.dp)
             )
         }
-        
+
         // 搜索按钮
         Box(
             modifier = if (buttonWeight.value > 0) {
@@ -98,13 +98,13 @@ fun SearchInputField(
                     .weight(buttonWeight.value)
                     .height(48.dp)
                     .background(
-                        color = if (searchQuery.isNotEmpty()) 
-                            MaterialTheme.colorScheme.primaryContainer 
-                        else 
+                        color = if (searchQuery.isNotEmpty())
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
                             Color.Transparent,
                         shape = RoundedCornerShape(36.dp)
                     )
-                    .let { 
+                    .let {
                         if (onSearchIconPosition != null) {
                             it.onGloballyPositioned(onSearchIconPosition)
                         } else {

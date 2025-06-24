@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
-import java.util.Date
 
 /**
  * 搜索栏主组件
@@ -36,16 +35,16 @@ fun SearchBar(
 ) {
     // 从ViewModel获取UI状态
     val uiState by journalListViewModel.uiState.collectAsState()
-    
+
     // 本地状态管理
-    var searchState by remember { 
+    var searchState by remember {
         mutableStateOf(
             SearchState(
                 searchQuery = uiState.searchQuery
             )
-        ) 
+        )
     }
-    
+
     // 处理搜索事件
     val handleSearchEvent: (SearchEvent) -> Unit = { event ->
         when (event) {
@@ -55,37 +54,46 @@ fun SearchBar(
                     journalListViewModel.resetSearchMode()
                 }
             }
+
             is SearchEvent.ToggleSearchByContent -> {
                 searchState = searchState.copy(searchByContent = event.enabled)
             }
+
             is SearchEvent.ToggleSearchByLocation -> {
                 searchState = searchState.copy(searchByLocation = event.enabled)
             }
+
             is SearchEvent.ToggleSearchByDate -> {
                 searchState = searchState.copy(searchByDate = event.enabled)
             }
+
             is SearchEvent.SetStartDate -> {
                 searchState = searchState.copy(startDate = event.date)
             }
+
             is SearchEvent.SetEndDate -> {
                 searchState = searchState.copy(endDate = event.date)
             }
+
             is SearchEvent.ToggleStartDatePicker -> {
                 searchState = searchState.copy(showStartDatePicker = event.show)
             }
+
             is SearchEvent.ToggleEndDatePicker -> {
                 searchState = searchState.copy(showEndDatePicker = event.show)
             }
+
             SearchEvent.Search -> {
                 performSearch(searchState, journalListViewModel)
             }
+
             SearchEvent.Reset -> {
                 searchState = SearchState()
                 journalListViewModel.resetSearchMode()
             }
         }
     }
-    
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -109,11 +117,11 @@ fun SearchBar(
                     )
                 }
             }
-            
+
             // 搜索输入框和搜索按钮
             SearchInputField(
                 searchQuery = searchState.searchQuery,
-                onSearchQueryChange = { 
+                onSearchQueryChange = {
                     handleSearchEvent(SearchEvent.UpdateSearchQuery(it))
                 },
                 onSearch = { handleSearchEvent(SearchEvent.Search) },
@@ -121,7 +129,7 @@ fun SearchBar(
                 onSearchIconPosition = onSearchIconPosition
             )
         }
-        
+
         // 搜索类型选择
         SearchTypeSelector(
             searchByContent = searchState.searchByContent,
@@ -131,7 +139,7 @@ fun SearchBar(
             onSearchByLocationChange = { handleSearchEvent(SearchEvent.ToggleSearchByLocation(it)) },
             onSearchByDateChange = { handleSearchEvent(SearchEvent.ToggleSearchByDate(it)) }
         )
-        
+
         // 日期范围选择
         DateRangeSelector(
             visible = searchState.searchByDate,
@@ -144,7 +152,7 @@ fun SearchBar(
             onShowStartDatePicker = { handleSearchEvent(SearchEvent.ToggleStartDatePicker(it)) },
             onShowEndDatePicker = { handleSearchEvent(SearchEvent.ToggleEndDatePicker(it)) }
         )
-        
+
         // 搜索结果信息
         SearchResultsInfo(
             isSearchMode = uiState.isSearchMode,
@@ -152,7 +160,7 @@ fun SearchBar(
             resultCount = uiState.searchResults.size,
             onClearResults = { handleSearchEvent(SearchEvent.Reset) }
         )
-        
+
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
@@ -169,12 +177,15 @@ private fun performSearch(
             searchByDate && startDate != null && endDate != null -> {
                 journalListViewModel.searchJournalsByDateRange(startDate, endDate)
             }
+
             searchByLocation -> {
                 journalListViewModel.searchJournalsByLocation(searchQuery)
             }
+
             searchByContent && searchByLocation -> {
                 journalListViewModel.searchJournalsByContentOrLocation(searchQuery)
             }
+
             else -> {
                 journalListViewModel.searchJournalsByContent(searchQuery)
             }

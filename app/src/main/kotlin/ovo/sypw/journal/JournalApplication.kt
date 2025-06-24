@@ -13,28 +13,28 @@ import javax.inject.Inject
  */
 @HiltAndroidApp
 class JournalApplication : Application() {
-    
+
     // 注入依赖管理器
     @Inject
     lateinit var dependencyManager: AppDependencyManager
-    
+
     // 单例实例
     companion object {
         private lateinit var instance: JournalApplication
-        
+
         fun getInstance(): JournalApplication {
             return instance
         }
     }
-    
+
     override fun onCreate() {
         super.onCreate()
         instance = this
-        
+
         // 初始化工具类
         AMapLocationUtils.initLocationClient(this)
         ImageLoadUtils.init(this)
-        
+
         // 使用依赖管理器初始化所有依赖项
         dependencyManager.initializeAll()
     }

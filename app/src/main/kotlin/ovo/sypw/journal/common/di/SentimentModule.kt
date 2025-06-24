@@ -20,9 +20,8 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object SentimentModule {
-    
 
-    
+
     /**
      * 提供情感分析API服务实例
      */
@@ -33,7 +32,7 @@ object SentimentModule {
     ): SentimentApiService {
         return SentimentApiService(context)
     }
-    
+
     /**
      * 提供情感分析DAO实例
      */
@@ -42,7 +41,7 @@ object SentimentModule {
     fun provideSentimentDao(database: JournalDatabase): SentimentDao {
         return database.sentimentDao()
     }
-    
+
     /**
      * 提供情感分析仓库实例
      */

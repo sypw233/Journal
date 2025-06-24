@@ -1,5 +1,6 @@
 package ovo.sypw.journal.data.repositories
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +12,6 @@ import ovo.sypw.journal.data.database.JournalDao
 import ovo.sypw.journal.data.database.JournalEntity
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.repository.JournalRepository
-import android.util.Log
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -113,7 +113,6 @@ class LocalJournalRepository @Inject constructor(
     }
 
 
-
     override suspend fun getJournalCount(): Int {
         return withContext(Dispatchers.IO) {
             journalDao.getJournalCount()
@@ -125,31 +124,35 @@ class LocalJournalRepository @Inject constructor(
             journalDao.getJournalLastId()
         }
     }
-    
+
     override suspend fun searchJournalsByContent(query: String): List<JournalData> {
         return withContext(Dispatchers.IO) {
             journalDao.searchJournalsByContent(query).map { it.toJournalData() }
         }
     }
-    
-    override suspend fun searchJournalsByDateRange(startDate: Date, endDate: Date): List<JournalData> {
+
+    override suspend fun searchJournalsByDateRange(
+        startDate: Date,
+        endDate: Date
+    ): List<JournalData> {
         return withContext(Dispatchers.IO) {
-            journalDao.searchJournalsByDateRange(startDate.time, endDate.time).map { it.toJournalData() }
+            journalDao.searchJournalsByDateRange(startDate.time, endDate.time)
+                .map { it.toJournalData() }
         }
     }
-    
+
     override suspend fun searchJournalsByLocation(locationName: String): List<JournalData> {
         return withContext(Dispatchers.IO) {
             journalDao.searchJournalsByLocation(locationName).map { it.toJournalData() }
         }
     }
-    
+
     override suspend fun searchJournalsByContentOrLocation(query: String): List<JournalData> {
         return withContext(Dispatchers.IO) {
             journalDao.searchJournalsByContentOrLocation(query).map { it.toJournalData() }
         }
     }
-    
+
     /**
      * 安全地通知数据变更
      * 确保在数据库正常操作时才触发同步
@@ -163,7 +166,7 @@ class LocalJournalRepository @Inject constructor(
                 Log.e(TAG, "检查同步状态时出错: ${e.message}")
                 true // 如果出错，假设正在同步，不触发新的同步
             }
-            
+
             if (!isSyncing) {
                 // 如果没有正在进行的同步，通知数据变更
                 autoSyncManager.notifyDataChanged()

@@ -1,8 +1,8 @@
 package ovo.sypw.journal.presentation.components
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -11,35 +11,26 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,7 +41,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -68,29 +58,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import dev.jeziellago.compose.markdowntext.MarkdownText
-import kotlinx.coroutines.delay
 import ovo.sypw.journal.common.utils.ImageUriUtils
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.AIModels
 import ovo.sypw.journal.di.AppDependencyManager
 import ovo.sypw.journal.presentation.viewmodels.AIWritingViewModel
-import androidx.core.net.toUri
-import android.content.Context
 
 /**
  * AI写作对话框
@@ -135,7 +118,8 @@ fun AIWritingDialog(
     // 初始化
     LaunchedEffect(Unit) {
         try {
-            showAdvancedSettings = dependencyManager.preferences.getAISettings().showAdvancedSettingsDefault
+            showAdvancedSettings =
+                dependencyManager.preferences.getAISettings().showAdvancedSettingsDefault
         } catch (e: Exception) {
             Log.e("AIWritingDialog", "获取默认设置失败", e)
         }
@@ -180,7 +164,7 @@ fun AIWritingDialog(
                         else SnackBarUtils.showSnackBar("正在生成内容，请先点击「取消生成」或等待完成...")
                     }
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 输入区域 - 仅在未显示生成内容时显示
@@ -204,7 +188,7 @@ fun AIWritingDialog(
                         label = { Text(if (uiState.useImages) "提示词（可选）" else "提示词") },
                         placeholder = {
                             Text(
-                                if (uiState.useImages) "可选：补充说明或特定要求..." 
+                                if (uiState.useImages) "可选：补充说明或特定要求..."
                                 else "例如：今天去公园散步，看到美丽的花朵..."
                             )
                         },
@@ -231,7 +215,11 @@ fun AIWritingDialog(
                             historicalJournalsCount = uiState.historicalJournalsCount,
                             isLoading = uiState.isLoading,
                             onToggleUseHistoricalJournals = { viewModel.toggleUseHistoricalJournals() },
-                            onHistoricalJournalsCountChange = { viewModel.setHistoricalJournalsCount(it) }
+                            onHistoricalJournalsCountChange = {
+                                viewModel.setHistoricalJournalsCount(
+                                    it
+                                )
+                            }
                         )
                     }
                 }
@@ -613,7 +601,7 @@ private fun ThinkingProcessPanel(
 
     // 根据加载状态决定是否展开思考窗口，默认收起
     var isThinkingExpanded by remember { mutableStateOf(false) }
-    
+
     // 当加载状态发生变化时重新评估展开状态
     LaunchedEffect(isLoading) {
         // 只在加载状态改变时更新展开状态
@@ -682,7 +670,7 @@ private fun ContentDisplayPanel(
     modifier: Modifier = Modifier
 ) {
     if (content.isBlank()) return
-    
+
     Column(modifier = modifier) {
         Text(
             text = "生成内容",
@@ -737,7 +725,7 @@ private fun LoadingStatusBar(
     modifier: Modifier = Modifier
 ) {
     if (!isLoading) return
-    
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -760,7 +748,7 @@ private fun LoadingStatusBar(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            
+
             // 右侧显示中止按钮
             if (canCancel) {
                 Button(
@@ -920,7 +908,7 @@ private fun HistoricalJournalSettings(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
-                            onClick = { 
+                            onClick = {
                                 if (historicalJournalsCount > 1) {
                                     onHistoricalJournalsCountChange(historicalJournalsCount - 1)
                                 }
@@ -941,7 +929,7 @@ private fun HistoricalJournalSettings(
                         )
 
                         IconButton(
-                            onClick = { 
+                            onClick = {
                                 if (historicalJournalsCount < 10) {
                                     onHistoricalJournalsCountChange(historicalJournalsCount + 1)
                                 }

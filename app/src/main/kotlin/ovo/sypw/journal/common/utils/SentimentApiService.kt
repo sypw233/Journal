@@ -103,15 +103,15 @@ $text"""
 
             // 解析响应JSON
             val jsonResponse = JSONObject(responseBody)
-            
+
             // 获取模型返回的内容
             val content = jsonResponse.getJSONArray("choices")
                 .getJSONObject(0)
                 .getJSONObject("message")
                 .getString("content")
-            
+
             Log.d(TAG, "Raw content: $content")
-            
+
             // 处理可能包含Markdown格式的内容
             var jsonContent = content
             if (content.contains("```json")) {
@@ -126,13 +126,13 @@ $text"""
                     .trim()
                 Log.d(TAG, "Extracted code block: $jsonContent")
             }
-            
+
             // 解析JSON内容
             try {
                 val sentimentJson = JSONObject(jsonContent)
                 val label = sentimentJson.getString("label")
                 val score = sentimentJson.getInt("score")
-                
+
                 return@withContext SentimentResult(
                     label = label,
                     score = score
@@ -208,7 +208,7 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
 
         var retryCount = 0
         var lastException: Exception? = null
-        
+
         // 重试机制
         while (retryCount < maxRetries) {
             try {
@@ -223,15 +223,15 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
 
                 // 解析响应JSON
                 val jsonResponse = JSONObject(responseBody)
-                
+
                 // 获取模型返回的内容
                 val content = jsonResponse.getJSONArray("choices")
                     .getJSONObject(0)
                     .getJSONObject("message")
                     .getString("content")
-                
+
                 Log.d(TAG, "Batch Raw content: $content")
-                
+
                 // 处理可能包含Markdown格式的内容
                 var jsonContent = content
                 if (content.contains("```json")) {
@@ -246,19 +246,19 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
                         .trim()
                     Log.d(TAG, "Extracted code block: $jsonContent")
                 }
-                
+
                 // 解析JSON数组内容
                 try {
                     val resultsArray = JSONArray(jsonContent)
                     val results = mutableListOf<SentimentResult>()
-                    
+
                     for (i in 0 until resultsArray.length()) {
                         val item = resultsArray.getJSONObject(i)
                         val label = item.getString("label")
                         val score = item.getInt("score")
                         results.add(SentimentResult(label, score))
                     }
-                    
+
                     return@withContext results
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to parse JSON array: $jsonContent", e)
@@ -268,7 +268,7 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
                 lastException = e
                 Log.w(TAG, "批量分析尝试 ${retryCount + 1}/$maxRetries 失败: ${e.message}")
                 retryCount++
-                
+
                 if (retryCount < maxRetries) {
                     // 指数退避策略，每次重试等待时间增加
                     val delayTime = 2000L * (1 shl retryCount)
@@ -277,7 +277,7 @@ ${texts.mapIndexed { index, text -> "${index + 1}. $text" }.joinToString("\n")}"
                 }
             }
         }
-        
+
         // 所有重试都失败
         Log.e(TAG, "Batch analysis failed after $maxRetries retries", lastException)
         throw Exception("批量情感分析失败: ${lastException?.message}")

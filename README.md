@@ -1,102 +1,156 @@
-# Journal - Android Diary Application
+# Journal - 智能日记应用
 
-English | [简体中文](README_CN.md)
+## 🌟 项目概述
 
-## Overview
+Journal 是一款基于现代 Android 技术栈开发的智能日记应用，采用 **Jetpack Compose** 构建流畅的用户界面，集成 **AI 写作助手** 和 **情感分析** 功能，为用户提供智能化的日记记录体验。
 
-Journal is a modern Android diary application built with Jetpack Compose that allows users to
-create, manage, and organize their personal journal entries. The app provides a clean, intuitive
-interface for recording daily thoughts, attaching images, and tagging locations to preserve
-memories.
-
-## Preview
+## 📱 应用预览
 
 <table>
-<img src="README_IMAGES/image1.jpg" alt="Image1" width="40%">
-<img src="README_IMAGES/image2.jpg" alt="Image2" width="40%">
+<tr>
+<td><img src="README_IMAGES/image1.jpg" alt="主界面" width="300"/></td>
+<td><img src="README_IMAGES/image2.jpg" alt="编辑界面" width="300"/></td>
+</tr>
 </table>
 
-## Features
+## ✨ 核心特性
 
-### Core Functionality
+### 🤖 AI 智能功能
+- **AI 写作助手**: 集成百度千帆 API，支持基于历史日记和图片的智能内容生成
+- **情感分析**: 本地 TensorFlow Lite 模型 + 云端 API 双重情感识别
+- **智能标签**: 自动提取日记关键词和情感标签
+- **个性化建议**: 基于用户写作习惯的智能推荐
 
-- **Journal Entries**: Create and manage text-based journal entries
-- **Image Attachments**: Add multiple images to each journal entry
-- **Location Tagging**: Automatically or manually add location information to entries
-- **Date Selection**: Choose custom dates for journal entries
-- **Bookmark System**: Mark favorite entries for quick access
-- **Swipe Actions**: Intuitive swipe gestures for marking and deleting entries
+### 📝 日记管理
+- **富文本编辑**: 支持 Markdown 格式，提供丰富的文本编辑体验
+- **多媒体支持**: 图片附件管理，支持多张图片上传和预览
+- **位置标记**: 集成高德地图 SDK，自动或手动添加位置信息
+- **日期自定义**: 灵活的日期选择，支持补记历史日记
+- **收藏系统**: 标记重要日记，快速访问珍贵回忆
 
-### User Experience
+### 🎨 用户体验
+- **现代化 UI**: 完全基于 Jetpack Compose 构建的流畅界面
+- **手势交互**: 直观的滑动操作，支持标记和删除
+- **动画效果**: 精心设计的过渡动画和交互反馈
+- **响应式设计**: 适配不同屏幕尺寸和方向
+- **暗色主题**: 支持系统主题切换
 
-- **Modern UI**: Built entirely with Jetpack Compose for a fluid, modern interface
-- **Lazy Loading**: Efficient loading of journal entries with pagination support
-- **Smooth Animations**: Polished animations for card interactions and transitions
-- **Bottom Sheet**: Convenient entry creation via an expandable bottom sheet
-- **Snackbar Notifications**: User-friendly feedback with action support
+## 🏗️ 技术架构
 
-## Architecture
+### 核心技术栈
 
-The application follows a clean architecture approach with clear separation of concerns:
+| 技术领域 | 采用技术 | 版本 |
+|---------|---------|------|
+| **开发语言** | Kotlin | 2.0.21 |
+| **UI 框架** | Jetpack Compose | 2025.03.01 |
+| **架构模式** | MVVM + Clean Architecture | - |
+| **依赖注入** | Hilt (Dagger) | 2.51.1 |
+| **数据库** | Room | 2.6.1 |
+| **网络请求** | Retrofit + OkHttp | 2.11.0 / 4.12.0 |
+| **异步处理** | Kotlin Coroutines | - |
+| **图片加载** | Coil | 3.1.0 |
+| **AI 模型** | TensorFlow Lite | 2.15.0 |
 
-### Components
+### 架构设计
 
-- **UI Layer**: Compose-based UI components and screens
-- **Data Layer**: Room database for persistent storage
-- **Repository Pattern**: Abstraction layer between data sources and UI
-- **Utilities**: Helper classes for permissions, location, and image handling
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Presentation Layer                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   Compose   │  │  ViewModels │  │    UI Components    │ │
+│  │   Screens   │  │             │  │                     │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                     Domain Layer                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │ Use Cases   │  │ Repositories│  │     Models          │ │
+│  │             │  │ (Interfaces)│  │                     │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                      Data Layer                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │    Room     │  │   Remote    │  │      Utils          │ │
+│  │  Database   │  │     API     │  │                     │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Key Classes
+### 关键模块
 
-- `JournalData`: Core data model representing journal entries
-- `JournalDataSource`: Custom data source implementation with pagination
-- `JournalDatabase`: Room database implementation for data persistence
-- `MainScreen`: Primary UI container and navigation hub
-- `CustomLazyCardList`: Custom implementation of lazy loading list
+#### 🧠 AI 模块
+- **AIWritingViewModel**: 管理 AI 写作功能的状态和逻辑
+- **SentimentAnalysis**: 本地情感分析模型集成
+- **SentimentApiService**: 云端情感分析 API 调用
+- **智能推荐引擎**: 基于用户行为的个性化内容推荐
 
-## Technologies
+#### 💾 数据管理
+- **Room Database**: 本地数据持久化，支持数据库版本迁移
+- **Repository Pattern**: 数据访问抽象层，统一本地和远程数据源
+- **数据同步**: 自动备份和云端同步机制
 
-### Core Libraries
+#### 🎯 核心功能
+- **权限管理**: 动态权限请求和处理
+- **图片处理**: Base64 编码、压缩和缓存管理
+- **位置服务**: 高德地图集成，位置获取和地址解析
+- **主题系统**: 动态主题切换和自定义配色
 
-- **Jetpack Compose**: Modern UI toolkit for Android development
-- **Room**: SQLite object mapping library for local data persistence
-- **Coil**: Image loading library optimized for Compose
-- **AMap Location**: Location services integration (高德地图定位服务)
-- **Kotlin Coroutines**: Asynchronous programming
+## 🚀 技术亮点
 
-### Development Environment
+### 性能优化
+- **懒加载**: 使用 Paging 3 实现高效的列表分页加载
+- **内存管理**: 图片缓存策略和内存泄漏防护
+- **构建优化**: R8 代码混淆和资源压缩
+- **APK 拆分**: 基于 ABI 的多 APK 构建策略
 
-- Kotlin 1.9+
-- Android SDK 35 (Android 15)
-- Minimum SDK 29 (Android 10)
-- Gradle with Kotlin DSL
+### 安全特性
+- **数据加密**: 敏感数据本地加密存储
+- **网络安全**: HTTPS 强制和证书固定
+- **权限最小化**: 按需申请和使用权限
 
-## Getting Started
+### 开发体验
+- **模块化设计**: 清晰的代码组织和模块分离
+- **依赖注入**: Hilt 提供的编译时依赖检查
+- **类型安全**: Kotlin 的空安全和类型推断
+- **协程支持**: 结构化并发和异常处理
 
-### Prerequisites
+## 📊 项目统计
 
-- Android Studio Iguana (2023.2.1) or newer
-- JDK 21
+- **最低 Android 版本**: API 28 (Android 9.0)
+- **目标 Android 版本**: API 35 (Android 15)
+- **编译工具版本**: AGP 8.9.0
+- **Kotlin 版本**: 2.0.21
 
-### Installation
+## 🛠️ 开发环境
 
-1. Clone the repository
-2. Open the project in Android Studio
-3. Sync Gradle files
-4. Run the application on an emulator or physical device
+### 系统要求
+- Android Studio Ladybug | 2024.2.1+
+- JDK 21+
+- Android SDK 35+
+- Gradle 8.9+
 
-### Configuration
+### 快速开始
 
-To use location features, you need to configure AMap API:
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/yourusername/Journal.git
+   cd Journal
+   ```
 
-1. Obtain an API key from [AMap Developer Console](https://lbs.amap.com/)
-2. Uncomment and update the API key in AndroidManifest.xml
+2. **配置 API 密钥**
+   - 在 `app/src/main/kotlin/ovo/sypw/journal/common/APIKey.kt` 中配置相关 API 密钥
+   - 申请高德地图 API Key
+   - 配置百度千帆 API 访问权限
 
-## License
+3. **构建运行**
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📄 许可证
 
-## Acknowledgments
+本项目采用 [MIT License](LICENSE) 开源协议。
 
-- Icons from Material Design
-- Sample images included for testing purposes

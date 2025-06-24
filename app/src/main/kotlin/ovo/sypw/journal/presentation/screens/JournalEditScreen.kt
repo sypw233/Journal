@@ -21,7 +21,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,17 +32,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import ovo.sypw.journal.common.utils.AutoSaveManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
-import ovo.sypw.journal.data.JournalPreferences
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.data.model.LocationData
 import ovo.sypw.journal.presentation.components.JournalEditContent
 import ovo.sypw.journal.presentation.viewmodels.JournalEditViewModel
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
-import java.util.Date
-import javax.inject.Inject
 
 /**
  * 日记编辑界面
@@ -62,21 +56,21 @@ fun JournalEditScreen(
     BackHandler {
         onCancel()
     }
-    
+
     // 创建可变状态来存储编辑中的数据
     var editedText by remember { mutableStateOf(journalData.text) }
     var editedDate by remember { mutableStateOf(journalData.date) }
     var editedLocationName by remember { mutableStateOf(journalData.location?.name ?: "") }
     var editedLocationData by remember { mutableStateOf(journalData.location) }
     var editedImages by remember { mutableStateOf(journalData.images ?: mutableListOf()) }
-    
+
     // 保存状态
     var isSaving by remember { mutableStateOf(false) }
-    
+
     // 获取生命周期所有者
     val lifecycleOwner = LocalLifecycleOwner.current
     val autoSaveEnabled by editViewModel.autoSaveEnabled.collectAsStateWithLifecycle(initialValue = false)
-    
+
     // 自动保存功能
     DisposableEffect(lifecycleOwner) {
         if (autoSaveEnabled) {
@@ -92,18 +86,18 @@ fun JournalEditScreen(
                     location = editedLocationData
                         ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
                 )
-                
+
                 // 保存更新后的日记
                 onSave(updatedJournal)
             }
         }
-        
+
         // 清理
         onDispose {
             editViewModel.stopAutoSave()
         }
     }
-    
+
     // 如果保存成功，关闭界面
     LaunchedEffect(isSaving) {
         if (isSaving) {
@@ -117,7 +111,7 @@ fun JournalEditScreen(
                 location = editedLocationData
                     ?: (if (editedLocationName.isNotEmpty()) LocationData(name = editedLocationName) else null)
             )
-            
+
             // 保存更新后的日记
             onSave(updatedJournal)
             SnackBarUtils.showSnackBar("日记已保存")
@@ -125,7 +119,7 @@ fun JournalEditScreen(
             onCancel()
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -184,7 +178,7 @@ fun JournalEditScreen(
                     editedLocationName = updatedJournal.location?.name ?: ""
                     editedLocationData = updatedJournal.location
                     editedImages = updatedJournal.images ?: mutableListOf()
-                    
+
                     // 如果底部保存按钮被点击，则直接保存
                     onSave(updatedJournal)
                     isSaving = true

@@ -2,17 +2,8 @@ package ovo.sypw.journal.presentation.components
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.animation.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,11 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.presentation.viewmodels.JournalListViewModel
 import ovo.sypw.journal.presentation.viewmodels.SentimentViewModel
@@ -72,11 +60,11 @@ fun CustomLazyCardList(
 ) {
     // 从ViewModel获取UI状态
     val uiState by journalListViewModel.uiState.collectAsState()
-    
+
     // 编辑日记状态
     var showEditScreen by remember { mutableStateOf(false) }
     var editingJournal by remember { mutableStateOf<JournalData?>(null) }
-    
+
     // 情感分析对话框状态
     var showSentimentDialog by remember { mutableStateOf(false) }
     var selectedJournalForSentiment by remember { mutableStateOf<JournalData?>(null) }
@@ -130,21 +118,21 @@ fun CustomLazyCardList(
             journalListViewModel.resetScrollPosition()
         }
     }
-    
+
     // 处理删除确认对话框
     if (journalListViewModel.showDeleteConfirmDialog.value) {
         val journalId = journalListViewModel.journalToDelete.value
         val journalToDelete = journalList.find { it.id == journalId }
-        
+
         AlertDialog(
             onDismissRequest = { journalListViewModel.cancelDelete() },
             title = { Text("删除确认") },
-            text = { 
+            text = {
                 Text(
                     "确定要删除「${journalToDelete?.text?.take(20) ?: ""}${if ((journalToDelete?.text?.length ?: 0) > 20) "..." else ""}」吗？此操作无法撤销。",
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
-                ) 
+                )
             },
             confirmButton = {
                 Button(
@@ -261,14 +249,14 @@ fun CustomLazyCardList(
                     LoadingPlaceholder()
                 }
             }
-            
+
             // 如果正在搜索，显示搜索加载指示器
             if (uiState.isSearching) {
                 item {
                     LoadingPlaceholder()
                 }
             }
-            
+
             // 如果是搜索模式但没有结果，显示无结果提示
             if (uiState.isSearchMode && !uiState.isSearching && uiState.searchResults.isEmpty()) {
                 item {

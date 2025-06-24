@@ -61,8 +61,9 @@ class AIChatViewModel @Inject constructor(
     companion object {
         // 模型思考过程的键名
         private const val THINKING_KEY = "reasoning_content"
+
         // 默认系统提示语
-        private const val DEFAULT_SYSTEM_PROMPT ="你是一个智能助理"
+        private const val DEFAULT_SYSTEM_PROMPT = "你是一个智能助理"
 
     }
 
@@ -113,7 +114,7 @@ class AIChatViewModel @Inject constructor(
      */
     private fun getHistoryMessages(): JSONArray {
         val messagesArray = JSONArray()
-        
+
         // 添加系统消息
         val systemMessage = JSONObject()
         systemMessage.put("role", "system")
@@ -124,12 +125,12 @@ class AIChatViewModel @Inject constructor(
         systemContent.put(systemTextContent)
         systemMessage.put("content", systemContent)
         messagesArray.put(systemMessage)
-        
+
         // 如果启用了上下文
         if (_uiState.value.contextEnabled) {
             // 获取历史消息（排除最后一条用户消息，因为它会在调用方法中单独添加）
             val history = _uiState.value.messages.dropLast(1)
-            
+
             // 限制消息数量，只取最近的N条消息
             val maxMessages = _uiState.value.maxContextMessages
             val contextMessages = if (history.size > maxMessages) {
@@ -137,18 +138,18 @@ class AIChatViewModel @Inject constructor(
             } else {
                 history
             }
-            
+
             // 将历史消息添加到请求中
             for (message in contextMessages) {
                 val role = if (message.isUser) "user" else "assistant"
                 val messageObj = JSONObject()
                 messageObj.put("role", role)
-                
+
                 // 处理消息内容
                 if (message.images.isNotEmpty() && message.isUser) {
                     // 图片消息需要特殊处理
                     val content = JSONArray()
-                    
+
                     // 添加图片
                     for (imageUri in message.images) {
                         val imageBase64 = ImageBase64Utils.uriToBase64(context, imageUri)
@@ -161,7 +162,7 @@ class AIChatViewModel @Inject constructor(
                             content.put(imageContent)
                         }
                     }
-                    
+
                     // 添加文本
                     if (message.content.isNotBlank()) {
                         val textContent = JSONObject()
@@ -169,7 +170,7 @@ class AIChatViewModel @Inject constructor(
                         textContent.put("text", message.content)
                         content.put(textContent)
                     }
-                    
+
                     messageObj.put("content", content)
                 } else {
                     // 纯文本消息
@@ -180,11 +181,11 @@ class AIChatViewModel @Inject constructor(
                     content.put(textContent)
                     messageObj.put("content", content)
                 }
-                
+
                 messagesArray.put(messageObj)
             }
         }
-        
+
         return messagesArray
     }
 
@@ -456,7 +457,7 @@ class AIChatViewModel @Inject constructor(
             _uiState.update { it.copy(selectedModel = model) }
         }
     }
-    
+
     /**
      * 切换上下文功能
      * @param enabled 是否启用上下文
@@ -466,7 +467,7 @@ class AIChatViewModel @Inject constructor(
             currentState.copy(contextEnabled = enabled)
         }
     }
-    
+
     /**
      * 设置最大上下文消息数量
      * @param count 最大消息数量

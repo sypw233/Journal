@@ -46,14 +46,14 @@ fun SimplifiedSentimentView(
     ) {
         // 情感图标和类型
         SentimentHeader(sentimentData)
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // 情感得分条
         SentimentProgressBars(sentimentData)
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // 情感类型和主要情绪
         SentimentTypeRow(sentimentData)
     }
@@ -64,23 +64,26 @@ private fun SentimentHeader(data: SentimentData) {
     // 根据情感类型选择图标和颜色
     val (icon, color) = when (data.sentimentType) {
         SentimentType.POSITIVE -> Pair(
-            Icons.Default.SentimentSatisfied, 
+            Icons.Default.SentimentSatisfied,
             SentimentColors.POSITIVE
         )
+
         SentimentType.NEGATIVE -> Pair(
-            Icons.Default.SentimentVeryDissatisfied, 
+            Icons.Default.SentimentVeryDissatisfied,
             SentimentColors.NEGATIVE
         )
+
         SentimentType.NEUTRAL -> Pair(
-            Icons.Default.SentimentSatisfied, 
+            Icons.Default.SentimentSatisfied,
             SentimentColors.NEUTRAL
         )
+
         else -> Pair(
-            Icons.Default.SentimentSatisfied, 
+            Icons.Default.SentimentSatisfied,
             SentimentColors.UNKNOWN
         )
     }
-    
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
@@ -92,7 +95,7 @@ private fun SentimentHeader(data: SentimentData) {
             tint = color,
             modifier = Modifier.padding(end = 8.dp)
         )
-        
+
         Text(
             text = data.getSentimentDescription(),
             style = MaterialTheme.typography.titleMedium,
@@ -106,27 +109,27 @@ private fun SentimentHeader(data: SentimentData) {
 private fun SentimentProgressBars(data: SentimentData) {
     // 动画进度值
     val positiveProgress by animateFloatAsState(
-        targetValue = data.positiveScore, 
+        targetValue = data.positiveScore,
         label = "positive"
     )
     val negativeProgress by animateFloatAsState(
-        targetValue = data.negativeScore, 
+        targetValue = data.negativeScore,
         label = "negative"
     )
-    
+
     // 根据情感类型确定主要和次要进度条的标签和颜色
     val isNegativeType = data.sentimentType == SentimentType.NEGATIVE
-    
+
     // 第一个进度条（主要情感）
-    val firstLabel = if (isNegativeType) "消极" else "积极" 
+    val firstLabel = if (isNegativeType) "消极" else "积极"
     val firstColor = if (isNegativeType) SentimentColors.NEGATIVE else SentimentColors.POSITIVE
     val firstValue = positiveProgress  // 无论哪种类型，正面得分始终是 positiveProgress
-    
+
     // 第二个进度条（次要情感）
     val secondLabel = if (isNegativeType) "积极" else "消极"
     val secondColor = if (isNegativeType) SentimentColors.POSITIVE else SentimentColors.NEGATIVE
     val secondValue = negativeProgress  // 无论哪种类型，负面得分始终是 negativeProgress
-    
+
     // 主要情感进度条
     Row(
         modifier = Modifier
@@ -158,9 +161,9 @@ private fun SentimentProgressBars(data: SentimentData) {
             textAlign = TextAlign.End
         )
     }
-    
+
     Spacer(modifier = Modifier.height(8.dp))
-    
+
     // 次要情感进度条
     Row(
         modifier = Modifier
@@ -203,7 +206,7 @@ private fun SentimentTypeRow(data: SentimentData) {
         SentimentType.NEUTRAL -> SentimentColors.NEUTRAL
         else -> SentimentColors.UNKNOWN
     }
-    
+
     // 情感类型行
     Row(
         modifier = Modifier
@@ -219,20 +222,20 @@ private fun SentimentTypeRow(data: SentimentData) {
                 SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
                 else -> Icons.Default.SentimentSatisfied
             }
-            
+
             Icon(
                 imageVector = typeIcon,
                 contentDescription = "情感类型",
                 tint = sentimentColor,
                 modifier = Modifier.padding(end = 4.dp)
             )
-            
+
             Text(
                 text = "情感类型",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        
+
         Text(
             text = data.getSentimentDescription(),
             style = MaterialTheme.typography.bodyMedium,
@@ -240,9 +243,9 @@ private fun SentimentTypeRow(data: SentimentData) {
             color = sentimentColor
         )
     }
-    
+
     Spacer(modifier = Modifier.height(8.dp))
-    
+
     // 如果有主要情绪，显示主要情绪
     if (data.dominantEmotion.isNotEmpty()) {
         Row(
@@ -264,7 +267,7 @@ private fun SentimentTypeRow(data: SentimentData) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            
+
             Text(
                 text = data.dominantEmotion,
                 style = MaterialTheme.typography.bodyMedium,
@@ -273,22 +276,23 @@ private fun SentimentTypeRow(data: SentimentData) {
             )
         }
     }
-    
+
     Spacer(modifier = Modifier.height(8.dp))
-    
+
     // 根据情感类型决定得分显示顺序
     val isNegativeType = data.sentimentType == SentimentType.NEGATIVE
-    
+
     // 主要得分
     val firstScoreLabel = if (isNegativeType) "消极得分" else "积极得分"
     val firstScoreValue = data.positiveScore  // 无论哪种类型，正面得分始终是 data.positiveScore
     val firstScoreColor = if (isNegativeType) SentimentColors.NEGATIVE else SentimentColors.POSITIVE
-    
+
     // 次要得分
     val secondScoreLabel = if (isNegativeType) "积极得分" else "消极得分"
     val secondScoreValue = data.negativeScore  // 无论哪种类型，负面得分始终是 data.negativeScore
-    val secondScoreColor = if (isNegativeType) SentimentColors.POSITIVE else SentimentColors.NEGATIVE
-    
+    val secondScoreColor =
+        if (isNegativeType) SentimentColors.POSITIVE else SentimentColors.NEGATIVE
+
     // 主要得分行
     Row(
         modifier = Modifier
@@ -301,16 +305,16 @@ private fun SentimentTypeRow(data: SentimentData) {
             text = firstScoreLabel,
             style = MaterialTheme.typography.bodyMedium
         )
-        
+
         Text(
             text = String.format("%.2f", firstScoreValue),
             style = MaterialTheme.typography.bodyMedium,
             color = firstScoreColor
         )
     }
-    
+
     Spacer(modifier = Modifier.height(4.dp))
-    
+
     // 次要得分行
     Row(
         modifier = Modifier
@@ -323,7 +327,7 @@ private fun SentimentTypeRow(data: SentimentData) {
             text = secondScoreLabel,
             style = MaterialTheme.typography.bodyMedium
         )
-        
+
         Text(
             text = String.format("%.2f", secondScoreValue),
             style = MaterialTheme.typography.bodyMedium,

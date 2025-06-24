@@ -21,15 +21,18 @@ data class SentimentData(
         /**
          * 从API情感分析结果创建数据对象
          */
-        fun fromApiResult(journalId: Int, result: SentimentApiService.SentimentResult): SentimentData {
+        fun fromApiResult(
+            journalId: Int,
+            result: SentimentApiService.SentimentResult
+        ): SentimentData {
             // 计算正负面得分（API只返回一个总分）
             val normalizedScore = result.score / 100f
-            
+
             // 修复正负面得分的计算逻辑
             // API分数直接作为积极得分比例，消极得分为1减去积极得分
             val positiveScore = normalizedScore
             val negativeScore = 1f - normalizedScore
-            
+
             // 重新计算情感类型，确保与UI显示一致
             val type = when {
                 negativeScore >= 0.8f -> SentimentType.NEGATIVE    // 负面得分>=80%时为强烈消极
@@ -38,7 +41,7 @@ data class SentimentData(
                 positiveScore >= 0.6f -> SentimentType.POSITIVE    // 积极得分>=60%时为积极
                 else -> SentimentType.NEUTRAL                      // 其它情况为中性
             }
-            
+
             // 创建SentimentData对象，对于消极类型进行特殊处理
             return if (type == SentimentType.NEGATIVE) {
                 // 消极类型下，交换积极和消极得分以符合UI显示习惯
@@ -62,7 +65,7 @@ data class SentimentData(
                 )
             }
         }
-        
+
         /**
          * 创建一个中性的默认分析结果
          */
@@ -77,7 +80,7 @@ data class SentimentData(
             )
         }
     }
-    
+
     /**
      * 获取情感状态描述
      */
@@ -89,7 +92,7 @@ data class SentimentData(
             else -> "未知"
         }
     }
-    
+
     /**
      * 获取情绪描述
      */
@@ -100,14 +103,14 @@ data class SentimentData(
             getSentimentDescription()
         }
     }
-    
+
     /**
      * 获取可视化显示的积极情感百分比
      */
     fun getPositivePercentage(): Int {
         return (positiveScore * 100).toInt()
     }
-    
+
     /**
      * 获取可视化显示的消极情感百分比
      */

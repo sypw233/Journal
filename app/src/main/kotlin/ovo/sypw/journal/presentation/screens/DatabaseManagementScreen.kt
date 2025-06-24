@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
@@ -38,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,8 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.presentation.viewmodels.DatabaseCompareResult
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import java.io.File
@@ -72,7 +68,6 @@ fun DatabaseManagementScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-
 
 
     // 从ViewModel获取数据
@@ -120,7 +115,7 @@ fun DatabaseManagementScreen(
                 ) {
                     Text("上传数据库")
                 }
-                
+
                 Button(
                     onClick = { viewModel.syncDatabase() },
                     enabled = !isLoading
@@ -152,7 +147,7 @@ fun DatabaseManagementScreen(
                 ) {
                     Text("强制导出数据库")
                 }
-                
+
                 Button(
                     onClick = { viewModel.diagnoseDatabaseExport() },
                     enabled = !isLoading,
@@ -251,7 +246,7 @@ fun DatabaseManagementScreen(
                 }
             }
         }
-        
+
         // 显示数据库比较对话框
         if (compareResult != null) {
             DatabaseCompareDialog(
@@ -261,7 +256,7 @@ fun DatabaseManagementScreen(
                 onUseRemote = { viewModel.useRemoteDatabase() }
             )
         }
-        
+
         // 显示重启应用提示对话框
         if (showRestartDialog) {
             RestartAppDialog(
@@ -301,9 +296,9 @@ fun DatabaseCompareDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // 本地数据库信息
                 Text(
                     "本地数据库:",
@@ -312,9 +307,9 @@ fun DatabaseCompareDialog(
                 )
                 Text("条目数量: ${compareResult.localEntryCount}")
                 Text("最后修改: ${formatLocalDate(compareResult.localLastModified)}")
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // 远程数据库信息
                 Text(
                     "远程数据库:",
@@ -323,13 +318,14 @@ fun DatabaseCompareDialog(
                 )
                 Text("条目数量: ${compareResult.remoteEntryCount}")
                 Text("最后修改: ${formatDate(compareResult.remoteLastModified / 1000)}")  // 转换为秒
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // 推荐选择
-                val isRemoteNewer = compareResult.remoteLastModified > compareResult.localLastModified
+                val isRemoteNewer =
+                    compareResult.remoteLastModified > compareResult.localLastModified
                 val hasMoreEntries = compareResult.remoteEntryCount > compareResult.localEntryCount
-                
+
                 if (isRemoteNewer && hasMoreEntries) {
                     Text(
                         "推荐: 使用远程数据库（更新且条目更多）",

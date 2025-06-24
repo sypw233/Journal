@@ -22,15 +22,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import ovo.sypw.journal.common.theme.JournalTheme
 import ovo.sypw.journal.common.utils.AutoSyncManager
@@ -45,7 +43,6 @@ import ovo.sypw.journal.presentation.screens.SettingsScreen
 import ovo.sypw.journal.presentation.viewmodels.AIChatViewModel
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 import ovo.sypw.journal.presentation.viewmodels.MainViewModel
-import ovo.sypw.journal.JournalApplication
 
 /**
  * 主题数据类，包含主题的各项设置
@@ -61,33 +58,33 @@ data class ThemeSettings(
 class MainActivity : ComponentActivity() {
     // 使用Hilt注入ViewModel
     private val viewModel: MainViewModel by viewModels()
-    
+
     // 数据库管理ViewModel
     private val databaseManagementViewModel: DatabaseManagementViewModel by viewModels()
-    
+
     // 依赖管理器
     private val dependencyManager: AppDependencyManager by lazy {
         (application as JournalApplication).dependencyManager
     }
-    
+
     // 依赖项的快捷引用
     private val authService: AuthService
         get() = dependencyManager.authService
-    
+
     private val autoSyncManager: AutoSyncManager
         get() = dependencyManager.autoSyncManager
-        
+
     private val preferences: JournalPreferences
         get() = dependencyManager.preferences
-    
+
     // 主题设置状态流
     private val _themeSettings = MutableStateFlow(ThemeSettings())
     val themeSettings: StateFlow<ThemeSettings> = _themeSettings
-    
+
     // 用于定期检查token
     private val handler = Handler(Looper.getMainLooper())
     private val tokenCheckInterval = 30 * 60 * 1000L // 30分钟检查一次
-    
+
     // token检查任务
     private val tokenCheckRunnable = object : Runnable {
         override fun run() {
@@ -99,14 +96,14 @@ class MainActivity : ComponentActivity() {
             handler.postDelayed(this, tokenCheckInterval)
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         // 初始化主题设置
         updateThemeSettings()
-        
+
         // 监听SharedPreferences的变化
         lifecycleScope.launch {
             preferences.observeThemeChanges().collect { newThemeSettings ->
@@ -115,19 +112,19 @@ class MainActivity : ComponentActivity() {
                 _themeSettings.value = newThemeSettings
             }
         }
-        
+
         setContent {
             // 从状态流中获取实时主题设置
             val currentThemeSettings by themeSettings.collectAsState()
-            
+
             // 打印主题设置调试信息
             println("Applying theme: ${currentThemeSettings.primaryColorIndex}")
-            
+
             // 根据设置应用主题
             JournalTheme(
                 darkTheme = if (currentThemeSettings.useSystemTheme)
                     isSystemInDarkTheme()
-                else 
+                else
                     currentThemeSettings.useDarkTheme,
                 dynamicColor = false, // 禁用动态颜色，确保我们的颜色方案生效
                 colorIndex = currentThemeSettings.primaryColorIndex
@@ -142,11 +139,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        
+
         // 启动定期token检查
         startTokenCheck()
     }
-    
+
     /**
      * 初始化或更新主题设置状态
      */
@@ -157,7 +154,7 @@ class MainActivity : ComponentActivity() {
             primaryColorIndex = preferences.getPrimaryColorIndex()
         )
     }
-    
+
     override fun onResume() {
         super.onResume()
         // 应用回到前台时，立即验证token
@@ -167,20 +164,20 @@ class MainActivity : ComponentActivity() {
         // 刷新主题设置
         updateThemeSettings()
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         // 停止token检查
         stopTokenCheck()
     }
-    
+
     /**
      * 启动定期token检查
      */
     private fun startTokenCheck() {
         handler.postDelayed(tokenCheckRunnable, tokenCheckInterval)
     }
-    
+
     /**
      * 停止token检查
      */
@@ -205,19 +202,19 @@ fun AppNavHost(
         startDestination = "main",
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = EaseInOut)) +
-            scaleIn(initialScale = 0.95f, animationSpec = tween(300, easing = EaseInOut))
+                    scaleIn(initialScale = 0.95f, animationSpec = tween(300, easing = EaseInOut))
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300, easing = EaseOut)) + 
-            scaleOut(targetScale = 0.95f, animationSpec = tween(300, easing = EaseOut))
+            fadeOut(animationSpec = tween(300, easing = EaseOut)) +
+                    scaleOut(targetScale = 0.95f, animationSpec = tween(300, easing = EaseOut))
         },
         popEnterTransition = {
             fadeIn(animationSpec = tween(300, easing = EaseInOut)) +
-            scaleIn(initialScale = 0.95f, animationSpec = tween(300, easing = EaseInOut))
+                    scaleIn(initialScale = 0.95f, animationSpec = tween(300, easing = EaseInOut))
         },
         popExitTransition = {
             fadeOut(animationSpec = tween(300, easing = EaseOut)) +
-            scaleOut(targetScale = 0.95f, animationSpec = tween(300, easing = EaseOut))
+                    scaleOut(targetScale = 0.95f, animationSpec = tween(300, easing = EaseOut))
         }
     ) {
         // 主界面路由
@@ -247,41 +244,41 @@ fun AppNavHost(
                 navController = navController
             )
         }
-        
+
         // 设置界面路由
         composable(
             "settings",
             enterTransition = {
                 // 淡入并从底部滑入的组合动画
                 fadeIn(animationSpec = tween(300, easing = EaseInOut)) +
-                scaleIn(
-                    initialScale = 0.9f, 
-                    animationSpec = tween(300, easing = EaseInOut)
-                )
+                        scaleIn(
+                            initialScale = 0.9f,
+                            animationSpec = tween(300, easing = EaseInOut)
+                        )
             },
             exitTransition = {
                 // 淡出并向底部滑出的组合动画
                 fadeOut(animationSpec = tween(300, easing = EaseOut)) +
-                scaleOut(
-                    targetScale = 0.9f, 
-                    animationSpec = tween(300, easing = EaseOut)
-                )
+                        scaleOut(
+                            targetScale = 0.9f,
+                            animationSpec = tween(300, easing = EaseOut)
+                        )
             },
             popEnterTransition = {
                 // 返回时的淡入动画
                 fadeIn(animationSpec = tween(300, easing = EaseInOut)) +
-                scaleIn(
-                    initialScale = 0.9f, 
-                    animationSpec = tween(300, easing = EaseInOut)
-                )
+                        scaleIn(
+                            initialScale = 0.9f,
+                            animationSpec = tween(300, easing = EaseInOut)
+                        )
             },
             popExitTransition = {
                 // 返回时的淡出动画
                 fadeOut(animationSpec = tween(300, easing = EaseOut)) +
-                scaleOut(
-                    targetScale = 0.9f, 
-                    animationSpec = tween(300, easing = EaseOut)
-                )
+                        scaleOut(
+                            targetScale = 0.9f,
+                            animationSpec = tween(300, easing = EaseOut)
+                        )
             }
         ) {
             SettingsScreen(
@@ -296,34 +293,34 @@ fun AppNavHost(
             enterTransition = {
                 // 自定义进入动画：淡入并缩放
                 fadeIn(animationSpec = tween(400, easing = EaseInOut)) +
-                scaleIn(
-                    initialScale = 0.85f,
-                    animationSpec = tween(400, easing = EaseInOut)
-                )
+                        scaleIn(
+                            initialScale = 0.85f,
+                            animationSpec = tween(400, easing = EaseInOut)
+                        )
             },
             exitTransition = {
                 // 自定义退出动画：淡出并缩放
                 fadeOut(animationSpec = tween(400, easing = EaseOut)) +
-                scaleOut(
-                    targetScale = 0.85f,
-                    animationSpec = tween(400, easing = EaseOut)
-                )
+                        scaleOut(
+                            targetScale = 0.85f,
+                            animationSpec = tween(400, easing = EaseOut)
+                        )
             },
             popEnterTransition = {
                 // 返回时的进入动画
                 fadeIn(animationSpec = tween(400, easing = EaseInOut)) +
-                scaleIn(
-                    initialScale = 0.85f,
-                    animationSpec = tween(400, easing = EaseInOut)
-                )
+                        scaleIn(
+                            initialScale = 0.85f,
+                            animationSpec = tween(400, easing = EaseInOut)
+                        )
             },
             popExitTransition = {
                 // 返回时的退出动画
                 fadeOut(animationSpec = tween(400, easing = EaseOut)) +
-                scaleOut(
-                    targetScale = 0.85f,
-                    animationSpec = tween(400, easing = EaseOut)
-                )
+                        scaleOut(
+                            targetScale = 0.85f,
+                            animationSpec = tween(400, easing = EaseOut)
+                        )
             }
         ) {
             DatabaseManagementScreen(
@@ -331,7 +328,7 @@ fun AppNavHost(
                     navController.popBackStack()
                 })
         }
-        
+
         // 情感分析报告界面路由
         composable(
             "sentiment_report",
@@ -352,7 +349,7 @@ fun AppNavHost(
             popEnterTransition = {
                 // 返回时的动画
                 scaleIn(
-                    initialScale = 0.85f, 
+                    initialScale = 0.85f,
                     animationSpec = tween(350, easing = EaseInOut)
                 ) + fadeIn(animationSpec = tween(350))
             },
@@ -370,14 +367,14 @@ fun AppNavHost(
                 }
             )
         }
-        
+
         // AI聊天界面路由
         composable(
             "ai_chat",
             enterTransition = {
                 // 进入时的动画
                 scaleIn(
-                    initialScale = 0.85f, 
+                    initialScale = 0.85f,
                     animationSpec = tween(350, easing = EaseInOut)
                 ) + fadeIn(animationSpec = tween(350))
             },
@@ -391,7 +388,7 @@ fun AppNavHost(
             popEnterTransition = {
                 // 返回时的动画
                 scaleIn(
-                    initialScale = 0.85f, 
+                    initialScale = 0.85f,
                     animationSpec = tween(350, easing = EaseInOut)
                 ) + fadeIn(animationSpec = tween(350))
             },
@@ -405,9 +402,10 @@ fun AppNavHost(
         ) {
             // 创建AIChatViewModel
             val context = LocalContext.current
-            val appDepManager = remember { (context.applicationContext as JournalApplication).dependencyManager }
+            val appDepManager =
+                remember { (context.applicationContext as JournalApplication).dependencyManager }
             val chatViewModel = remember { AIChatViewModel(context, appDepManager) }
-            
+
             AIChatScreen(viewModel = chatViewModel)
         }
     }

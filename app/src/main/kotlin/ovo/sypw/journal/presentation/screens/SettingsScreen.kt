@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Check
@@ -40,14 +41,11 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
@@ -57,7 +55,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -81,7 +78,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -91,10 +92,6 @@ import ovo.sypw.journal.data.model.AIModels
 import ovo.sypw.journal.data.model.SettingsEvent
 import ovo.sypw.journal.presentation.components.SettingsItem
 import ovo.sypw.journal.presentation.viewmodels.SettingsViewModel
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * 设置界面
@@ -108,13 +105,13 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val sharedPrefs = context.getSharedPreferences("journal_prefs", Context.MODE_PRIVATE)
-    
+
     val uiState by viewModel.uiState.collectAsState()
     val needsRestart by viewModel.needsRestart.collectAsState()
-    
+
     // 重启提示对话框
     var showRestartDialog by remember { mutableStateOf(false) }
-    
+
     // 主题颜色选择对话框
     var showColorPickerDialog by remember { mutableStateOf(false) }
 
@@ -124,11 +121,11 @@ fun SettingsScreen(
     var colorEgg by remember { mutableIntStateOf(0) }
 
     // 从SharedPreferences获取API密钥
-    var apiKey by remember { 
-        mutableStateOf(sharedPrefs.getString("sentiment_api_key", "") ?: "") 
+    var apiKey by remember {
+        mutableStateOf(sharedPrefs.getString("sentiment_api_key", "") ?: "")
     }
     var passwordVisible by remember { mutableStateOf(false) }
-    
+
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
@@ -156,7 +153,7 @@ fun SettingsScreen(
             }
         )
     }
-    
+
     // 主题颜色选择对话框
     if (showColorPickerDialog) {
         ColorPickerDialog(
@@ -168,7 +165,7 @@ fun SettingsScreen(
             onDismiss = { showColorPickerDialog = false }
         )
     }
-    
+
     // AI模型选择对话框
     if (showModelPickerDialog) {
         AIModelPickerDialog(
@@ -180,7 +177,7 @@ fun SettingsScreen(
             onDismiss = { showModelPickerDialog = false }
         )
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -211,7 +208,7 @@ fun SettingsScreen(
                 text = "常规设置",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             // 外观设置
             SettingsCategory(
                 title = "外观设置",
@@ -222,7 +219,7 @@ fun SettingsScreen(
                     isDarkMode = if (uiState.useSystemTheme) isSystemInDarkTheme() else uiState.useDarkTheme,
                     primaryColor = getColorForIndex(uiState.primaryColorIndex)
                 )
-                
+
                 // 主题模式设置
                 SettingItem(
                     title = "深色模式",
@@ -238,14 +235,14 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.useDarkTheme,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetDarkTheme(it)) 
+                            onCheckedChange = {
+                                viewModel.handleEvent(SettingsEvent.SetDarkTheme(it))
                             },
                             enabled = !uiState.useSystemTheme
                         )
                     }
                 }
-                
+
                 // 跟随系统主题
                 SettingItem(
                     title = "跟随系统主题",
@@ -261,13 +258,13 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.useSystemTheme,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetUseSystemTheme(it)) 
+                            onCheckedChange = {
+                                viewModel.handleEvent(SettingsEvent.SetUseSystemTheme(it))
                             }
                         )
                     }
                 }
-                
+
                 // 主题颜色
                 SettingItem(
                     title = "主题颜色",
@@ -291,17 +288,17 @@ fun SettingsScreen(
                                 )
                                 .padding(4.dp)
                         )
-                        
+
                         Spacer(modifier = Modifier.width(8.dp))
-                        
+
                         Text(
                             text = viewModel.getThemeColors()[uiState.primaryColorIndex],
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         Spacer(modifier = Modifier.width(4.dp))
-                        
+
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = null,
@@ -310,7 +307,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            
+
             // 通用设置
             SettingsCategory(
                 title = "通用设置",
@@ -324,12 +321,12 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.autoSaveEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetAutoSave(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetAutoSave(it))
                         }
                     )
                 }
-                
+
                 // 自动保存间隔
                 SettingItem(
                     title = "自动保存间隔",
@@ -374,7 +371,7 @@ fun SettingsScreen(
                         }
                     }
                 }
-                
+
                 // 删除确认
                 SettingItem(
                     title = "删除确认",
@@ -383,13 +380,13 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.deleteConfirmationEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetDeleteConfirmation(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetDeleteConfirmation(it))
                         }
                     )
                 }
             }
-            
+
             // 同步设置
             SettingsCategory(
                 title = "同步设置",
@@ -403,12 +400,12 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.autoSyncEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetAutoSync(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetAutoSync(it))
                         }
                     )
                 }
-                
+
                 // 仅WiFi同步
                 SettingItem(
                     title = "仅WiFi下同步(待完成)",
@@ -418,13 +415,13 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.syncWifiOnly,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetSyncWifiOnly(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetSyncWifiOnly(it))
                         },
                         enabled = uiState.autoSyncEnabled
                     )
                 }
-                
+
                 // 立即同步
                 SettingButton(
                     title = "立即同步",
@@ -435,7 +432,7 @@ fun SettingsScreen(
                     viewModel.handleEvent(SettingsEvent.SyncNow)
                 }
             }
-            
+
             // 隐私设置
             SettingsCategory(
                 title = "隐私设置(待完成)",
@@ -449,12 +446,12 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.appLockEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetAppLock(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetAppLock(it))
                         }
                     )
                 }
-                
+
                 // 指纹解锁
                 SettingItem(
                     title = "指纹解锁",
@@ -464,13 +461,13 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.biometricAuthEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetBiometricAuth(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetBiometricAuth(it))
                         },
                         enabled = uiState.appLockEnabled
                     )
                 }
-                
+
                 // 隐私模式
                 SettingItem(
                     title = "隐私模式",
@@ -479,13 +476,13 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.privacyModeEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetPrivacyMode(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetPrivacyMode(it))
                         }
                     )
                 }
             }
-            
+
             // 存储设置
             SettingsCategory(
                 title = "存储设置(待完成)",
@@ -499,12 +496,12 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.compressImages,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetCompressImages(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetCompressImages(it))
                         }
                     )
                 }
-                
+
                 // 备份功能
                 SettingItem(
                     title = "自动备份",
@@ -513,12 +510,12 @@ fun SettingsScreen(
                 ) {
                     Switch(
                         checked = uiState.backupEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetBackupEnabled(it)) 
+                        onCheckedChange = {
+                            viewModel.handleEvent(SettingsEvent.SetBackupEnabled(it))
                         }
                     )
                 }
-                
+
                 // 立即备份
                 SettingButton(
                     title = "立即备份",
@@ -528,7 +525,7 @@ fun SettingsScreen(
                 ) {
                     viewModel.handleEvent(SettingsEvent.BackupNow)
                 }
-                
+
                 // 恢复备份
                 SettingButton(
                     title = "恢复备份",
@@ -539,7 +536,7 @@ fun SettingsScreen(
                     viewModel.handleEvent(SettingsEvent.RestoreBackup)
                 }
             }
-            
+
             // 通知设置
             SettingsCategory(
                 title = "通知设置",
@@ -557,15 +554,15 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                    Switch(
-                        checked = uiState.notificationsEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetNotifications(it)) 
-                        }
-                    )
+                        Switch(
+                            checked = uiState.notificationsEnabled,
+                            onCheckedChange = {
+                                viewModel.handleEvent(SettingsEvent.SetNotifications(it))
+                            }
+                        )
                     }
                 }
-                
+
                 SettingItem(
                     title = "日记提醒",
                     description = "每日提醒你记录日记",
@@ -578,15 +575,15 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                    Switch(
-                        checked = uiState.reminderEnabled,
-                        onCheckedChange = { 
-                            viewModel.handleEvent(SettingsEvent.SetReminder(it)) 
+                        Switch(
+                            checked = uiState.reminderEnabled,
+                            onCheckedChange = {
+                                viewModel.handleEvent(SettingsEvent.SetReminder(it))
                             }
                         )
                     }
                 }
-                
+
                 if (uiState.reminderEnabled) {
                     SettingItem(
                         title = "提醒时间",
@@ -604,7 +601,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            
+
             // AI设置
             SettingsCategory(
                 title = "AI写作设置",
@@ -626,7 +623,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 // 默认使用历史日记
                 SettingItem(
                     title = "默认使用历史日记参考",
@@ -642,13 +639,17 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.aiSettings.useHistoricalJournalsDefault,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetUseHistoricalJournalsDefault(it)) 
+                            onCheckedChange = {
+                                viewModel.handleEvent(
+                                    SettingsEvent.SetUseHistoricalJournalsDefault(
+                                        it
+                                    )
+                                )
                             }
                         )
                     }
                 }
-                
+
                 // 参考历史日记数量
                 if (uiState.aiSettings.useHistoricalJournalsDefault) {
                     SettingItem(
@@ -658,9 +659,16 @@ fun SettingsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
-                                onClick = { 
-                                    val newCount = (uiState.aiSettings.historicalJournalsCountDefault - 1).coerceAtLeast(1)
-                                    viewModel.handleEvent(SettingsEvent.SetHistoricalJournalsCountDefault(newCount))
+                                onClick = {
+                                    val newCount =
+                                        (uiState.aiSettings.historicalJournalsCountDefault - 1).coerceAtLeast(
+                                            1
+                                        )
+                                    viewModel.handleEvent(
+                                        SettingsEvent.SetHistoricalJournalsCountDefault(
+                                            newCount
+                                        )
+                                    )
                                 },
                                 enabled = uiState.aiSettings.historicalJournalsCountDefault > 1
                             ) {
@@ -669,17 +677,24 @@ fun SettingsScreen(
                                     contentDescription = "减少数量"
                                 )
                             }
-                            
+
                             Text(
                                 text = "${uiState.aiSettings.historicalJournalsCountDefault}",
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
-                            
+
                             IconButton(
-                                onClick = { 
-                                    val newCount = (uiState.aiSettings.historicalJournalsCountDefault + 1).coerceAtMost(10)
-                                    viewModel.handleEvent(SettingsEvent.SetHistoricalJournalsCountDefault(newCount))
+                                onClick = {
+                                    val newCount =
+                                        (uiState.aiSettings.historicalJournalsCountDefault + 1).coerceAtMost(
+                                            10
+                                        )
+                                    viewModel.handleEvent(
+                                        SettingsEvent.SetHistoricalJournalsCountDefault(
+                                            newCount
+                                        )
+                                    )
                                 },
                                 enabled = uiState.aiSettings.historicalJournalsCountDefault < 10
                             ) {
@@ -691,7 +706,7 @@ fun SettingsScreen(
                         }
                     }
                 }
-                
+
                 // 默认显示高级设置
                 SettingItem(
                     title = "默认显示高级设置",
@@ -707,13 +722,17 @@ fun SettingsScreen(
                         )
                         Switch(
                             checked = uiState.aiSettings.showAdvancedSettingsDefault,
-                            onCheckedChange = { 
-                                viewModel.handleEvent(SettingsEvent.SetShowAdvancedSettingsDefault(it)) 
+                            onCheckedChange = {
+                                viewModel.handleEvent(
+                                    SettingsEvent.SetShowAdvancedSettingsDefault(
+                                        it
+                                    )
+                                )
                             }
                         )
                     }
                 }
-                
+
                 // 内容长度上限
                 SettingItem(
                     title = "内容长度上限",
@@ -722,8 +741,9 @@ fun SettingsScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
-                            onClick = { 
-                                val newLength = (uiState.aiSettings.maxContentLength - 100).coerceAtLeast(200)
+                            onClick = {
+                                val newLength =
+                                    (uiState.aiSettings.maxContentLength - 100).coerceAtLeast(200)
                                 viewModel.handleEvent(SettingsEvent.SetMaxContentLength(newLength))
                             },
                             enabled = uiState.aiSettings.maxContentLength > 200
@@ -733,16 +753,17 @@ fun SettingsScreen(
                                 contentDescription = "减少长度"
                             )
                         }
-                        
+
                         Text(
                             text = "${uiState.aiSettings.maxContentLength}",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
-                        
+
                         IconButton(
-                            onClick = { 
-                                val newLength = (uiState.aiSettings.maxContentLength + 100).coerceAtMost(1000)
+                            onClick = {
+                                val newLength =
+                                    (uiState.aiSettings.maxContentLength + 100).coerceAtMost(1000)
                                 viewModel.handleEvent(SettingsEvent.SetMaxContentLength(newLength))
                             },
                             enabled = uiState.aiSettings.maxContentLength < 1000
@@ -755,7 +776,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            
+
             // 高级设置
             SettingsCategory(
                 title = "高级设置",
@@ -809,18 +830,18 @@ fun SettingsScreen(
                     viewModel.handleEvent(SettingsEvent.ResetSettings)
                 }
             }
-            
+
             // API设置
             Text(
                 text = "API设置",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             // 情感分析API密钥设置
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
-                label = { Text("情感分析API密钥") },
+                label = { Text("API密钥") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -833,7 +854,7 @@ fun SettingsScreen(
                     }
                 }
             )
-            
+
             Button(
                 onClick = {
                     // 保存API密钥到SharedPreferences
@@ -844,31 +865,26 @@ fun SettingsScreen(
             ) {
                 Text("保存API密钥")
             }
-            
-            Text(
-                text = "注意：API密钥用于情感分析功能，请从百度千帆平台获取",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
+
+
             // 关于
             Text(
                 text = "关于",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             SettingsItem(
                 title = "版本信息",
                 description = "查看应用版本和更新日志",
                 onClick = { viewModel.showVersionInfo() }
             )
-            
+
             SettingsItem(
                 title = "隐私政策",
                 description = "查看应用的隐私政策",
                 onClick = { viewModel.showPrivacyPolicy() }
             )
-            
+
             Spacer(modifier = Modifier.height(80.dp)) // 为FAB留出空间
         }
     }
@@ -887,7 +903,7 @@ fun SettingsCategory(
 ) {
     var expanded by remember { mutableStateOf(initialExpanded) }
     val rotationState by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "")
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -913,9 +929,9 @@ fun SettingsCategory(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
-                
+
                 Spacer(modifier = Modifier.padding(horizontal = 12.dp))
-                
+
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -923,7 +939,7 @@ fun SettingsCategory(
                     ),
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (expanded) "收起" else "展开",
@@ -932,7 +948,7 @@ fun SettingsCategory(
                 )
             }
         }
-        
+
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically() + fadeIn(),
@@ -982,7 +998,7 @@ fun SettingItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     }
-    
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
@@ -990,39 +1006,39 @@ fun SettingItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) 
-                MaterialTheme.colorScheme.primary 
-            else 
+            tint = if (enabled)
+                MaterialTheme.colorScheme.primary
+            else
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
-        
+
         Spacer(modifier = Modifier.padding(horizontal = 12.dp))
-        
+
         Column(
             modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
-                color = if (enabled) 
-                    MaterialTheme.colorScheme.onSurface 
-                else 
+                color = if (enabled)
+                    MaterialTheme.colorScheme.onSurface
+                else
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
-            
+
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (enabled) 
-                    MaterialTheme.colorScheme.onSurfaceVariant 
-                else 
+                color = if (enabled)
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                else
                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
-        
+
         control()
     }
-    
+
     HorizontalDivider(
         modifier = Modifier.padding(start = 56.dp, end = 16.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -1073,11 +1089,11 @@ fun ColorPickerDialog(
 ) {
     // 添加本地状态管理当前选中颜色
     var currentSelectedIndex by remember { mutableIntStateOf(selectedIndex) }
-    
+
     // 显示选中的颜色索引和名称，方便调试
     val colorName = colors[currentSelectedIndex]
     val colorText = "当前选择: $colorName (索引: $currentSelectedIndex)"
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("选择主题颜色", style = MaterialTheme.typography.headlineSmall) },
@@ -1094,7 +1110,7 @@ fun ColorPickerDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 // 颜色网格
                 Row(
                     modifier = Modifier
@@ -1106,14 +1122,14 @@ fun ColorPickerDialog(
                         ColorButton(
                             color = getColorForIndex(index),
                             isSelected = index == currentSelectedIndex,
-                            onClick = { 
+                            onClick = {
                                 currentSelectedIndex = index
                                 onColorSelected(index)
                             }
                         )
                     }
                 }
-                
+
                 if (colors.size > 5) {
                     Row(
                         modifier = Modifier
@@ -1125,7 +1141,7 @@ fun ColorPickerDialog(
                             ColorButton(
                                 color = getColorForIndex(index),
                                 isSelected = index == currentSelectedIndex,
-                                onClick = { 
+                                onClick = {
                                     currentSelectedIndex = index
                                     onColorSelected(index)
                                 }
@@ -1133,7 +1149,7 @@ fun ColorPickerDialog(
                         }
                     }
                 }
-                
+
                 // 重置按钮 - 恢复默认颜色
                 Button(
                     onClick = {
@@ -1150,17 +1166,17 @@ fun ColorPickerDialog(
                 ) {
                     Text("恢复默认颜色")
                 }
-                
+
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
-                
+
                 // 颜色列表
                 colors.forEachIndexed { index, colorName ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { 
+                            .clickable {
                                 currentSelectedIndex = index
                                 onColorSelected(index)
                             }
@@ -1176,17 +1192,17 @@ fun ColorPickerDialog(
                                     shape = CircleShape
                                 )
                         )
-                        
+
                         Spacer(modifier = Modifier.width(16.dp))
-                        
+
                         // 颜色名称
                         Text(
                             text = colorName,
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        
+
                         Spacer(modifier = Modifier.weight(1f))
-                        
+
                         // 选中标记
                         if (index == currentSelectedIndex) {
                             Icon(
@@ -1335,7 +1351,7 @@ fun ThemePreviewCard(
                         .height(12.dp)
                         .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                 )
-                
+
                 if (!isDarkMode) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -1350,7 +1366,7 @@ fun ThemePreviewCard(
                 }
             }
         }
-        
+
         // 深色主题预览
         Surface(
             modifier = Modifier
@@ -1385,7 +1401,7 @@ fun ThemePreviewCard(
                         .height(12.dp)
                         .background(Color.DarkGray.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                 )
-                
+
                 if (isDarkMode) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -1415,7 +1431,7 @@ fun AIModelPickerDialog(
 ) {
     // 获取按分类的模型列表
     val modelsByCategory = AIModels.getModelsByCategory()
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("选择AI模型") },
@@ -1435,7 +1451,7 @@ fun AIModelPickerDialog(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
-                    
+
                     // 分类下的模型列表
                     models.forEach { (modelId, displayName) ->
                         Row(
@@ -1449,7 +1465,7 @@ fun AIModelPickerDialog(
                                 selected = modelId == selectedModel,
                                 onClick = { onModelSelected(modelId) }
                             )
-                            
+
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
@@ -1458,14 +1474,14 @@ fun AIModelPickerDialog(
                                 // 提取模型名称和功能说明
                                 val nameWithDescription = displayName.split("（")
                                 val modelName = nameWithDescription[0]
-                                val modelDescription = if (nameWithDescription.size > 1) 
+                                val modelDescription = if (nameWithDescription.size > 1)
                                     "（${nameWithDescription[1]}" else ""
-                                
+
                                 Text(
                                     text = modelName,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
-                                
+
                                 if (modelDescription.isNotEmpty()) {
                                     Text(
                                         text = modelDescription,
@@ -1476,7 +1492,7 @@ fun AIModelPickerDialog(
                             }
                         }
                     }
-                    
+
                     // 类别分隔符
                     if (category != modelsByCategory.keys.last()) {
                         Spacer(modifier = Modifier.height(8.dp))

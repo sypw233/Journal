@@ -8,7 +8,6 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 // 默认紫色主题
@@ -53,7 +52,7 @@ private val GreenLightColorScheme = lightColorScheme(
 // 紫色主题
 private val PurpleDarkColorScheme = darkColorScheme(
     primary = DeepPurple80,
-    secondary = PurpleGrey80, 
+    secondary = PurpleGrey80,
     tertiary = Indigo80
 )
 
@@ -144,7 +143,10 @@ private val BlackLightColorScheme = lightColorScheme(
 /**
  * 根据颜色索引获取对应的颜色方案
  */
-private fun getColorSchemeForIndex(index: Int, isDark: Boolean): androidx.compose.material3.ColorScheme {
+private fun getColorSchemeForIndex(
+    index: Int,
+    isDark: Boolean
+): androidx.compose.material3.ColorScheme {
     return when (index) {
         0 -> if (isDark) DarkColorScheme else LightColorScheme // 默认紫色
         1 -> if (isDark) BlueDarkColorScheme else BlueLightColorScheme // 深蓝
@@ -170,12 +172,13 @@ fun JournalTheme(
 ) {
     // 添加日志或注释以确认颜色索引
     // println("JournalTheme: Using colorIndex=$colorIndex, darkTheme=$darkTheme, dynamicColor=$dynamicColor")
-    
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+
         else -> getColorSchemeForIndex(colorIndex, darkTheme)
     }
 

@@ -1,16 +1,11 @@
 package ovo.sypw.journal.presentation.screens
 
 import android.annotation.SuppressLint
-import android.util.Log
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.EaseOutQuad
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.overscroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,27 +27,21 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import ovo.sypw.journal.common.theme.VerticalOverscrollWithChange
 import ovo.sypw.journal.common.utils.AutoSyncManager
 import ovo.sypw.journal.common.utils.SnackBarUtils
 import ovo.sypw.journal.common.utils.TopSnackbarHost
 import ovo.sypw.journal.data.model.AuthState
-import ovo.sypw.journal.data.model.JournalData
 import ovo.sypw.journal.presentation.components.CustomLazyCardList
 import ovo.sypw.journal.presentation.components.JournalBottomSheet
 import ovo.sypw.journal.presentation.components.LoginDialog
@@ -70,7 +58,7 @@ private const val TAG = "MainScreen"
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = hiltViewModel(), 
+    viewModel: MainViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     journalListViewModel: JournalListViewModel = hiltViewModel(),
     databaseManagementViewModel: DatabaseManagementViewModel = viewModel(),
@@ -84,13 +72,13 @@ fun MainScreen(
 
     // 从ViewModel获取UI状态
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // 监听认证状态
     val authState by authViewModel.authState.collectAsState()
-    
+
     // 登录对话框状态
     var showLoginDialog by remember { mutableStateOf(false) }
-    
+
     // 当认证状态变为Unauthenticated且有错误消息时，显示登录对话框
     LaunchedEffect(authState) {
         if (authState is AuthState.Unauthenticated) {
@@ -102,7 +90,7 @@ fun MainScreen(
             }
         }
     }
-    
+
     // 显示登录对话框
     if (showLoginDialog) {
         LoginDialog(
@@ -167,24 +155,26 @@ private fun MainScreenContent(
 ) {
     // 获取JournalListViewModel的状态
     val journalListState by journalListViewModel.uiState.collectAsState()
-    
+
     // 获取标记的日记集合
     journalListState.markedItems
-    
+
     // 底部表单展开标志
     val isBottomSheetExpanded = state.isBottomSheetExpanded
-    
+
     // 搜索模式标志
     var showSearchBar by remember { mutableStateOf(false) }
-    
+
     // 用于记录搜索按钮位置的引用
-    val searchButtonPositionRef = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-    val searchBarIconPositionRef = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-    
+    val searchButtonPositionRef =
+        remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    val searchBarIconPositionRef =
+        remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+
     // 用于控制搜索图标的动画
     remember { Animatable(0f) }
     val alphaAnimation = remember { Animatable(1f) }
-    
+
     // 当搜索栏状态变化时，触发动画
     LaunchedEffect(showSearchBar) {
         if (showSearchBar) {
@@ -195,7 +185,7 @@ private fun MainScreenContent(
             alphaAnimation.animateTo(1f, animationSpec = tween(300))
         }
     }
-    
+
     // 显示添加日记对话框
     JournalBottomSheet(
         isVisible = isBottomSheetExpanded,
@@ -269,7 +259,7 @@ private fun MainScreenContent(
     ) { innerPadding ->
         // 用于检测点击搜索区域外的部分
         val interactionSource = remember { MutableInteractionSource() }
-        
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -295,10 +285,10 @@ private fun MainScreenContent(
                 // 搜索栏显示在顶部栏下方
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showSearchBar || journalListState.isSearchMode,
-                    enter = androidx.compose.animation.expandVertically() + 
-                           androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.shrinkVertically() + 
-                           androidx.compose.animation.fadeOut()
+                    enter = androidx.compose.animation.expandVertically() +
+                            androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.shrinkVertically() +
+                            androidx.compose.animation.fadeOut()
                 ) {
                     Box(
                         modifier = Modifier
@@ -318,7 +308,7 @@ private fun MainScreenContent(
                         )
                     }
                 }
-                
+
                 // 日记列表
                 Box(
                     modifier = Modifier
@@ -331,7 +321,7 @@ private fun MainScreenContent(
                         listState = listState,
                         journalListViewModel = journalListViewModel,
                         sentimentViewModel = hiltViewModel(),
-                        onItemClick = { item -> 
+                        onItemClick = { item ->
                         },
                         onRefresh = {
                             // 刷新列表

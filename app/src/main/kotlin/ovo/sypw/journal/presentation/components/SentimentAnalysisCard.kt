@@ -6,7 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +50,7 @@ import ovo.sypw.journal.data.model.SentimentData
 
 /**
  * 情感分析结果卡片
- * 
+ *
  * @param sentimentData 情感分析数据
  * @param isAnalyzing 是否正在分析中
  * @param expanded 是否展开显示详细信息
@@ -67,7 +66,7 @@ fun SentimentAnalysisCard(
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(expanded) }
-    
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -102,20 +101,20 @@ fun SentimentAnalysisCard(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 Row {
                     // 重新分析按钮
                     IconButton(onClick = onReAnalyze, enabled = !isAnalyzing) {
                         Icon(
                             imageVector = Icons.Default.Favorite,
                             contentDescription = "重新分析",
-                            tint = if (isAnalyzing) 
+                            tint = if (isAnalyzing)
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                            else 
+                            else
                                 MaterialTheme.colorScheme.primary
                         )
                     }
-                    
+
                     // 展开/收起按钮
                     IconButton(onClick = { isExpanded = !isExpanded }) {
                         Icon(
@@ -126,9 +125,9 @@ fun SentimentAnalysisCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // 加载中显示
             if (isAnalyzing) {
                 Box(
@@ -151,7 +150,7 @@ fun SentimentAnalysisCard(
                         )
                     }
                 }
-            } 
+            }
             // 无数据显示
             else if (sentimentData == null) {
                 Box(
@@ -167,7 +166,7 @@ fun SentimentAnalysisCard(
                         textAlign = TextAlign.Center
                     )
                 }
-            } 
+            }
             // 错误状态
             else if (sentimentData.sentimentType == SentimentType.UNKNOWN) {
                 Box(
@@ -197,7 +196,7 @@ fun SentimentAnalysisCard(
             else {
                 // 简要结果
                 SentimentSummary(sentimentData)
-                
+
                 // 详细结果（可展开/收起）
                 AnimatedVisibility(
                     visible = isExpanded,
@@ -226,14 +225,14 @@ private fun SentimentSummary(data: SentimentData) {
         SentimentType.NEGATIVE -> Icons.Default.SentimentVeryDissatisfied
         else -> Icons.Default.SentimentSatisfied
     }
-    
+
     val sentimentColor = when (data.sentimentType) {
         SentimentType.POSITIVE -> Color(0xFF4CAF50)  // 绿色
         SentimentType.NEGATIVE -> Color(0xFFF44336)  // 红色
         SentimentType.NEUTRAL -> Color(0xFF9E9E9E)   // 灰色
         SentimentType.UNKNOWN -> Color(0xFF9E9E9E)   // 灰色
     }
-    
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -250,7 +249,7 @@ private fun SentimentSummary(data: SentimentData) {
                 tint = sentimentColor,
                 modifier = Modifier.padding(end = 12.dp)
             )
-            
+
             Text(
                 text = if (data.dominantEmotion.isNotEmpty()) {
                     data.dominantEmotion
@@ -262,19 +261,19 @@ private fun SentimentSummary(data: SentimentData) {
                 color = sentimentColor
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         // 情感得分条
         val positiveProgress by animateFloatAsState(
-            targetValue = data.positiveScore, 
+            targetValue = data.positiveScore,
             label = "positive"
         )
         val negativeProgress by animateFloatAsState(
-            targetValue = data.negativeScore, 
+            targetValue = data.negativeScore,
             label = "negative"
         )
-        
+
         // 积极得分条
         Row(
             modifier = Modifier
@@ -303,9 +302,9 @@ private fun SentimentSummary(data: SentimentData) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         // 消极得分条
         Row(
             modifier = Modifier
@@ -358,7 +357,7 @@ private fun SentimentDetails(data: SentimentData) {
                 SentimentType.UNKNOWN -> Color(0xFF9E9E9E)
             }
         )
-        
+
         if (data.dominantEmotion.isNotEmpty()) {
             DetailRow(
                 title = "主要情绪",
@@ -367,13 +366,13 @@ private fun SentimentDetails(data: SentimentData) {
                 iconTint = MaterialTheme.colorScheme.primary
             )
         }
-        
+
         DetailRow(
             title = "积极得分",
             value = String.format("%.2f", data.positiveScore),
             valueColor = Color(0xFF4CAF50)
         )
-        
+
         DetailRow(
             title = "消极得分",
             value = String.format("%.2f", data.negativeScore),
@@ -407,14 +406,14 @@ private fun DetailRow(
                 modifier = Modifier.padding(end = 8.dp)
             )
         }
-        
+
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
-        
+
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,

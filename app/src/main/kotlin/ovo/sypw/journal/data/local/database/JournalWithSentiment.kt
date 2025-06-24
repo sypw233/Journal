@@ -12,7 +12,7 @@ import ovo.sypw.journal.data.model.SentimentData
 data class JournalWithSentiment(
     @Embedded
     val journal: JournalEntity,
-    
+
     @Relation(
         parentColumn = "id",
         entityColumn = "journalId"

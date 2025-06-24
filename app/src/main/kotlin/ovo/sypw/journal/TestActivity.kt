@@ -9,7 +9,6 @@ import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
 import ovo.sypw.journal.common.theme.JournalTheme
 import ovo.sypw.journal.common.utils.AMapLocationUtils
-import ovo.sypw.journal.presentation.screens.DatabaseManagementScreen
 import ovo.sypw.journal.presentation.viewmodels.DatabaseManagementViewModel
 
 @AndroidEntryPoint

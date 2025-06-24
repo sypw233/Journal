@@ -15,23 +15,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.outlined.ViewColumn
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,7 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -49,7 +45,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -78,35 +73,35 @@ fun FullScreenTextEditor(
     var text by remember { mutableStateOf(initialText) }
     var showPreview by remember { mutableStateOf(isMarkdown && initialText.isNotEmpty()) }
     var splitView by remember { mutableStateOf(isMarkdown && initialText.isNotEmpty()) }
-    
+
     // 创建动画状态
     val animationState = remember { MutableTransitionState(false) }
-    
+
     // 当isVisible变为true时，开始显示动画
     LaunchedEffect(isVisible) {
         if (isVisible) {
             animationState.targetState = true
         }
     }
-    
+
     // 处理关闭动画
     fun handleDismiss() {
         animationState.targetState = false
     }
-    
+
     // 监听动画状态，当动画完全消失时调用onDismiss
     LaunchedEffect(animationState.currentState) {
         if (!animationState.currentState && !animationState.targetState) {
             onDismiss()
         }
     }
-    
+
     AnimatedVisibility(
         visibleState = animationState,
-        enter = fadeIn(tween(200)) + scaleIn(tween(300), initialScale = 0.9f) + 
-               slideInVertically(tween(300)) { it / 10 },
-        exit = fadeOut(tween(200)) + scaleOut(tween(300), targetScale = 0.9f) + 
-               slideOutVertically(tween(300)) { it / 10 }
+        enter = fadeIn(tween(200)) + scaleIn(tween(300), initialScale = 0.9f) +
+                slideInVertically(tween(300)) { it / 10 },
+        exit = fadeOut(tween(200)) + scaleOut(tween(300), targetScale = 0.9f) +
+                slideOutVertically(tween(300)) { it / 10 }
     ) {
         Dialog(
             onDismissRequest = { handleDismiss() },
@@ -133,7 +128,7 @@ fun FullScreenTextEditor(
                             // Markdown预览模式切换按钮
                             if (isMarkdown) {
                                 // 分屏切换按钮
-                                IconButton(onClick = { 
+                                IconButton(onClick = {
                                     splitView = !splitView
                                     if (splitView) showPreview = true
                                 }) {
@@ -142,7 +137,7 @@ fun FullScreenTextEditor(
                                         contentDescription = if (splitView) "单屏模式" else "分屏模式"
                                     )
                                 }
-                                
+
                                 // 预览切换按钮（仅在非分屏模式下显示）
                                 if (!splitView) {
                                     IconButton(onClick = { showPreview = !showPreview }) {
@@ -153,7 +148,7 @@ fun FullScreenTextEditor(
                                     }
                                 }
                             }
-                            
+
                             // 确认按钮
                             IconButton(onClick = {
                                 onTextChanged(text)
@@ -201,7 +196,7 @@ fun FullScreenTextEditor(
                                     )
                                 )
                             }
-                            
+
                             // 分隔线
                             Box(
                                 modifier = Modifier
@@ -209,7 +204,7 @@ fun FullScreenTextEditor(
                                     .fillMaxHeight()
                                     .background(MaterialTheme.colorScheme.outlineVariant)
                             )
-                            
+
                             // 预览区域
                             Box(
                                 modifier = Modifier
